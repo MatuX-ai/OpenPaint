@@ -1,0 +1,6 @@
+# 忽略 ESLint 检查的文件
+dist/
+node_modules/
+*.config.ts
+*.config.js
+coverage/

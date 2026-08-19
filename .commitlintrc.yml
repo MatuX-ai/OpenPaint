@@ -1,0 +1,46 @@
+# Commitlint 配置
+# 详细规范：参见 CONTRIBUTING.md §4
+
+extends:
+  - '@commitlint/config-conventional'
+
+rules:
+  type-enum:
+    - 2
+    - always
+    - [
+        'feat',     # 新功能
+        'fix',      # Bug 修复
+        'docs',     # 文档更新
+        'style',    # 代码格式
+        'refactor', # 重构
+        'perf',     # 性能优化
+        'test',     # 测试
+        'chore',    # 构建/工具/依赖
+        'revert',   # 回滚
+        'ci'        # CI 配置
+      ]
+
+  scope-enum:
+    - 2
+    - always
+    - [
+        'canvas',
+        'agent',
+        'gallery',
+        'frontend',
+        'tools',
+        'build',
+        'docs',
+        'ci'
+      ]
+
+  subject-max-length:
+    - 2
+    - always
+    - 72
+
+  header-max-length:
+    - 2
+    - always
+    - 100

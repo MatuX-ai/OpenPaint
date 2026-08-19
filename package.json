@@ -1,0 +1,36 @@
+{
+  "name": "openpaint",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenPaint — 开源 AI 原生设计工作台",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @openpaint/web dev",
+    "build:web": "pnpm --filter @openpaint/web build",
+    "preview:web": "pnpm --filter @openpaint/web preview",
+    "type-check": "pnpm --filter @openpaint/web type-check",
+    "lint": "pnpm --filter @openpaint/web lint",
+    "lint:fix": "pnpm --filter @openpaint/web lint:fix",
+    "format": "prettier --write \"**/*.{ts,vue,scss,md,json,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,vue,scss,md,json,yaml,yml}\"",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "test:unit": "pnpm --filter @openpaint/web test:unit",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/node": "^20.11.0",
+    "conventional-changelog-cli": "^4.1.0",
+    "prettier": "^3.2.0"
+  },
+  "workspaces": [
+    "src-web"
+  ]
+}

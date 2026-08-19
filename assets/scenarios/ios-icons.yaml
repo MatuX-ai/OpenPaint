@@ -1,0 +1,35 @@
+# ============================================================
+# AI 场景：iOS 图标批量导出
+# Hermes Agent 自动加载并理解此场景
+# ============================================================
+
+name: "导出 iOS 图标"
+description: "将当前选中 Logo 导出为 iOS 全部尺寸，并归档到图库（统一标签）"
+
+# 此场景使用的原子工具
+tools:
+  - get_canvas_selection
+  - send_to_ai_engine
+  - get_current_svg
+  - render_svg_to_png
+  - save_to_gallery
+
+# 场景参数
+sizes:
+  - 20
+  - 29
+  - 40
+  - 60
+  - 76
+  - 83.5
+  - 1024
+
+# 默认标签
+default_tags:
+  - "ios"
+  - "icon"
+
+# 场景示例提示词（供 LLM 参考）
+example_prompts:
+  - "导出 iOS 全部尺寸，标签 'V2.0 正式版'"
+  - "把当前 Logo 输出成 iOS App Icon"

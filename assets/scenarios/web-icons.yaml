@@ -1,0 +1,28 @@
+# ============================================================
+# AI 场景：Web 图标批量导出
+# ============================================================
+
+name: "导出 Web 图标"
+description: "将当前选中 Logo 导出为 Web 平台图标（含 Favicon、Manifest）"
+
+tools:
+  - get_canvas_selection
+  - get_current_svg
+  - render_svg_to_png
+  - save_to_gallery
+
+sizes:
+  - 16
+  - 32
+  - 48
+  - 180
+  - 192
+  - 512
+
+default_tags:
+  - "web"
+  - "favicon"
+
+example_prompts:
+  - "导出 Web 全部尺寸"
+  - "生成 Favicon 和 Manifest 图标"

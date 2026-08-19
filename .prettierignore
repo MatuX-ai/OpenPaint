@@ -1,0 +1,10 @@
+dist/
+node_modules/
+target/
+src-tauri/target/
+*.lock
+pnpm-lock.yaml
+*.min.js
+*.min.css
+public/logo.svg
+CHANGELOG.md

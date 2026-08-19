@@ -1,0 +1,58 @@
+# ============================================================
+# OpenPaint .gitignore
+# ============================================================
+
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 构建产物
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Rust / Cargo
+src-tauri/target/
+src-tauri/Cargo.lock
+**/*.rs.bk
+
+# Tauri
+src-tauri/gen/schemas/
+
+# 环境变量与本地配置
+.env
+.env.local
+.env.*.local
+*.local.yaml
+
+# 日志与临时文件
+*.log
+logs/
+*.tmp
+*.swp
+*.swo
+
+# IDE / 编辑器
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# Hermes Agent 二进制（仅保留 README 说明）
+src-tauri/bin/hermes*
+src-tauri/bin/*.exe
+!src-tauri/bin/.gitkeep
+
+# 缩略图缓存
+.tmp_thumbs/
+
+# 图库运行时数据（开发期可忽略）
+.openpaint-dev/

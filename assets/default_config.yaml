@@ -1,0 +1,36 @@
+# ============================================================
+# OpenPaint 默认配置文件
+# 首次启动时由 src-tauri/src/config/mod.rs 生成至 ~/.openpaint/config.yaml
+# ============================================================
+
+# 大模型配置（用户可修改，参考 DeepSeek Harness 模式）
+llm:
+  provider: "openai"  # openai | anthropic | deepseek | ollama
+  api_key: ""         # 留空时 AI 助理自动降级为 mock
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+
+  # Ollama 本地模型（仅 provider=ollama 时使用）
+  local_model: "qwen2.5:7b"
+  local_url: "http://localhost:11434"
+
+# 预设尺寸模板
+presets:
+  web: [16, 32, 48, 180, 192, 512]
+  ios: [20, 29, 40, 60, 76, 83.5, 1024]
+  android: [48, 72, 96, 144, 192, 512]
+  favicon: [16, 32, 64]
+
+# 图库设置
+gallery:
+  max_items: 500
+  thumbnail_size: 256
+  storage_path: "~/.openpaint/gallery"
+
+# MCP 服务器配置
+mcp:
+  servers:
+    - name: "openpaint-tools"
+      enabled: true
+    - name: "filesystem"
+      enabled: false

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenPaint",
+  "version": "0.1.0",
+  "identifier": "dev.openpaint.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev:web",
+    "beforeBuildCommand": "pnpm build:web",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../src-web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "OpenPaint — AI 原生设计工作台",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$HOME/.openpaint/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "bin/": "./bin/"
+    },
+    "category": "Graphics",
+    "shortDescription": "开源 AI 原生设计工作台",
+    "longDescription": "OpenPaint 是一个开源 AI 原生设计工作台，将像素级图像编辑与 AI 大模型的生成能力无缝融合。",
+    "publisher": "OpenPaint Contributors",
+    "copyright": "Copyright (c) 2026 OpenPaint Contributors",
+    "licenseFile": "../LICENSE"
+  },
+  "plugins": {
+    "log": {
+      "level": "info",
+      "targets": [
+        {
+          "kind": "Stdout"
+        },
+        {
+          "kind": "File",
+          "path": "/tmp/openpaint/app.log"
+        }
+      ]
+    },
+    "store": {},
+    "fs": {
+      "scope": {
+        "allow": [
+          "$HOME/.openpaint/**",
+          "$APPDATA/openpaint/**",
+          "$APPLOCALDATA/openpaint/**",
+          "$APPCONFIG/openpaint/**"
+        ]
+      }
+    }
+  }
+}

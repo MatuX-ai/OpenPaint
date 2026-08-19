@@ -1,0 +1,95 @@
+# ============================================================
+# OpenPaint 后端依赖（src-tauri/Cargo.toml）
+# ============================================================
+
+[package]
+name = "openpaint"
+version = "0.1.0"
+description = "OpenPaint — 开源 AI 原生设计工作台"
+authors = ["OpenPaint Contributors"]
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+repository = "https://github.com/your-org/openpaint"
+homepage = "https://openpaint.dev"
+keywords = ["design", "canvas", "ai", "tauri", "mcp"]
+categories = ["multimedia", "graphics", "design"]
+
+# 二进制入口
+[[bin]]
+name = "openpaint"
+path = "src/main.rs"
+
+# MCP 服务器子命令入口（阶段二）
+[[bin]]
+name = "openpaint-mcp"
+path = "src/bin/mcp.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# --- Tauri 核心 ---
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-log = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-store = "2"
+tauri-plugin-dialog = "2"
+
+# --- 序列化 / 异步运行时 ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+
+# --- 数据库 ---
+rusqlite = { version = "0.31", features = ["bundled"] }
+parking_lot = "0.12"
+
+# --- 图像处理 ---
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+resvg = "0.43"
+usvg = "0.43"
+base64 = "0.22"
+
+# --- 系统 ---
+dirs = "5"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# --- 进程间通信 ---
+rmp-serde = "1"
+
+# --- HTTP 客户端（Week 5：真实 LLM 调用） ---
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "blocking"] }
+futures-util = "0.3"
+
+# --- 阶段二/三 引入（特性开关） ---
+lancedb = { version = "0.23", optional = true }
+
+[features]
+# 默认特性
+default = []
+
+# 启用 LanceDB 向量搜索（阶段三）
+vector-search = ["lancedb"]
+
+# MCP 服务器模式
+mcp-server = []
+
+# 自定义协议（截图、文件读取）
+custom-protocol = []
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
+[profile.dev]
+incremental = true
