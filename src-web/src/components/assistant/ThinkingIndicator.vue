@@ -9,7 +9,9 @@ defineProps<{ text?: string }>();
 <template>
   <div class="thinking-indicator">
     <span class="thinking-indicator__dots">
-      <i /><i /><i />
+      <i />
+      <i />
+      <i />
     </span>
     <span v-if="text" class="thinking-indicator__text">{{ text }}</span>
   </div>
@@ -35,14 +37,26 @@ defineProps<{ text?: string }>();
       background: var(--accent);
       animation: bounce 1.2s infinite ease-in-out;
 
-      &:nth-child(2) { animation-delay: 0.15s; }
-      &:nth-child(3) { animation-delay: 0.3s; }
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
     }
   }
 }
 
 @keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 </style>

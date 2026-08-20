@@ -12,7 +12,10 @@ const props = defineProps<{ item: GalleryItem | null; png?: string }>();
 const emit = defineEmits<{ close: []; 'paste-to-canvas': [item: GalleryItem] }>();
 
 const visible = computed(() => !!props.item);
-const imgSrc = computed(() => props.png || (props.item?.thumbnailPath.startsWith('data:') ? props.item.thumbnailPath : ''));
+const imgSrc = computed(
+  () =>
+    props.png || (props.item?.thumbnailPath.startsWith('data:') ? props.item.thumbnailPath : ''),
+);
 
 const copied = ref(false);
 async function copyPrompt() {
@@ -78,7 +81,9 @@ watch(visible, (v) => {
             <div v-if="item?.tags?.length" class="gallery-detail__row">
               <dt>标签</dt>
               <dd class="gallery-detail__tags">
-                <span v-for="tag in item.tags" :key="tag" class="gallery-detail__tag">{{ tag }}</span>
+                <span v-for="tag in item.tags" :key="tag" class="gallery-detail__tag">
+                  {{ tag }}
+                </span>
               </dd>
             </div>
           </dl>

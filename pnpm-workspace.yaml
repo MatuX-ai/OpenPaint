@@ -3,12 +3,12 @@
 # ============================================================
 
 packages:
-  - 'src-web'
-  - 'src-tauri/bin/plugins/*'
+  - "src-web"
+  - "src-tauri/bin/plugins/*"
 
 # 禁止提升未声明依赖，避免幽灵依赖
 hoistPattern:
-  - '*types*'
-  - '*eslint*'
-  - '*prettier*'
-  - '@vue/*'
+  - "*types*"
+  - "*eslint*"
+  - "*prettier*"
+  - "@vue/*"

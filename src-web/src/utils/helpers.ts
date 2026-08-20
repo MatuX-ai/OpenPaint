@@ -7,7 +7,7 @@
  */
 export function debounce<T extends (...args: never[]) => void>(
   fn: T,
-  delay = 200
+  delay = 200,
 ): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   return (...args: Parameters<T>) => {
@@ -21,7 +21,7 @@ export function debounce<T extends (...args: never[]) => void>(
  */
 export function throttle<T extends (...args: never[]) => void>(
   fn: T,
-  delay = 200
+  delay = 200,
 ): (...args: Parameters<T>) => void {
   let lastCall = 0;
   return (...args: Parameters<T>) => {

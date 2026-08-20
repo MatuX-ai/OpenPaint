@@ -48,7 +48,12 @@ function refine() {
       <div class="preview-modal__panel">
         <header class="preview-modal__header">
           <span class="preview-modal__title">AI 生成预览</span>
-          <button class="preview-modal__close" type="button" title="关闭" @click="uiStore.closePreview">
+          <button
+            class="preview-modal__close"
+            type="button"
+            title="关闭"
+            @click="uiStore.closePreview"
+          >
             <X :size="16" />
           </button>
         </header>
@@ -65,7 +70,9 @@ function refine() {
         </div>
 
         <footer class="preview-modal__footer">
-          <button class="preview-modal__btn" type="button" @click="uiStore.closePreview">取消</button>
+          <button class="preview-modal__btn" type="button" @click="uiStore.closePreview">
+            取消
+          </button>
           <button class="preview-modal__btn" type="button" @click="refine">
             <Pencil :size="14" />
             微调

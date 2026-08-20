@@ -69,7 +69,9 @@ const store = useCanvasStore();
     height: 40px;
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
-    transition: background var(--transition-fast), color var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast);
 
     &:hover {
       background: var(--bg-hover);

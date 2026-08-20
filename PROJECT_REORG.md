@@ -22,43 +22,43 @@
 
 ### 1.1 已实现的（可直接复用，不要重写）
 
-| 模块 | 行数 | 评价 |
-| --- | --- | --- |
-| `src-tauri/src/canvas/` | 854 | 完整：图层 / 历史栈 / 渲染 / 选区 / 工具集 |
-| `src-tauri/src/gallery/` | 349 | 完整：SQLite + 缩略图 + 自动轮转 |
-| `src-tauri/src/config/` | 152 | 完整：YAML 序列化 + 默认配置写入 |
-| `src-tauri/src/tools/canvas_commands.rs` | 387 | 完整：16 个画布命令 |
-| `src-tauri/src/tools/canvas_tools.rs` | 120 | 完整：4 个原子工具（M-08） |
-| `src-web/src/stores/{canvas,chat,gallery,ui}Store.ts` | 4 文件 | 状态占位完整 |
-| `src-web/src/components/layout/*` | 5 组件 | 三栏布局完整 |
+| 模块                                                  | 行数   | 评价                                       |
+| ----------------------------------------------------- | ------ | ------------------------------------------ |
+| `src-tauri/src/canvas/`                               | 854    | 完整：图层 / 历史栈 / 渲染 / 选区 / 工具集 |
+| `src-tauri/src/gallery/`                              | 349    | 完整：SQLite + 缩略图 + 自动轮转           |
+| `src-tauri/src/config/`                               | 152    | 完整：YAML 序列化 + 默认配置写入           |
+| `src-tauri/src/tools/canvas_commands.rs`              | 387    | 完整：16 个画布命令                        |
+| `src-tauri/src/tools/canvas_tools.rs`                 | 120    | 完整：4 个原子工具（M-08）                 |
+| `src-web/src/stores/{canvas,chat,gallery,ui}Store.ts` | 4 文件 | 状态占位完整                               |
+| `src-web/src/components/layout/*`                     | 5 组件 | 三栏布局完整                               |
 
 ### 1.2 已损坏的（必须修复，否则 cargo / tauri dev 跑不起来）
 
-| 问题 | 文件 | 修复 |
-| --- | --- | --- |
-| `tauri.conf.json` 顶部 5 行是 `#` 注释，JSON 无法解析 | `src-tauri/tauri.conf.json` | **已修**：删注释头 |
-| `commitlintrc.json` 实际是 YAML 格式 | `.commitlintrc.json` | **已修**：删除并改名为 `.commitlintrc.yml` |
-| `Cargo.toml` 启用了 `protocol-asset,macos-private-api`，但 `tauri.conf.json` 没在 allowlist 里 | `src-tauri/Cargo.toml` | **已修**：去掉 `macos-private-api`；`tauri.conf.json` 加 `assetProtocol` 段 |
-| `src-tauri/icons/*` 缺失，bundle 报错 | `src-tauri/icons/` | **已修**：通过 `scripts/gen-icons.ps1` + `IconRenderer.cs` 程序化生成 16 个文件 |
-| `bin/mcp.rs` 引用 `openpaint_lib::*`，但 crate 名是 `openpaint` | `src-tauri/src/bin/mcp.rs` | **已修** |
-| `src-tauri/src/main.rs` 与 `lib.rs` 同时声明 6 个同名 `mod`，导致双重编译 | 整组 | **已修**：main.rs 改成 `fn main() { openpaint::run() }`，`run()` 与命令注册统一搬到 `lib.rs` |
-| `canvas::tests.rs` 访问 `state.max_history`（字段不存在） | `src-tauri/src/canvas/tests.rs` | **已修**：改用 `state.history.max_size()` |
-| `image 0.25` 的 `PngEncoder::encode` 实际叫 `write_image`，且消费 self | `src-tauri/src/canvas/engine.rs`、`gallery/engine.rs` | **已修**：统一改用 `ImageEncoder::write_image` |
-| `resvg 0.43` 移除了 `FitTo` 枚举 | `src-tauri/src/tools/ai_commands.rs` | **已修**：自己用 `tiny_skia::Transform::from_scale` 算缩放 |
-| `usvg 0.43` 移除了 `TreeParsing::parse_str` | 同上 | **已修**：改用 `Tree::from_str(svg, &Options::default())` |
-| `Vec<u8>` 不能直接 `?` 转 `anyhow::Error`，缺 `From<String>` | `src-tauri/src/gallery/engine.rs` | **已修**：所有 base64 / image / db 错误用 `map_err` 包成 anyhow |
-| `r.get(0)` 必须显式标 `r.get::<_, i64>(0)` | `src-tauri/src/gallery/database.rs` | **已修** |
+| 问题                                                                                           | 文件                                                  | 修复                                                                                         |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tauri.conf.json` 顶部 5 行是 `#` 注释，JSON 无法解析                                          | `src-tauri/tauri.conf.json`                           | **已修**：删注释头                                                                           |
+| `commitlintrc.json` 实际是 YAML 格式                                                           | `.commitlintrc.json`                                  | **已修**：删除并改名为 `.commitlintrc.yml`                                                   |
+| `Cargo.toml` 启用了 `protocol-asset,macos-private-api`，但 `tauri.conf.json` 没在 allowlist 里 | `src-tauri/Cargo.toml`                                | **已修**：去掉 `macos-private-api`；`tauri.conf.json` 加 `assetProtocol` 段                  |
+| `src-tauri/icons/*` 缺失，bundle 报错                                                          | `src-tauri/icons/`                                    | **已修**：通过 `scripts/gen-icons.ps1` + `IconRenderer.cs` 程序化生成 16 个文件              |
+| `bin/mcp.rs` 引用 `openpaint_lib::*`，但 crate 名是 `openpaint`                                | `src-tauri/src/bin/mcp.rs`                            | **已修**                                                                                     |
+| `src-tauri/src/main.rs` 与 `lib.rs` 同时声明 6 个同名 `mod`，导致双重编译                      | 整组                                                  | **已修**：main.rs 改成 `fn main() { openpaint::run() }`，`run()` 与命令注册统一搬到 `lib.rs` |
+| `canvas::tests.rs` 访问 `state.max_history`（字段不存在）                                      | `src-tauri/src/canvas/tests.rs`                       | **已修**：改用 `state.history.max_size()`                                                    |
+| `image 0.25` 的 `PngEncoder::encode` 实际叫 `write_image`，且消费 self                         | `src-tauri/src/canvas/engine.rs`、`gallery/engine.rs` | **已修**：统一改用 `ImageEncoder::write_image`                                               |
+| `resvg 0.43` 移除了 `FitTo` 枚举                                                               | `src-tauri/src/tools/ai_commands.rs`                  | **已修**：自己用 `tiny_skia::Transform::from_scale` 算缩放                                   |
+| `usvg 0.43` 移除了 `TreeParsing::parse_str`                                                    | 同上                                                  | **已修**：改用 `Tree::from_str(svg, &Options::default())`                                    |
+| `Vec<u8>` 不能直接 `?` 转 `anyhow::Error`，缺 `From<String>`                                   | `src-tauri/src/gallery/engine.rs`                     | **已修**：所有 base64 / image / db 错误用 `map_err` 包成 anyhow                              |
+| `r.get(0)` 必须显式标 `r.get::<_, i64>(0)`                                                     | `src-tauri/src/gallery/database.rs`                   | **已修**                                                                                     |
 
 ### 1.3 设计文档要求但代码里不存在的（需要补齐）
 
-| 项 | 缺失内容 |
-| --- | --- |
-| 前端组件 | `components/assistant/*` 6 个、`openpencil/*` 3 个、`gallery/*` 5 个、`canvas/{CanvasToolbar,LayerItem,SelectionRect}.vue`、`common/{Icon,ResizeHandle,ThemeToggle}.vue` |
-| 前端 composables | `useAgent.ts`、`useGallery.ts`、`useOpenPencil.ts`、`useShortcuts.ts`、`useResize.ts` |
-| 前端 API 模块拆分 | `api/{canvasApi,agentApi,galleryApi,openpencilApi}.ts`（当前全在 `index.ts`） |
-| Rust 模块 | `gallery/vector.rs`（LanceDB 集成，阶段三） |
-| Rust 工具 | `tools/ai_commands.rs`、`tools/gallery_commands.rs`、`tools/llm_commands.rs` 文件已存在但 `tools/mod.rs` 没声明它们 |
-| 制品 | `src-tauri/bin/hermes` 二进制（阶段二启动 Agent 时下载） |
+| 项                | 缺失内容                                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 前端组件          | `components/assistant/*` 6 个、`openpencil/*` 3 个、`gallery/*` 5 个、`canvas/{CanvasToolbar,LayerItem,SelectionRect}.vue`、`common/{Icon,ResizeHandle,ThemeToggle}.vue` |
+| 前端 composables  | `useAgent.ts`、`useGallery.ts`、`useOpenPencil.ts`、`useShortcuts.ts`、`useResize.ts`                                                                                    |
+| 前端 API 模块拆分 | `api/{canvasApi,agentApi,galleryApi,openpencilApi}.ts`（当前全在 `index.ts`）                                                                                            |
+| Rust 模块         | `gallery/vector.rs`（LanceDB 集成，阶段三）                                                                                                                              |
+| Rust 工具         | `tools/ai_commands.rs`、`tools/gallery_commands.rs`、`tools/llm_commands.rs` 文件已存在但 `tools/mod.rs` 没声明它们                                                      |
+| 制品              | `src-tauri/bin/hermes` 二进制（阶段二启动 Agent 时下载）                                                                                                                 |
 
 ### 1.4 现状结论
 
@@ -71,18 +71,18 @@
 
 > 把模块按"独立可验证"原则拆分，每块 1 个 Owner + 1 个 Reviewer。
 
-| 编号 | 模块 | Owner | Reviewer | 当前状态 |
-| --- | --- | --- | --- | --- |
-| M-01 | 仓库根 + CI | TBD | TBD | ✅ 已修：CI yaml 待 `pnpm install` 验证 |
-| M-02 | Tauri 工程脚手架 | TBD | TBD | ✅ 已修：cargo check 通过、图标已生成 |
-| M-03 | 画布引擎（Rust） | A | F | ✅ 完整 |
-| M-04 | OpenPencil 嵌入（Web） | TBD | TBD | 🟡 仅占位：iframe + postMessage 通信未实现 |
-| M-05 | AI 闭环（MCP + 截图 → AI → 落回） | TBD | TBD | 🔴 需等 M-04 + Hermes Agent 二进制 |
-| M-06 | 图库管理 | TBD | TBD | ✅ 后端完整，前端 0% |
-| M-07 | 配置管理 | TBD | TBD | ✅ 后端完整，前端设置页缺失 |
-| M-08 | 画布原子工具（4 个） | A | F | ✅ 后端完整 |
-| M-09 | Hermes Agent 集成 | TBD | TBD | 🟡 后端 mock 实现，前端浮窗缺失 |
-| M-10 | 原子工具扩展（6 个） | TBD | TBD | 🟡 后端 mock，前端列表 UI 缺失 |
+| 编号 | 模块                              | Owner | Reviewer | 当前状态                                   |
+| ---- | --------------------------------- | ----- | -------- | ------------------------------------------ |
+| M-01 | 仓库根 + CI                       | TBD   | TBD      | ✅ 已修：CI yaml 待 `pnpm install` 验证    |
+| M-02 | Tauri 工程脚手架                  | TBD   | TBD      | ✅ 已修：cargo check 通过、图标已生成      |
+| M-03 | 画布引擎（Rust）                  | A     | F        | ✅ 完整                                    |
+| M-04 | OpenPencil 嵌入（Web）            | TBD   | TBD      | 🟡 仅占位：iframe + postMessage 通信未实现 |
+| M-05 | AI 闭环（MCP + 截图 → AI → 落回） | TBD   | TBD      | 🔴 需等 M-04 + Hermes Agent 二进制         |
+| M-06 | 图库管理                          | TBD   | TBD      | ✅ 后端完整，前端 0%                       |
+| M-07 | 配置管理                          | TBD   | TBD      | ✅ 后端完整，前端设置页缺失                |
+| M-08 | 画布原子工具（4 个）              | A     | F        | ✅ 后端完整                                |
+| M-09 | Hermes Agent 集成                 | TBD   | TBD      | 🟡 后端 mock 实现，前端浮窗缺失            |
+| M-10 | 原子工具扩展（6 个）              | TBD   | TBD      | 🟡 后端 mock，前端列表 UI 缺失             |
 
 ---
 
@@ -107,16 +107,16 @@
 
 **目标**：用户能在三栏布局里画一条线、做一个矩形选区、撤销一次；右窗加载 OpenPencil 静态页面。
 
-| 任务 | 状态 | 说明 |
-| --- | --- | --- |
-| `CanvasView.vue` 接入 `<canvas>` 元素 | ✅ | 渲染后端 `render_canvas_png` 返回的 PNG；pointer 事件转发给 `useCanvas` |
-| `useCanvas.ts` 完善坐标转换 / 工具切换 / 缩放 | ✅ | 重写：brush/eraser 笔画缓冲 → `apply_brush_stroke`；rect-select 拖拽 → `set_rect_selection`；`refresh()` 同步图层/undo-redo |
-| `CanvasToolbar.vue` / `LayerPanel.vue` / `LayerItem.vue` | ✅ | 画笔粗细滑杆 + 颜色 swatches；图层增删/切换/可见性，`set_active_layer` / `set_layer_visibility` |
-| `OpenPencilView.vue` iframe + postMessage 协议 | ✅ | `useOpenPencil.ts` 桥接；本地 srcdoc 占位页演示 OPENPENCIL_RESULT / EXPORT_SVG |
-| `SelectionRect.vue` 覆盖层 | ✅ | 虚线边框 + 尺寸 tag，从 `canvasStore.selection` 读取 |
-| `TopBar` 撤销/重做 | ✅ | 接 `undo_canvas` / `redo_canvas`，按钮根据 `canUndo/canRedo` 亮/灰 |
-| `useShortcuts.ts` / `useResize.ts` | ✅ | Ctrl+Z/Y/B/E/M/V/H/T、Ctrl+K/G；ResizeObserver 封装 |
-| 单元测试 | ✅ | `vue-tsc` 0 error、vitest 7/7、eslint 0 error、stylelint 0 error、vite build 成功 |
+| 任务                                                     | 状态 | 说明                                                                                                                        |
+| -------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------- |
+| `CanvasView.vue` 接入 `<canvas>` 元素                    | ✅   | 渲染后端 `render_canvas_png` 返回的 PNG；pointer 事件转发给 `useCanvas`                                                     |
+| `useCanvas.ts` 完善坐标转换 / 工具切换 / 缩放            | ✅   | 重写：brush/eraser 笔画缓冲 → `apply_brush_stroke`；rect-select 拖拽 → `set_rect_selection`；`refresh()` 同步图层/undo-redo |
+| `CanvasToolbar.vue` / `LayerPanel.vue` / `LayerItem.vue` | ✅   | 画笔粗细滑杆 + 颜色 swatches；图层增删/切换/可见性，`set_active_layer` / `set_layer_visibility`                             |
+| `OpenPencilView.vue` iframe + postMessage 协议           | ✅   | `useOpenPencil.ts` 桥接；本地 srcdoc 占位页演示 OPENPENCIL_RESULT / EXPORT_SVG                                              |
+| `SelectionRect.vue` 覆盖层                               | ✅   | 虚线边框 + 尺寸 tag，从 `canvasStore.selection` 读取                                                                        |
+| `TopBar` 撤销/重做                                       | ✅   | 接 `undo_canvas` / `redo_canvas`，按钮根据 `canUndo/canRedo` 亮/灰                                                          |
+| `useShortcuts.ts` / `useResize.ts`                       | ✅   | Ctrl+Z/Y/B/E/M/V/H/T、Ctrl+K/G；ResizeObserver 封装                                                                         |
+| 单元测试                                                 | ✅   | `vue-tsc` 0 error、vitest 7/7、eslint 0 error、stylelint 0 error、vite build 成功                                           |
 
 **验收达成**：全部通过（见上方测试结果）。
 
@@ -124,14 +124,14 @@
 
 **目标**：实现"截图 → AI → 落回画布"的最小闭环（图库保存先 mock，AI 引擎先用 `send_to_ai_engine` 返回的固定 SVG）。
 
-| 任务 | 状态 | 说明 |
-| --- | --- | --- |
-| 前端 API 契约对齐 | ✅ | `api/index.ts` 全部适配 Rust snake_case；`galleryApi.list/search/delete/getImage` 完成 |
-| `GalleryPanel.vue` + `GalleryGrid` + `GalleryItem` + `GallerySearch` + `GalleryDetail` | ✅ | 缩略图网格 + 搜索 + 详情浮层 + 置入画布 |
-| `useGallery.ts` | ✅ | loadRecent / search / saveItem / deleteItem / getDetail |
-| 类型文件 `.d.ts` → `.ts` | ✅ | 修复 TS6137（`@types/*` 别名被 TS 特殊处理为 DefinitelyTyped）|
-| `image.ts` 工具函数 | ✅ | canvasToBase64 / blobToBase64 / base64ToImage |
-| `list_gallery` 前端接入 | ✅ | `galleryApi.list(limit, offset)` |
+| 任务                                                                                   | 状态 | 说明                                                                                   |
+| -------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------- |
+| 前端 API 契约对齐                                                                      | ✅   | `api/index.ts` 全部适配 Rust snake_case；`galleryApi.list/search/delete/getImage` 完成 |
+| `GalleryPanel.vue` + `GalleryGrid` + `GalleryItem` + `GallerySearch` + `GalleryDetail` | ✅   | 缩略图网格 + 搜索 + 详情浮层 + 置入画布                                                |
+| `useGallery.ts`                                                                        | ✅   | loadRecent / search / saveItem / deleteItem / getDetail                                |
+| 类型文件 `.d.ts` → `.ts`                                                               | ✅   | 修复 TS6137（`@types/*` 别名被 TS 特殊处理为 DefinitelyTyped）                         |
+| `image.ts` 工具函数                                                                    | ✅   | canvasToBase64 / blobToBase64 / base64ToImage                                          |
+| `list_gallery` 前端接入                                                                | ✅   | `galleryApi.list(limit, offset)`                                                       |
 
 **验收达成**：全部通过。
 
@@ -139,13 +139,13 @@
 
 **目标**：右下角浮窗能聊一句话、调用 1 个工具、显示 1 张 AI 结果预览。
 
-| 任务 | 状态 | 说明 |
-| --- | --- | --- |
-| `AIAssistant.vue` 浮窗根组件 | ✅ | `uiStore.assistantVisible` 控制显隐；最小化 FAB |
-| `ChatMessage.vue` / `ChatInput.vue` / `ThinkingIndicator.vue` | ✅ | 用户/AI/工具三种气泡；Ctrl+Enter 发送 |
-| `useAgent.ts` | ✅ | `agent_chat` + 选区上下文注入（`sendWithSelection`）|
-| `ToolCallCard.vue` | ✅ | 工具调用状态卡片（pending/running/success/error）|
-| `PreviewModal.vue` | ✅ | 预览弹窗：确认落回 / 微调 / 取消 |
+| 任务                                                          | 状态 | 说明                                                 |
+| ------------------------------------------------------------- | ---- | ---------------------------------------------------- |
+| `AIAssistant.vue` 浮窗根组件                                  | ✅   | `uiStore.assistantVisible` 控制显隐；最小化 FAB      |
+| `ChatMessage.vue` / `ChatInput.vue` / `ThinkingIndicator.vue` | ✅   | 用户/AI/工具三种气泡；Ctrl+Enter 发送                |
+| `useAgent.ts`                                                 | ✅   | `agent_chat` + 选区上下文注入（`sendWithSelection`） |
+| `ToolCallCard.vue`                                            | ✅   | 工具调用状态卡片（pending/running/success/error）    |
+| `PreviewModal.vue`                                            | ✅   | 预览弹窗：确认落回 / 微调 / 取消                     |
 
 **验收达成**：全部通过。
 
@@ -153,19 +153,20 @@
 
 **目标**：实现"截图 → AI → 落回画布"的最小闭环（图库保存先 mock，AI 引擎先用 `send_to_ai_engine` 返回的固定 SVG）。
 
-| 任务 | 优先级 | 说明 |
-| --- | --- | --- |
-| 前端 `canvasApi.getSelectionBounds` 修对后端命令名 | P0 | 已修 |
-| `useShortcuts.ts` 注册 Ctrl+Z/Y/B/E/M/V | P0 | 5 分钟接入，与 `canvasStore.setActiveTool` 联动 |
-| `GalleryPanel.vue` 列表 + 缩略图 + 搜索 | P1 | 调 `galleryApi.search` + `galleryApi.getImage` |
-| `GalleryGrid.vue` + `GalleryItem.vue` + `GalleryDetail.vue` | P1 | 缩略图懒加载 |
-| `useGallery.ts` 包装搜索 / 删除 / 翻页 | P1 | |
-| `image.ts` 工具函数补完 `base64ToImage` / `canvasToBlob` | P1 | 现版是空实现 |
-| 4 个原子工具的前端包装 | P1 | `canvasToolsApi.getCanvasSelection` 等 |
-| `gallery_commands.rs` `list_gallery` 命令补齐 | P1 | 后端文件已存在但功能未完整 |
-| 集成测试 | P2 | `cargo test` 跑通 `gallery::database::tests` |
+| 任务                                                        | 优先级 | 说明                                            |
+| ----------------------------------------------------------- | ------ | ----------------------------------------------- |
+| 前端 `canvasApi.getSelectionBounds` 修对后端命令名          | P0     | 已修                                            |
+| `useShortcuts.ts` 注册 Ctrl+Z/Y/B/E/M/V                     | P0     | 5 分钟接入，与 `canvasStore.setActiveTool` 联动 |
+| `GalleryPanel.vue` 列表 + 缩略图 + 搜索                     | P1     | 调 `galleryApi.search` + `galleryApi.getImage`  |
+| `GalleryGrid.vue` + `GalleryItem.vue` + `GalleryDetail.vue` | P1     | 缩略图懒加载                                    |
+| `useGallery.ts` 包装搜索 / 删除 / 翻页                      | P1     |                                                 |
+| `image.ts` 工具函数补完 `base64ToImage` / `canvasToBlob`    | P1     | 现版是空实现                                    |
+| 4 个原子工具的前端包装                                      | P1     | `canvasToolsApi.getCanvasSelection` 等          |
+| `gallery_commands.rs` `list_gallery` 命令补齐               | P1     | 后端文件已存在但功能未完整                      |
+| 集成测试                                                    | P2     | `cargo test` 跑通 `gallery::database::tests`    |
 
 **验收**：
+
 - `pnpm test:unit` 全绿
 - 画布执行 `apply_brush_stroke` → 缩略图自动出现在图库面板（即使 SVG 是 mock）
 - `search_gallery` 在前端输入 tag 能命中记录
@@ -174,38 +175,38 @@
 
 **目标**：右下角浮窗能聊一句话、调用 1 个工具、显示 1 张 AI 结果预览。
 
-| 任务 | 优先级 | 说明 |
-| --- | --- | --- |
-| `AIAssistant.vue` 浮窗根组件 | P0 | `uiStore.assistantVisible` 控制显隐，可拖拽 |
-| `ChatMessage.vue` / `ChatInput.vue` / `ThinkingIndicator.vue` | P0 | |
-| `useAgent.ts` 包装 `agent_chat` + 历史记录滚动 | P0 | |
-| `ToolCallCard.vue` 显示 AI 调用的工具 + 参数 + 结果 | P1 | 解析 `chatStore.pendingToolCalls` |
-| `PreviewModal.vue` AI 生成结果的居中弹窗 | P1 | "确认 / 取消 / 微调" |
-| `chatStore.ts` 接通 `agentApi.chat`，状态机：idle / thinking / awaiting-confirm | P1 | |
+| 任务                                                                            | 优先级 | 说明                                        |
+| ------------------------------------------------------------------------------- | ------ | ------------------------------------------- |
+| `AIAssistant.vue` 浮窗根组件                                                    | P0     | `uiStore.assistantVisible` 控制显隐，可拖拽 |
+| `ChatMessage.vue` / `ChatInput.vue` / `ThinkingIndicator.vue`                   | P0     |                                             |
+| `useAgent.ts` 包装 `agent_chat` + 历史记录滚动                                  | P0     |                                             |
+| `ToolCallCard.vue` 显示 AI 调用的工具 + 参数 + 结果                             | P1     | 解析 `chatStore.pendingToolCalls`           |
+| `PreviewModal.vue` AI 生成结果的居中弹窗                                        | P1     | "确认 / 取消 / 微调"                        |
+| `chatStore.ts` 接通 `agentApi.chat`，状态机：idle / thinking / awaiting-confirm | P1     |                                             |
 
 **验收**：在画布里框选一个矩形 → 右下角输入"把它变成科技感 Logo" → 弹出预览 → 确认后图片落回画布 + 进入图库。
 
 ### Week 5 — 原子工具全部接通 + Hermes Agent 集成（计划）
 
-| 任务 | 优先级 | 说明 |
-| --- | --- | --- |
-| `bin/hermes` 下载与 `AgentManager.start()` 切换为真实进程 | P0 | R-01 风险条目，需要 `wget` 下载二进制 |
-| `agent/mcp.rs` 补完 `get_current_svg` | P1 | 后端文件已存在但函数体为空 |
-| `LLM Provider` 真实 HTTP 调用（OpenAI / Anthropic / DeepSeek / Ollama） | P0 | 当前 `llm_commands.rs` 是占位 |
-| `agent_command` → 调用 `dispatch_tool` 真实实现 | P0 | 当前 `tools/mcp.rs` 全部返回 pending |
-| `tools/ai_tools.rs` / `tools/gallery_tools.rs` 的 mock 替换为真实 | P1 | |
+| 任务                                                                    | 优先级 | 说明                                  |
+| ----------------------------------------------------------------------- | ------ | ------------------------------------- |
+| `bin/hermes` 下载与 `AgentManager.start()` 切换为真实进程               | P0     | R-01 风险条目，需要 `wget` 下载二进制 |
+| `agent/mcp.rs` 补完 `get_current_svg`                                   | P1     | 后端文件已存在但函数体为空            |
+| `LLM Provider` 真实 HTTP 调用（OpenAI / Anthropic / DeepSeek / Ollama） | P0     | 当前 `llm_commands.rs` 是占位         |
+| `agent_command` → 调用 `dispatch_tool` 真实实现                         | P0     | 当前 `tools/mcp.rs` 全部返回 pending  |
+| `tools/ai_tools.rs` / `tools/gallery_tools.rs` 的 mock 替换为真实       | P1     |                                       |
 
 **验收**：自然语言输入"导出 iOS 全尺寸" → Hermes Agent 自主调用 `render_svg_to_png` 循环 + `save_to_gallery` → 浮窗输出"已生成 8 个尺寸"。
 
 ### Week 6 — 跨平台打包与文档（计划）
 
-| 任务 | 优先级 |
-| --- | --- |
-| `tauri build` Windows .exe / macOS .dmg / Linux AppImage | P0 |
-| `tauri.conf.json` bundle.icon 路径修正（已修） | P0 |
-| 用户文档：README + DEVELOPMENT.md 校对 | P1 |
-| CHANGELOG.md 用 commitlint 流程生成 | P2 |
-| 发布 GitHub Release alpha.1 | P2 |
+| 任务                                                     | 优先级 |
+| -------------------------------------------------------- | ------ |
+| `tauri build` Windows .exe / macOS .dmg / Linux AppImage | P0     |
+| `tauri.conf.json` bundle.icon 路径修正（已修）           | P0     |
+| 用户文档：README + DEVELOPMENT.md 校对                   | P1     |
+| CHANGELOG.md 用 commitlint 流程生成                      | P2     |
+| 发布 GitHub Release alpha.1                              | P2     |
 
 **验收**：在 3 个平台分别能 `pnpm tauri build` 出安装包，运行后看到三栏布局 + 三栏可拖拽宽度。
 
@@ -261,13 +262,13 @@ git commit -m "feat(canvas): 接入 brush stroke 后端命令"
 
 ## 7. 风险登记（与看板 §风险同步）
 
-| 编号 | 风险 | 缓解 |
-| --- | --- | --- |
-| R-01 | Hermes Agent 二进制获取困难 | Week 5 第一天就 wget 到 `src-tauri/bin/hermes`；同时保留 mock 实现兜底 |
-| R-02 | OpenPencil Vue SDK 未提供 | 改用 iframe + postMessage；保留抽象层，方便后续切换 |
-| R-03 | 4K 画布 60fps 难达成 | Week 2 末尾做性能基线测试；必要时换 Skia |
-| R-04 | pnpm 在容器沙箱里 install 失败（`AppData` 权限） | CI 用 `windows-latest`；本地开发者用普通 PowerShell |
-| R-05 | 前端 `invoke` 命名漂移（已是既成事实） | 已修复 `canvasApi` 5 处错误命令名；剩余 17 个未调用命令在 Week 5 评估 |
+| 编号 | 风险                                             | 缓解                                                                   |
+| ---- | ------------------------------------------------ | ---------------------------------------------------------------------- |
+| R-01 | Hermes Agent 二进制获取困难                      | Week 5 第一天就 wget 到 `src-tauri/bin/hermes`；同时保留 mock 实现兜底 |
+| R-02 | OpenPencil Vue SDK 未提供                        | 改用 iframe + postMessage；保留抽象层，方便后续切换                    |
+| R-03 | 4K 画布 60fps 难达成                             | Week 2 末尾做性能基线测试；必要时换 Skia                               |
+| R-04 | pnpm 在容器沙箱里 install 失败（`AppData` 权限） | CI 用 `windows-latest`；本地开发者用普通 PowerShell                    |
+| R-05 | 前端 `invoke` 命名漂移（已是既成事实）           | 已修复 `canvasApi` 5 处错误命令名；剩余 17 个未调用命令在 Week 5 评估  |
 
 ---
 
@@ -275,20 +276,20 @@ git commit -m "feat(canvas): 接入 brush stroke 后端命令"
 
 ### 8a. 与本次审计 12 项一一对照
 
-| 审计 # | 审计项 | 当前状态 |
-| --- | --- | --- |
-| P0-1 | `bin/mcp.rs` crate 名错误 | ✅ 已修：`use openpaint::mcp as mcp` |
-| P0-2 | `canvas/tests.rs:state.max_history` 不存在 | ✅ 已修：`assert_eq!(state.history.max_size(), 50)` |
-| P1-3 | `get_current_svg` 命令缺失实现 | ⏳ 留给 Week 5（设计文档里说 MVP 阶段不需要，等 Hermes Agent 接入后再做） |
-| P1-4 | `list_tools` 漏 `get_current_svg` | ⏳ 同 P1-3 |
-| P1-5 | `ai_tools::dispatch_ai_tool` 全部 mock | ⏳ 留给 Week 5 |
-| P1-6 | `gallery_tools::dispatch_gallery_tool` 全部 mock | ⏳ 留给 Week 5 |
-| P2-7 | `send_to_ai_engine` 真实 LLM 调用 | ⏳ 留给 Week 5（设计上先 mock 让前端闭环跑通） |
-| P2-8 | `agent/manager.rs` `chat`/`send_command` 真实进程 | ⏳ 留给 Week 5 |
-| P2-9 | resvg SVG→PNG 缩放验证 | ⏳ Week 4 集成测试覆盖 |
-| P3-10 | 删除 `use usvg_tree;` 冗余 import | ✅ 已修（之前编辑时随 `Options`/`Tree` 一起改用 usvg 全局命名空间） |
-| P3-11 | `canvas_commands.rs` 死代码 `_types_used()` | ⏳ 留给 Week 2（前端接入后即可删） |
-| P3-12 | Hermes 二进制准备 | ⏳ 留给 Week 5 第一天下载 |
+| 审计 # | 审计项                                            | 当前状态                                                                  |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------- |
+| P0-1   | `bin/mcp.rs` crate 名错误                         | ✅ 已修：`use openpaint::mcp as mcp`                                      |
+| P0-2   | `canvas/tests.rs:state.max_history` 不存在        | ✅ 已修：`assert_eq!(state.history.max_size(), 50)`                       |
+| P1-3   | `get_current_svg` 命令缺失实现                    | ⏳ 留给 Week 5（设计文档里说 MVP 阶段不需要，等 Hermes Agent 接入后再做） |
+| P1-4   | `list_tools` 漏 `get_current_svg`                 | ⏳ 同 P1-3                                                                |
+| P1-5   | `ai_tools::dispatch_ai_tool` 全部 mock            | ⏳ 留给 Week 5                                                            |
+| P1-6   | `gallery_tools::dispatch_gallery_tool` 全部 mock  | ⏳ 留给 Week 5                                                            |
+| P2-7   | `send_to_ai_engine` 真实 LLM 调用                 | ⏳ 留给 Week 5（设计上先 mock 让前端闭环跑通）                            |
+| P2-8   | `agent/manager.rs` `chat`/`send_command` 真实进程 | ⏳ 留给 Week 5                                                            |
+| P2-9   | resvg SVG→PNG 缩放验证                            | ⏳ Week 4 集成测试覆盖                                                    |
+| P3-10  | 删除 `use usvg_tree;` 冗余 import                 | ✅ 已修（之前编辑时随 `Options`/`Tree` 一起改用 usvg 全局命名空间）       |
+| P3-11  | `canvas_commands.rs` 死代码 `_types_used()`       | ⏳ 留给 Week 2（前端接入后即可删）                                        |
+| P3-12  | Hermes 二进制准备                                 | ⏳ 留给 Week 5 第一天下载                                                 |
 
 ### 8b. 完整 fix 列表（commit-style 描述）
 
@@ -303,7 +304,7 @@ git commit -m "feat(canvas): 接入 brush stroke 后端命令"
 - `fix(gallery): database.rs r.get(0) 显式标 r.get::<_, i64>(0)`
 - `fix(gallery): engine.rs 把 base64/image/db 错误用 map_err 转为 anyhow::Error`
 - `fix(ai): ai_commands.rs 适配 resvg 0.43 (无 FitTo) + usvg 0.43 (Tree::from_str)`
-- `fix(ai): ai_commands.rs raw string `r#` 升级为 `r##` 容纳 inner `"` 字符`
+- `fix(ai): ai_commands.rs raw string `r#`升级为`r##`容纳 inner`"` 字符`
 - `fix(ai): ai_commands.rs 去掉 use usvg_tree; 冗余 import`
 - `fix(ai): ai_commands.rs send_to_ai_engine 的 image_data 标 _image_data 抑制 warning`
 - `fix(tools): mod.rs 增加 ai_commands / gallery_commands / llm_commands / canvas_tools 子模块声明`
@@ -338,6 +339,7 @@ git commit -m "feat(canvas): 接入 brush stroke 后端命令"
 - `fix(frontend): OpenPencilView srcdoc 内 </script> 用 </scr${'/'}ipt> 规避 SFC 解析器提前终止`
 
 **验证状态（全部通过）**：
+
 - `cargo check`：lib + bin + bin-mcp 全绿
 - `cargo test`：22/22 通过
 - `vue-tsc --noEmit`：0 error

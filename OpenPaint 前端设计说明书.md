@@ -12,30 +12,30 @@
 
 ## 2. 设计原则
 
-| 原则 | 说明 |
-| :--- | :--- |
-| **AI 原生** | AI 助理不是“附加功能”，而是贯穿始终的核心交互入口，所有设计围绕“对话驱动”展开。 |
-| **像素级精确** | 提供专业级画布交互（选区、变换、图层），不因 AI 功能而牺牲精确控制能力。 |
-| **无感切换** | 用户无需感知“前端/后端”或“画布/AI 引擎”的边界，所有操作流畅连贯。 |
-| **轻量快速** | 保持极低的启动延迟和操作响应，即使是 4K 画布也保持 60fps 渲染。 |
-| **可配置与可扩展** | 布局、主题、快捷键均支持用户自定义，为未来插件系统预留界面扩展点。 |
+| 原则               | 说明                                                                            |
+| :----------------- | :------------------------------------------------------------------------------ |
+| **AI 原生**        | AI 助理不是“附加功能”，而是贯穿始终的核心交互入口，所有设计围绕“对话驱动”展开。 |
+| **像素级精确**     | 提供专业级画布交互（选区、变换、图层），不因 AI 功能而牺牲精确控制能力。        |
+| **无感切换**       | 用户无需感知“前端/后端”或“画布/AI 引擎”的边界，所有操作流畅连贯。               |
+| **轻量快速**       | 保持极低的启动延迟和操作响应，即使是 4K 画布也保持 60fps 渲染。                 |
+| **可配置与可扩展** | 布局、主题、快捷键均支持用户自定义，为未来插件系统预留界面扩展点。              |
 
 ---
 
 ## 3. 技术栈明细
 
-| 类别 | 技术选型 | 用途 |
-| :--- | :--- | :--- |
-| **框架** | Vue 3 (Composition API) | 组件化开发、响应式状态 |
-| **语言** | TypeScript 5.x | 类型安全、IDE 友好 |
-| **构建工具** | Vite 5.x | 快速冷启动、HMR |
-| **状态管理** | Pinia | 全局 UI 状态、跨组件共享 |
-| **UI 组件库** | 无（完全自研） | 保持轻量，避免样式污染 |
-| **画布渲染** | HTML Canvas 2D | 像素级图形渲染 |
-| **图标** | Lucide Vue 3 | 开源图标集，按需加载 |
-| **样式方案** | CSS 变量 + SCSS | 深色/浅色主题支持 |
-| **代码规范** | ESLint + Prettier + Stylelint | 统一代码风格 |
-| **与后端通信** | `@tauri-apps/api` | invoke 调用命令、监听事件 |
+| 类别           | 技术选型                      | 用途                      |
+| :------------- | :---------------------------- | :------------------------ |
+| **框架**       | Vue 3 (Composition API)       | 组件化开发、响应式状态    |
+| **语言**       | TypeScript 5.x                | 类型安全、IDE 友好        |
+| **构建工具**   | Vite 5.x                      | 快速冷启动、HMR           |
+| **状态管理**   | Pinia                         | 全局 UI 状态、跨组件共享  |
+| **UI 组件库**  | 无（完全自研）                | 保持轻量，避免样式污染    |
+| **画布渲染**   | HTML Canvas 2D                | 像素级图形渲染            |
+| **图标**       | Lucide Vue 3                  | 开源图标集，按需加载      |
+| **样式方案**   | CSS 变量 + SCSS               | 深色/浅色主题支持         |
+| **代码规范**   | ESLint + Prettier + Stylelint | 统一代码风格              |
+| **与后端通信** | `@tauri-apps/api`             | invoke 调用命令、监听事件 |
 
 ---
 
@@ -176,12 +176,12 @@ src-web/
 
 ### 5.2 尺寸策略
 
-| 区域 | 默认宽度 | 可调范围 | 折叠 |
-| :--- | :--- | :--- | :--- |
-| Left Sidebar | 48px | 48px ~ 64px | 不可折叠 |
-| Central Canvas | 剩余空间 | — | — |
-| RightSidebar | 320px | 240px ~ 600px | 可完全折叠（仅显示标签栏） |
-| AI Assistant | 360px (宽) × 480px (高) | 自由拖拽 | 可最小化为图标 |
+| 区域           | 默认宽度                | 可调范围      | 折叠                       |
+| :------------- | :---------------------- | :------------ | :------------------------- |
+| Left Sidebar   | 48px                    | 48px ~ 64px   | 不可折叠                   |
+| Central Canvas | 剩余空间                | —             | —                          |
+| RightSidebar   | 320px                   | 240px ~ 600px | 可完全折叠（仅显示标签栏） |
+| AI Assistant   | 360px (宽) × 480px (高) | 自由拖拽      | 可最小化为图标             |
 
 ---
 
@@ -190,6 +190,7 @@ src-web/
 ### 6.1 CanvasView.vue（核心画布）
 
 **职责**：
+
 - 渲染所有图层合成结果
 - 处理鼠标/触控事件（绘制、选区、拖动）
 - 渲染选区边框、辅助网格、参考线
@@ -197,37 +198,37 @@ src-web/
 
 **交互模式**：
 
-| 工具模式 | 鼠标点击 | 鼠标拖拽 | 键盘修饰 |
-| :--- | :--- | :--- | :--- |
-| **画笔** | 绘制点 | 绘制连续路径 | Shift → 直线 |
-| **橡皮** | 擦除点 | 擦除连续路径 | — |
-| **矩形选区** | 起始点 | 拉出选区矩形 | Shift → 正方形 |
-| **移动** | 选中图层 | 拖动图层位移 | — |
-| **变形** | — | 拖拽控制点 | Shift → 等比缩放 |
+| 工具模式     | 鼠标点击 | 鼠标拖拽     | 键盘修饰         |
+| :----------- | :------- | :----------- | :--------------- |
+| **画笔**     | 绘制点   | 绘制连续路径 | Shift → 直线     |
+| **橡皮**     | 擦除点   | 擦除连续路径 | —                |
+| **矩形选区** | 起始点   | 拉出选区矩形 | Shift → 正方形   |
+| **移动**     | 选中图层 | 拖动图层位移 | —                |
+| **变形**     | —        | 拖拽控制点   | Shift → 等比缩放 |
 
 **视图变换**：
 
 ```typescript
 // composables/useCanvas.ts
 export const useCanvas = () => {
-  const zoom = ref(1.0);        // 缩放比例 (0.1 ~ 10.0)
-  const panX = ref(0);          // 平移偏移 X
-  const panY = ref(0);          // 平移偏移 Y
-  
+  const zoom = ref(1.0); // 缩放比例 (0.1 ~ 10.0)
+  const panX = ref(0); // 平移偏移 X
+  const panY = ref(0); // 平移偏移 Y
+
   const viewportToCanvas = (x: number, y: number) => {
     return {
       x: (x - panX.value) / zoom.value,
-      y: (y - panY.value) / zoom.value
+      y: (y - panY.value) / zoom.value,
     };
   };
-  
+
   const canvasToViewport = (x: number, y: number) => {
     return {
       x: x * zoom.value + panX.value,
-      y: y * zoom.value + panY.value
+      y: y * zoom.value + panY.value,
     };
   };
-}
+};
 ```
 
 ### 6.2 AIAssistant.vue（AI 助理浮窗）
@@ -277,8 +278,8 @@ export const useChatStore = defineStore('chat', {
       const response = await agentApi.sendCommand(text);
       this.isThinking = false;
       this.messages.push({ role: 'assistant', content: response });
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -287,6 +288,7 @@ export const useChatStore = defineStore('chat', {
 **嵌入方式**：使用 OpenPencil 官方 Vue SDK（如提供），或通过 `<iframe>` 加载其 Web 版。
 
 **方案选择**：
+
 - **优先方案**：`@open-pencil/vue-sdk`（官方 NPM 包），可精细控制通信。
 - **备选方案**：`<iframe>` 加载 OpenPencil Web 版，通过 `postMessage` 通信。
 
@@ -296,15 +298,18 @@ export const useChatStore = defineStore('chat', {
 // composables/useOpenPencil.ts
 export const useOpenPencil = () => {
   const iframeRef = ref<HTMLIFrameElement>();
-  
+
   // 向 OpenPencil 发送图源和 Prompt
   const sendImageToAI = (imageData: string, prompt: string) => {
-    iframeRef.value?.contentWindow?.postMessage({
-      type: 'OPENPENCIL_AI_GENERATE',
-      payload: { imageData, prompt }
-    }, '*');
+    iframeRef.value?.contentWindow?.postMessage(
+      {
+        type: 'OPENPENCIL_AI_GENERATE',
+        payload: { imageData, prompt },
+      },
+      '*',
+    );
   };
-  
+
   // 监听 OpenPencil 返回结果
   const onResult = (callback: (svg: string, png: string) => void) => {
     window.addEventListener('message', (event) => {
@@ -313,17 +318,21 @@ export const useOpenPencil = () => {
       }
     });
   };
-  
+
   // 导出当前 SVG
   const exportSVG = () => {
-    iframeRef.value?.contentWindow?.postMessage({
-      type: 'OPENPENCIL_EXPORT_SVG'
-    }, '*');
+    iframeRef.value?.contentWindow?.postMessage(
+      {
+        type: 'OPENPENCIL_EXPORT_SVG',
+      },
+      '*',
+    );
   };
-}
+};
 ```
 
 **OK / 取消 流程**：
+
 1. 用户点击右窗的 **OK** → 前端调用 `openpencilApi.exportPNG()` → 拿到 Base64 图片
 2. 调用 `canvasApi.pasteImageToLayer()` → 图片覆盖到中央画布当前图层
 3. 自动触发 `galleryApi.saveToGallery()` → 归档图库
@@ -355,11 +364,13 @@ export const useOpenPencil = () => {
 ```
 
 **交互行为**：
+
 - **点击缩略图**：弹出大图预览浮层，显示完整尺寸、提示词、标签、创建时间。
 - **拖拽缩略图到中央画布**：直接粘贴到当前图层（需实现拖拽 API）。
 - **右键菜单**：重新打标签、删除、导出为文件、复制到剪贴板。
 
 **性能优化**：
+
 - **虚拟滚动**：使用 `vue-virtual-scroller` 库，只渲染可视区域缩略图。
 - **缩略图缓存**：浏览器缓存缩略图图片（设置 `Cache-Control`）。
 
@@ -373,12 +384,12 @@ export const useOpenPencil = () => {
 // stores/canvasStore.ts
 export const useCanvasStore = defineStore('canvas', {
   state: () => ({
-    activeTool: 'brush' as ToolType,   // brush | eraser | select | move | transform
+    activeTool: 'brush' as ToolType, // brush | eraser | select | move | transform
     zoom: 1.0,
     panX: 0,
     panY: 0,
     selection: null as Selection | null,
-    layerList: [] as Layer[],           // 从后端同步的图层元数据
+    layerList: [] as Layer[], // 从后端同步的图层元数据
     activeLayerId: null as string | null,
     canvasWidth: 1920,
     canvasHeight: 1080,
@@ -391,8 +402,8 @@ export const useCanvasStore = defineStore('canvas', {
       this.activeTool = tool;
       // 发送事件给后端（切换光标等）
       await canvasApi.setTool(tool);
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -409,27 +420,27 @@ export const useChatStore = defineStore('chat', {
     currentContext: {
       hasSelection: false,
       activeLayer: null,
-    }
+    },
   }),
   getters: {
     lastMessage(): ChatMessage | null {
       return this.messages.length > 0 ? this.messages[this.messages.length - 1] : null;
-    }
+    },
   },
   actions: {
     async send(text: string) {
       this.messages.push({ role: 'user', content: text, timestamp: Date.now() });
       this.isProcessing = true;
       this.inputText = '';
-      
+
       try {
         const response = await agentApi.chat(text);
         this.messages.push({ role: 'assistant', content: response, timestamp: Date.now() });
       } finally {
         this.isProcessing = false;
       }
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -467,8 +478,8 @@ export const useGalleryStore = defineStore('gallery', {
       this.items = [];
       this.page = 0;
       await this.loadMore();
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -482,7 +493,7 @@ export const useUIStore = defineStore('ui', {
     rightPanelMode: 'openpencil' as 'openpencil' | 'gallery' | 'none',
     rightPanelWidth: 320,
     assistantVisible: true,
-    assistantPosition: { x: 0, y: 0 },  // 右下角偏移
+    assistantPosition: { x: 0, y: 0 }, // 右下角偏移
     previewModalVisible: false,
     previewImage: null as string | null,
     // 弹窗队列
@@ -503,8 +514,8 @@ export const useUIStore = defineStore('ui', {
     },
     switchRightPanel(mode: 'openpencil' | 'gallery' | 'none') {
       this.rightPanelMode = mode;
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -525,26 +536,26 @@ export const canvasApi = {
   getSelection(): Promise<string> {
     return invoke('get_canvas_selection');
   },
-  
+
   // 粘贴图片到图层
   pasteImage(imageData: string): Promise<string> {
     return invoke('paste_image_to_layer', { imageData });
   },
-  
+
   // 获取图层列表
   getLayerInfo(): Promise<Layer[]> {
     return invoke('get_layer_info');
   },
-  
+
   // 撤销
   undo(): Promise<void> {
     return invoke('undo');
   },
-  
+
   // 重做
   redo(): Promise<void> {
     return invoke('redo');
-  }
+  },
 };
 ```
 
@@ -563,7 +574,7 @@ type EventMap = {
 
 class EventManager {
   private listeners: Map<keyof EventMap, UnlistenFn[]> = new Map();
-  
+
   async on<K extends keyof EventMap>(event: K, callback: (payload: EventMap[K]) => void) {
     const unlisten = await listen(event, (e) => callback(e.payload as EventMap[K]));
     if (!this.listeners.has(event)) {
@@ -571,7 +582,7 @@ class EventManager {
     }
     this.listeners.get(event)!.push(unlisten);
   }
-  
+
   // 清理所有监听（组件卸载时调用）
   clearAll() {
     for (const [event, unlistens] of this.listeners) {
@@ -600,49 +611,49 @@ export const eventManager = new EventManager();
   --bg-secondary: #25252b;
   --bg-tertiary: #2e2e36;
   --bg-hover: #3a3a44;
-  
+
   --text-primary: #e8e8ea;
   --text-secondary: #a8a8b0;
   --text-muted: #6a6a72;
-  
+
   --border-color: #3a3a44;
-  
+
   --accent: #6c5ce7;
   --accent-hover: #7d6ff0;
   --accent-light: rgba(108, 92, 231, 0.2);
-  
+
   --success: #00b894;
   --warning: #fdcb6e;
   --error: #e17055;
-  
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --radius: 8px;
   --radius-sm: 4px;
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   --bg-primary: #f5f5f7;
   --bg-secondary: #eeeeef;
   --bg-tertiary: #e5e5e8;
   --bg-hover: #d4d4d8;
-  
+
   --text-primary: #1a1a1e;
   --text-secondary: #5a5a62;
   --text-muted: #8a8a92;
-  
+
   --border-color: #d4d4d8;
-  --shadow: 0 8px 32px rgba(0,0,0,0.08);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 ```
 
 ### 9.2 字体与排版
 
-| 使用场景 | 字体 | 字号 | 行高 |
-| :--- | :--- | :--- | :--- |
-| 正文 | Inter / system-ui | 14px | 1.6 |
-| 标题 | Inter / system-ui | 18px | 1.4 |
-| 小标签 | Inter / system-ui | 12px | 1.2 |
-| 代码 | JetBrains Mono | 13px | 1.6 |
+| 使用场景 | 字体              | 字号 | 行高 |
+| :------- | :---------------- | :--- | :--- |
+| 正文     | Inter / system-ui | 14px | 1.6  |
+| 标题     | Inter / system-ui | 18px | 1.4  |
+| 小标签   | Inter / system-ui | 12px | 1.2  |
+| 代码     | JetBrains Mono    | 13px | 1.6  |
 
 ### 9.3 间距系统
 
@@ -650,12 +661,12 @@ export const eventManager = new EventManager();
 
 ### 9.4 动画与过渡
 
-| 类型 | 时长 | 缓动函数 |
-| :--- | :--- | :--- |
-| 微交互（hover） | 150ms | ease-in-out |
-| 面板展开/折叠 | 250ms | cubic-bezier(0.4, 0, 0.2, 1) |
-| 浮窗显隐 | 200ms | ease |
-| 加载动画 | 循环 | linear |
+| 类型            | 时长  | 缓动函数                     |
+| :-------------- | :---- | :--------------------------- |
+| 微交互（hover） | 150ms | ease-in-out                  |
+| 面板展开/折叠   | 250ms | cubic-bezier(0.4, 0, 0.2, 1) |
+| 浮窗显隐        | 200ms | ease                         |
+| 加载动画        | 循环  | linear                       |
 
 ---
 
@@ -688,25 +699,25 @@ export const eventManager = new EventManager();
 
 ## 11. 快捷键设计
 
-| 快捷键 | 功能 |
-| :--- | :--- |
-| `Ctrl+Z` | 撤销 |
-| `Ctrl+Shift+Z` / `Ctrl+Y` | 重做 |
-| `B` | 画笔工具 |
-| `E` | 橡皮工具 |
-| `V` | 移动工具 |
-| `M` | 矩形选区 |
-| `Ctrl+A` | 全选 |
-| `Ctrl+D` | 取消选区 |
-| `Ctrl+C` | 复制选区 |
-| `Ctrl+V` | 粘贴（从剪贴板） |
-| `+` / `-` | 缩放画布 |
-| `0` | 重置缩放至 100% |
-| `Space` + 拖拽 | 平移画布 |
-| `Ctrl+Enter` | 发送 AI 消息 |
-| `Ctrl+K` | 打开/关闭 AI 助理 |
-| `Ctrl+G` | 打开/关闭图库面板 |
-| `F11` | 全屏模式 |
+| 快捷键                    | 功能              |
+| :------------------------ | :---------------- |
+| `Ctrl+Z`                  | 撤销              |
+| `Ctrl+Shift+Z` / `Ctrl+Y` | 重做              |
+| `B`                       | 画笔工具          |
+| `E`                       | 橡皮工具          |
+| `V`                       | 移动工具          |
+| `M`                       | 矩形选区          |
+| `Ctrl+A`                  | 全选              |
+| `Ctrl+D`                  | 取消选区          |
+| `Ctrl+C`                  | 复制选区          |
+| `Ctrl+V`                  | 粘贴（从剪贴板）  |
+| `+` / `-`                 | 缩放画布          |
+| `0`                       | 重置缩放至 100%   |
+| `Space` + 拖拽            | 平移画布          |
+| `Ctrl+Enter`              | 发送 AI 消息      |
+| `Ctrl+K`                  | 打开/关闭 AI 助理 |
+| `Ctrl+G`                  | 打开/关闭图库面板 |
+| `F11`                     | 全屏模式          |
 
 ---
 
@@ -714,11 +725,11 @@ export const eventManager = new EventManager();
 
 OpenPaint 主要面向桌面端，但仍需适应不同屏幕尺寸：
 
-| 屏幕宽度 | 布局调整 |
-| :--- | :--- |
-| > 1280px | 标准三栏布局（左工具栏 + 中央画布 + 右面板） |
-| 1024px ~ 1280px | 右侧面板自动折叠为标签栏 |
-| < 1024px | 左侧工具栏折叠为图标，AI 助理自动最小化 |
+| 屏幕宽度        | 布局调整                                     |
+| :-------------- | :------------------------------------------- |
+| > 1280px        | 标准三栏布局（左工具栏 + 中央画布 + 右面板） |
+| 1024px ~ 1280px | 右侧面板自动折叠为标签栏                     |
+| < 1024px        | 左侧工具栏折叠为图标，AI 助理自动最小化      |
 
 ---
 

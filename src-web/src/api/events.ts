@@ -19,7 +19,7 @@ class EventManager {
   /** 订阅事件 */
   async on<K extends keyof EventMap>(
     event: K,
-    callback: (payload: EventMap[K]) => void
+    callback: (payload: EventMap[K]) => void,
   ): Promise<UnlistenFn> {
     const unlisten = await listen(event, (e) => callback(e.payload as EventMap[K]));
     const list = this.listeners.get(event) ?? [];

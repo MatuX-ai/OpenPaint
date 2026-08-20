@@ -147,7 +147,9 @@ function togglePanel(mode: 'openpencil' | 'gallery') {
     height: 32px;
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
-    transition: background var(--transition-fast), color var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast);
 
     &:hover:not(:disabled) {
       background: var(--bg-hover);

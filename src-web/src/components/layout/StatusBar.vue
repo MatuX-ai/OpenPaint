@@ -18,7 +18,9 @@ const mcpStatus = computed(() => 'disconnected' as const); // 阶段二 W4 接�
 <template>
   <footer class="status-bar">
     <div class="status-bar__group status-bar__group--left">
-      <span class="status-bar__item">{{ canvasStore.canvasWidth }} × {{ canvasStore.canvasHeight }}</span>
+      <span class="status-bar__item">
+        {{ canvasStore.canvasWidth }} × {{ canvasStore.canvasHeight }}
+      </span>
       <span class="status-bar__divider">|</span>
       <span class="status-bar__item">{{ zoomPercent }}%</span>
       <span class="status-bar__divider">|</span>

@@ -55,14 +55,20 @@ function galleryItemFromWire(wire: GalleryItemWire): GalleryItem {
   };
 }
 
-function gallerySearchResultFromWire(wire: { items: GalleryItemWire[]; total: number }): GallerySearchResult {
+function gallerySearchResultFromWire(wire: {
+  items: GalleryItemWire[];
+  total: number;
+}): GallerySearchResult {
   return {
     items: wire.items.map(galleryItemFromWire),
     total: wire.total,
   };
 }
 
-function galleryImageResponseFromWire(wire: GalleryImageResponse): { item: GalleryItem; png?: string } {
+function galleryImageResponseFromWire(wire: GalleryImageResponse): {
+  item: GalleryItem;
+  png?: string;
+} {
   return {
     item: galleryItemFromWire(wire.item),
     png: wire.png_base64,
@@ -89,8 +95,7 @@ export const appApi = {
   getAppInfo: (): Promise<AppInfo> => invoke('get_app_info'),
   getAppVersion: (): Promise<string> => invoke('get_app_version'),
   helloWorld: (): Promise<string> => invoke('hello_world'),
-  echo: (message: string): Promise<EchoResponse> =>
-    invoke('echo', { payload: { message } }),
+  echo: (message: string): Promise<EchoResponse> => invoke('echo', { payload: { message } }),
 };
 
 // ----------------------------------------------------------------
@@ -116,20 +121,16 @@ export const canvasApi = {
   getSelectionBounds: (): Promise<RectSelectArgs> => invoke('get_selection_bounds'),
 
   /** Apply a brush stroke (color is hex). */
-  applyBrushStroke: (args: StrokeArgs): Promise<void> =>
-    invoke('apply_brush_stroke', { args }),
+  applyBrushStroke: (args: StrokeArgs): Promise<void> => invoke('apply_brush_stroke', { args }),
 
   /** Paste a Base64 PNG into the active layer. Returns the layer UUID. */
-  pasteImage: (imageData: string): Promise<string> =>
-    invoke('paste_image_to_layer', { imageData }),
+  pasteImage: (imageData: string): Promise<string> => invoke('paste_image_to_layer', { imageData }),
 
   /** Apply an eraser stroke. */
-  applyEraserStroke: (args: StrokeArgs): Promise<void> =>
-    invoke('apply_eraser_stroke', { args }),
+  applyEraserStroke: (args: StrokeArgs): Promise<void> => invoke('apply_eraser_stroke', { args }),
 
   /** Set a rectangular selection. */
-  setRectSelection: (args: RectSelectArgs): Promise<void> =>
-    invoke('set_rect_selection', { args }),
+  setRectSelection: (args: RectSelectArgs): Promise<void> => invoke('set_rect_selection', { args }),
 
   /** Clear the current selection. */
   clearSelection: (): Promise<void> => invoke('clear_selection'),
@@ -155,8 +156,7 @@ export const canvasApi = {
   removeActiveLayer: (): Promise<boolean> => invoke('remove_active_layer'),
 
   /** Set the active layer by id. */
-  setActiveLayer: (layerId: string): Promise<void> =>
-    invoke('set_active_layer', { layerId }),
+  setActiveLayer: (layerId: string): Promise<void> => invoke('set_active_layer', { layerId }),
 
   /** Toggle a layer's visibility. */
   setLayerVisibility: (layerId: string, visible: boolean): Promise<void> =>
@@ -205,7 +205,9 @@ export interface SaveToGalleryArgs {
 
 export const galleryApi = {
   /** Save PNG to gallery. Returns the new record's id, width, height, thumbnail path. */
-  save: (args: SaveToGalleryArgs): Promise<{ id: string; width: number; height: number; thumbnail_path: string }> =>
+  save: (
+    args: SaveToGalleryArgs,
+  ): Promise<{ id: string; width: number; height: number; thumbnail_path: string }> =>
     invoke('save_to_gallery', {
       args: {
         image_data: args.imageData,
@@ -220,13 +222,13 @@ export const galleryApi = {
   /** List the most recent gallery items. */
   list: (limit = 50, offset = 0): Promise<GalleryItem[]> =>
     invoke<GalleryItemWire[]>('list_gallery', { limit, offset }).then((items) =>
-      items.map(galleryItemFromWire)
+      items.map(galleryItemFromWire),
     ),
 
   /** Search gallery by text or tag. */
   search: (params: GallerySearchParamsWire): Promise<GallerySearchResult> =>
     invoke<{ items: GalleryItemWire[]; total: number }>('search_gallery', { params }).then(
-      gallerySearchResultFromWire
+      gallerySearchResultFromWire,
     ),
 
   /** Delete a gallery item by id. */
@@ -235,7 +237,9 @@ export const galleryApi = {
 
   /** Get full item info plus original PNG (if available). */
   getImage: (recordId: string): Promise<{ item: GalleryItem; png?: string }> =>
-    invoke<GalleryImageResponse>('get_gallery_image', { recordId }).then(galleryImageResponseFromWire),
+    invoke<GalleryImageResponse>('get_gallery_image', { recordId }).then(
+      galleryImageResponseFromWire,
+    ),
 };
 
 // ----------------------------------------------------------------

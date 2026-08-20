@@ -16,7 +16,7 @@ export function useTheme() {
     (theme) => {
       document.documentElement.setAttribute('data-theme', theme);
     },
-    { immediate: true }
+    { immediate: true },
   );
 
   function setTheme(theme: 'light' | 'dark') {

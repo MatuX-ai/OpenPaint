@@ -266,9 +266,15 @@ export function useCanvas(): UseCanvasReturn {
 
   // -------------------- View transforms --------------------
 
-  function zoomIn() { store.setZoom(store.zoom * 1.2); }
-  function zoomOut() { store.setZoom(store.zoom / 1.2); }
-  function resetView() { store.resetView(); }
+  function zoomIn() {
+    store.setZoom(store.zoom * 1.2);
+  }
+  function zoomOut() {
+    store.setZoom(store.zoom / 1.2);
+  }
+  function resetView() {
+    store.resetView();
+  }
 
   async function clearSelection() {
     try {
@@ -282,8 +288,13 @@ export function useCanvas(): UseCanvasReturn {
   // -------------------- Lifecycle --------------------
 
   // Re-sync when active layer changes.
-  const onLayerChanged = debounce(() => { void refresh(); }, 30);
-  watch(() => store.activeLayerId, () => onLayerChanged());
+  const onLayerChanged = debounce(() => {
+    void refresh();
+  }, 30);
+  watch(
+    () => store.activeLayerId,
+    () => onLayerChanged(),
+  );
 
   onBeforeUnmount(() => {
     strokeBuffer.length = 0;

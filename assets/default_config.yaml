@@ -5,8 +5,8 @@
 
 # 大模型配置（用户可修改，参考 DeepSeek Harness 模式）
 llm:
-  provider: "openai"  # openai | anthropic | deepseek | ollama
-  api_key: ""         # 留空时 AI 助理自动降级为 mock
+  provider: "openai" # openai | anthropic | deepseek | ollama
+  api_key: "" # 留空时 AI 助理自动降级为 mock
   base_url: "https://api.openai.com/v1"
   model: "gpt-4o"
 

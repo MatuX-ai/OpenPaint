@@ -47,6 +47,7 @@ Invoke-WebRequest -Uri "https://github.com/your-org/hermes-agent/releases/latest
 应用启动时会检测 `~/.openpaint/bin/hermes` 与 `src-tauri/bin/hermes`，若均缺失则在控制台输出告警，AI 助理相关功能降级为 mock。
 
 AgentManager 检测顺序：
+
 1. `~/.openpaint/bin/hermes`（或 `hermes.exe`）
 2. `src-tauri/bin/hermes`（或 `hermes.exe`）
 
@@ -61,9 +62,9 @@ Hermes Agent 启动后通过 stdio JSON-RPC 2.0 与 OpenPaint 通信：
 
 ### 已用方法
 
-| 方法 | 参数 | 用途 |
-| --- | --- | --- |
-| `agent.chat` | `{ "message": "..." }` | 自然语言对话 |
+| 方法              | 参数                                       | 用途         |
+| ----------------- | ------------------------------------------ | ------------ |
+| `agent.chat`      | `{ "message": "..." }`                     | 自然语言对话 |
 | `ai.generate_svg` | `{ "image_data": "...", "prompt": "..." }` | LLM 生成 SVG |
 
 ### 启动参数

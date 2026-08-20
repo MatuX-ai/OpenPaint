@@ -54,10 +54,22 @@ function onVisibilityChanged(layerId: string, visible: boolean) {
     <header class="layer-panel__header">
       <span class="layer-panel__title">图层</span>
       <div class="layer-panel__actions">
-        <button class="layer-panel__btn" type="button" title="新增图层" :disabled="isAdding" @click="addLayer">
+        <button
+          class="layer-panel__btn"
+          type="button"
+          title="新增图层"
+          :disabled="isAdding"
+          @click="addLayer"
+        >
           <Plus :size="14" />
         </button>
-        <button class="layer-panel__btn" type="button" title="删除活动图层" :disabled="layers.length <= 1" @click="removeActive">
+        <button
+          class="layer-panel__btn"
+          type="button"
+          title="删除活动图层"
+          :disabled="layers.length <= 1"
+          @click="removeActive"
+        >
           <Trash2 :size="14" />
         </button>
       </div>

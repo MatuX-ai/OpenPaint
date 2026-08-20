@@ -13,14 +13,7 @@ import OpenPencilToolbar from './OpenPencilToolbar.vue';
 import MCPStatus from './MCPStatus.vue';
 
 const uiStore = useUIStore();
-const {
-  iframeRef,
-  status,
-  sendImageToAI,
-  exportSVG,
-  onResult,
-  onStatusChange,
-} = useOpenPencil();
+const { iframeRef, status, sendImageToAI, exportSVG, onResult, onStatusChange } = useOpenPencil();
 
 const lastResult = ref<{ svg?: string; png?: string } | null>(null);
 const srcDoc = ref('');

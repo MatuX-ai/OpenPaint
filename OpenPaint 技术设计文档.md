@@ -52,18 +52,18 @@
 
 ### 2.2 技术栈明细
 
-| 层级 | 技术选型 | 版本 | 用途 |
-| :--- | :--- | :--- | :--- |
-| **桌面框架** | Tauri | v2 | 跨平台打包、系统调用、进程管理 |
-| **前端框架** | Vue 3 + TypeScript | 3.x | UI 渲染、状态管理、组件化开发 |
-| **画布渲染** | Canvas 2D / Skia | - | 像素级图形渲染、图层合成 |
-| **AI 智能体** | Hermes Agent | v0.6+ | 意图理解、自主决策、MCP 工具调度 |
-| **AI 生成引擎** | OpenPencil (Web) | Latest | 矢量编辑、AI 图像生成 |
-| **本地数据库** | SQLite (rusqlite) | 0.31+ | 图库元数据、历史记录持久化 |
-| **向量数据库** | LanceDB | 0.23+ | 语义搜索（渐进式集成） |
-| **SVG 渲染** | resvg | 0.9+ | SVG 到 PNG 的无损缩放渲染 |
-| **图像处理** | image-rs | 0.25+ | 缩略图生成、格式转换 |
-| **通信协议** | MCP (JSON-RPC over stdio) | - | 工具注册与调用 |
+| 层级            | 技术选型                  | 版本   | 用途                             |
+| :-------------- | :------------------------ | :----- | :------------------------------- |
+| **桌面框架**    | Tauri                     | v2     | 跨平台打包、系统调用、进程管理   |
+| **前端框架**    | Vue 3 + TypeScript        | 3.x    | UI 渲染、状态管理、组件化开发    |
+| **画布渲染**    | Canvas 2D / Skia          | -      | 像素级图形渲染、图层合成         |
+| **AI 智能体**   | Hermes Agent              | v0.6+  | 意图理解、自主决策、MCP 工具调度 |
+| **AI 生成引擎** | OpenPencil (Web)          | Latest | 矢量编辑、AI 图像生成            |
+| **本地数据库**  | SQLite (rusqlite)         | 0.31+  | 图库元数据、历史记录持久化       |
+| **向量数据库**  | LanceDB                   | 0.23+  | 语义搜索（渐进式集成）           |
+| **SVG 渲染**    | resvg                     | 0.9+   | SVG 到 PNG 的无损缩放渲染        |
+| **图像处理**    | image-rs                  | 0.25+  | 缩略图生成、格式转换             |
+| **通信协议**    | MCP (JSON-RPC over stdio) | -      | 工具注册与调用                   |
 
 ---
 
@@ -72,6 +72,7 @@
 ### 3.1 中央画布模块 (Canvas Engine)
 
 #### 3.1.1 职责
+
 - 管理图层栈（创建、删除、排序、合并）
 - 提供基础绘图工具（画笔、橡皮、选区、变形）
 - 维护 Undo/Redo 历史记录
@@ -122,22 +123,22 @@ pub struct Selection {
 
 export function useCanvas() {
   const layers = ref<Layer[]>([]);
-  const activeLayer = computed(() => layers.value.find(l => l.id === activeLayerId.value));
-  
+  const activeLayer = computed(() => layers.value.find((l) => l.id === activeLayerId.value));
+
   // 获取选区为 Base64
   const getSelectionAsBase64 = async (): Promise<string> => {
     return await invoke('get_canvas_selection');
   };
-  
+
   // 粘贴图片到当前图层
   const pasteImage = async (imageData: string): Promise<void> => {
     return await invoke('paste_image_to_layer', { imageData });
   };
-  
+
   // Undo / Redo
   const undo = async () => await invoke('undo');
   const redo = async () => await invoke('redo');
-  
+
   return { layers, activeLayer, getSelectionAsBase64, pasteImage, undo, redo };
 }
 ```
@@ -149,6 +150,7 @@ export function useCanvas() {
 #### 3.2.1 集成策略
 
 采用 **CLI 二进制调用** 方式集成 Hermes Agent，原因如下：
+
 - Hermes Agent 以单文件二进制形式发布，无需编译依赖
 - 通过 stdio 进行 JSON-RPC 通信，协议稳定
 - 支持热插拔 MCP 服务器，无需重启 Agent
@@ -178,12 +180,12 @@ impl AgentManager {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Failed to start Hermes Agent: {}", e))?;
-        
+
         self.process = Some(cmd);
         self.start_event_loop().await?;
         Ok(())
     }
-    
+
     /// 发送指令给 Agent (JSON-RPC)
     pub async fn send_command(&mut self, command: AgentCommand) -> Result<AgentResponse, String> {
         // 通过 stdin 写入 JSON-RPC 请求
@@ -201,9 +203,9 @@ Hermes Agent 通过 MCP 协议连接外部工具服务器。OpenPaint 将自身�
 mcp_servers:
   - name: openpaint-tools
     command: openpaint
-    args: ["mcp", "serve"]
+    args: ['mcp', 'serve']
     env:
-      OPENPAINT_CONFIG: "~/.openpaint/config.yaml"
+      OPENPAINT_CONFIG: '~/.openpaint/config.yaml'
 ```
 
 MCP 服务器启动后，Hermes Agent 自动发现可用工具，支持 `tools/list` 请求进行工具发现。
@@ -258,24 +260,25 @@ OpenPencil 的 MCP 服务器已支持 `export_png` 等工具，可直接复用�
 #### 3.4.1 工具注册机制
 
 所有工具通过 MCP 协议注册，每个工具包含：
+
 - **名称**：唯一标识符
 - **描述**：功能说明（供 LLM 理解）
 - **inputSchema**：JSON Schema 定义参数
 
 #### 3.4.2 工具列表
 
-| 工具名称 | 描述 | 输入参数 | 输出 |
-| :--- | :--- | :--- | :--- |
-| `get_canvas_selection` | 获取当前选区/图层为 Base64 PNG | `layer_id?` (可选) | `{ data: string, width, height }` |
-| `get_selection_bounds` | 获取选区坐标与尺寸 | 无 | `{ x, y, width, height }` |
-| `paste_image_to_layer` | 将 Base64 图片粘贴到当前图层 | `image_data: string` | `{ layer_id }` |
-| `get_layer_info` | 获取所有图层信息 | 无 | `Layer[]` |
-| `send_to_ai_engine` | 发送图源 + Prompt 给 OpenPencil | `image_data: string, prompt: string` | `{ svg: string, png: string }` |
-| `render_svg_to_png` | 将 SVG 渲染为指定尺寸 PNG | `svg: string, width: int, height: int` | `{ png_data: string }` |
-| `get_current_svg` | 获取 OpenPencil 当前文档 SVG | 无 | `{ svg: string }` |
-| `save_to_gallery` | 保存图片到图库 | `image_data: string, tags: string[], group_id?: string` | `{ record_id }` |
-| `search_gallery` | 按标签/关键词搜索图库 | `query: string, limit?: int` | `GalleryItem[]` |
-| `get_gallery_image` | 按 ID 获取图库原图 | `record_id: string` | `{ image_data: string }` |
+| 工具名称               | 描述                            | 输入参数                                                | 输出                              |
+| :--------------------- | :------------------------------ | :------------------------------------------------------ | :-------------------------------- |
+| `get_canvas_selection` | 获取当前选区/图层为 Base64 PNG  | `layer_id?` (可选)                                      | `{ data: string, width, height }` |
+| `get_selection_bounds` | 获取选区坐标与尺寸              | 无                                                      | `{ x, y, width, height }`         |
+| `paste_image_to_layer` | 将 Base64 图片粘贴到当前图层    | `image_data: string`                                    | `{ layer_id }`                    |
+| `get_layer_info`       | 获取所有图层信息                | 无                                                      | `Layer[]`                         |
+| `send_to_ai_engine`    | 发送图源 + Prompt 给 OpenPencil | `image_data: string, prompt: string`                    | `{ svg: string, png: string }`    |
+| `render_svg_to_png`    | 将 SVG 渲染为指定尺寸 PNG       | `svg: string, width: int, height: int`                  | `{ png_data: string }`            |
+| `get_current_svg`      | 获取 OpenPencil 当前文档 SVG    | 无                                                      | `{ svg: string }`                 |
+| `save_to_gallery`      | 保存图片到图库                  | `image_data: string, tags: string[], group_id?: string` | `{ record_id }`                   |
+| `search_gallery`       | 按标签/关键词搜索图库           | `query: string, limit?: int`                            | `GalleryItem[]`                   |
+| `get_gallery_image`    | 按 ID 获取图库原图              | `record_id: string`                                     | `{ image_data: string }`          |
 
 #### 3.4.3 工具实现示例 (Rust)
 
@@ -355,6 +358,7 @@ CREATE INDEX idx_gallery_created ON gallery_items(created_at DESC);
 ```
 
 **存储限制**：
+
 - 默认保留最近 500 张
 - 超出时自动轮转（删除最旧记录）
 - 用户可手动标记“收藏”以永久保留
@@ -380,7 +384,7 @@ impl VectorIndex {
         // 使用 CLIP 模型生成图像向量
         // 存储到 LanceDB 表中
     }
-    
+
     /// 语义搜索
     pub async fn search(&self, query: &str, limit: usize) -> Result<Vec<GalleryItem>, String> {
         // 1. 将查询文本转为向量 (使用本地 embedding 模型)
@@ -401,13 +405,13 @@ impl VectorIndex {
 
 # 大模型配置 (用户自配，参考 DeepSeek Harness 模式)
 llm:
-  provider: "openai"  # openai | anthropic | deepseek | ollama
-  api_key: "sk-xxx"
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4o"
+  provider: 'openai' # openai | anthropic | deepseek | ollama
+  api_key: 'sk-xxx'
+  base_url: 'https://api.openai.com/v1'
+  model: 'gpt-4o'
   # 本地模型 (Ollama)
-  local_model: "qwen2.5:7b"
-  local_url: "http://localhost:11434"
+  local_model: 'qwen2.5:7b'
+  local_url: 'http://localhost:11434'
 
 # 预设尺寸模板
 presets:
@@ -420,14 +424,14 @@ presets:
 gallery:
   max_items: 500
   thumbnail_size: 256
-  storage_path: "~/.openpaint/gallery"
+  storage_path: '~/.openpaint/gallery'
 
 # MCP 服务器配置
 mcp:
   servers:
-    - name: "openpaint-tools"
+    - name: 'openpaint-tools'
       enabled: true
-    - name: "filesystem"
+    - name: 'filesystem'
       enabled: false
 ```
 
@@ -531,19 +535,19 @@ fn main() {
 import { invoke } from '@tauri-apps/api/core';
 
 export async function exportLogoSet(svg: string, tags: string[]) {
-    // 1. 获取预设尺寸
-    const presets = await invoke('get_preset_sizes', { preset: 'web' });
-    // 2. 循环渲染并保存
-    const groupId = crypto.randomUUID();
-    for (const size of presets) {
-        const png = await invoke('render_svg_to_png', { svg, width: size, height: size });
-        await invoke('save_to_gallery', { 
-            image_data: png.png_data, 
-            tags, 
-            group_id: groupId 
-        });
-    }
-    return groupId;
+  // 1. 获取预设尺寸
+  const presets = await invoke('get_preset_sizes', { preset: 'web' });
+  // 2. 循环渲染并保存
+  const groupId = crypto.randomUUID();
+  for (const size of presets) {
+    const png = await invoke('render_svg_to_png', { svg, width: size, height: size });
+    await invoke('save_to_gallery', {
+      image_data: png.png_data,
+      tags,
+      group_id: groupId,
+    });
+  }
+  return groupId;
 }
 ```
 
@@ -561,8 +565,8 @@ app.emit("ai-generation-complete", AiResult { ... })?;
 import { listen } from '@tauri-apps/api/event';
 
 await listen('ai-generation-complete', (event) => {
-    console.log('AI 生成完成:', event.payload);
-    // 显示预览弹窗
+  console.log('AI 生成完成:', event.payload);
+  // 显示预览弹窗
 });
 ```
 
@@ -610,11 +614,11 @@ await listen('ai-generation-complete', (event) => {
 
 Tauri v2 支持生成以下安装包：
 
-| 平台 | 格式 | 命令 |
-| :--- | :--- | :--- |
+| 平台    | 格式                   | 命令               |
+| :------ | :--------------------- | :----------------- |
 | Windows | `.exe` (NSIS) / `.msi` | `pnpm tauri build` |
-| macOS | `.dmg` / `.app` | `pnpm tauri build` |
-| Linux | `.AppImage` / `.deb` | `pnpm tauri build` |
+| macOS   | `.dmg` / `.app`        | `pnpm tauri build` |
+| Linux   | `.AppImage` / `.deb`   | `pnpm tauri build` |
 
 ### 6.2 依赖打包
 
@@ -640,7 +644,7 @@ fn initialize_app() -> Result<(), String> {
     std::fs::create_dir_all(&home)?;
     std::fs::create_dir_all(home.join("gallery/thumbnails"))?;
     std::fs::create_dir_all(home.join("gallery/originals"))?;
-    
+
     // 生成默认 config.yaml
     if !home.join("config.yaml").exists() {
         let default_config = include_str!("../assets/default_config.yaml");
@@ -663,6 +667,7 @@ fn initialize_app() -> Result<(), String> {
 ### 7.2 工具调用安全
 
 MCP 协议要求 **“人工在环” (Human-in-the-loop)**：
+
 - 所有工具调用需用户确认
 - 批量操作（如多尺寸导出）在预览弹窗中展示待执行列表
 - 用户可随时拒绝任何工具调用
@@ -677,13 +682,13 @@ MCP 协议要求 **“人工在环” (Human-in-the-loop)**：
 
 ## 8. 性能考量
 
-| 场景 | 优化策略 |
-| :--- | :--- |
-| **大画布渲染** | 使用 Canvas 2D 离屏渲染，仅渲染可视区域 |
+| 场景             | 优化策略                                   |
+| :--------------- | :----------------------------------------- |
+| **大画布渲染**   | 使用 Canvas 2D 离屏渲染，仅渲染可视区域    |
 | **SVG 批量导出** | resvg 基于 Rust 的高性能渲染，支持并发处理 |
-| **图库缩略图** | 统一使用 WebP 格式，缩略图尺寸限制 256px |
-| **向量搜索** | LanceDB 嵌入式模式，零延迟本地检索 |
-| **AI 响应** | 异步处理，不阻塞 UI 线程 |
+| **图库缩略图**   | 统一使用 WebP 格式，缩略图尺寸限制 256px   |
+| **向量搜索**     | LanceDB 嵌入式模式，零延迟本地检索         |
+| **AI 响应**      | 异步处理，不阻塞 UI 线程                   |
 
 ---
 
@@ -696,9 +701,9 @@ MCP 协议要求 **“人工在环” (Human-in-the-loop)**：
 ```yaml
 # 用户可自行添加 MCP 服务器
 mcp_servers:
-  - name: "custom-plugin"
-    command: "python"
-    args: ["my_mcp_server.py"]
+  - name: 'custom-plugin'
+    command: 'python'
+    args: ['my_mcp_server.py']
 ```
 
 ### 9.2 多 AI Provider 支持
@@ -707,13 +712,14 @@ mcp_servers:
 
 ```yaml
 llm:
-  provider: "anthropic"  # 或 deepseek / ollama
-  model: "claude-3-5-sonnet-20241022"
+  provider: 'anthropic' # 或 deepseek / ollama
+  model: 'claude-3-5-sonnet-20241022'
 ```
 
 ### 9.3 团队协作
 
 未来可引入：
+
 - 项目文件格式 (`.openpaint`)
 - 图库云端同步（用户自选存储）
 - 版本历史与分支管理

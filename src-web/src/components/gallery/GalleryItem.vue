@@ -26,15 +26,25 @@ function hashColor(input: string): string {
 </script>
 
 <template>
-  <div
-    class="gallery-item"
-    @mouseenter="hovered = true"
-    @mouseleave="hovered = false"
-  >
-    <button class="gallery-item__thumb" type="button" :title="item.prompt || item.id" @click="emit('select', item)">
+  <div class="gallery-item" @mouseenter="hovered = true" @mouseleave="hovered = false">
+    <button
+      class="gallery-item__thumb"
+      type="button"
+      :title="item.prompt || item.id"
+      @click="emit('select', item)"
+    >
       <!-- Backend returns local paths; MVP shows a colored placeholder block. -->
-      <img v-if="thumbSrc.startsWith('http') || thumbSrc.startsWith('data:')" :src="thumbSrc" alt="" loading="lazy" />
-      <div v-else class="gallery-item__placeholder" :style="{ backgroundColor: hashColor(item.id) }">
+      <img
+        v-if="thumbSrc.startsWith('http') || thumbSrc.startsWith('data:')"
+        :src="thumbSrc"
+        alt=""
+        loading="lazy"
+      />
+      <div
+        v-else
+        class="gallery-item__placeholder"
+        :style="{ backgroundColor: hashColor(item.id) }"
+      >
         <span class="gallery-item__dim">{{ item.width }}×{{ item.height }}</span>
       </div>
       <div v-if="hovered" class="gallery-item__overlay">
@@ -42,7 +52,9 @@ function hashColor(input: string): string {
       </div>
     </button>
     <div class="gallery-item__meta">
-      <span class="gallery-item__tags">{{ (item.tags || []).slice(0, 2).join(' · ') || '无标签' }}</span>
+      <span class="gallery-item__tags">
+        {{ (item.tags || []).slice(0, 2).join(' · ') || '无标签' }}
+      </span>
       <button
         class="gallery-item__delete"
         type="button"
@@ -62,7 +74,9 @@ function hashColor(input: string): string {
   border-radius: var(--radius);
   background: var(--bg-tertiary);
   overflow: hidden;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 
   &:hover {
     border-color: var(--accent);

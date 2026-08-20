@@ -1,6 +1,6 @@
 # 📄 DEVELOPMENT.md
 
-```markdown
+````markdown
 # 🔧 开发环境搭建指南
 
 本文档帮助开发者从零搭建 OpenPaint 的开发环境。
@@ -9,12 +9,12 @@
 
 ### 通用要求
 
-| 工具 | 版本要求 | 说明 |
-| :--- | :--- | :--- |
-| [Rust](https://www.rust-lang.org/) | 1.70+ | 后端核心语言 |
-| [Node.js](https://nodejs.org/) | 18.x 或 20.x LTS | 前端构建环境 |
-| [pnpm](https://pnpm.io/) | 8.x+ | 包管理器（必须） |
-| [Git](https://git-scm.com/) | 2.x+ | 版本控制 |
+| 工具                               | 版本要求         | 说明             |
+| :--------------------------------- | :--------------- | :--------------- |
+| [Rust](https://www.rust-lang.org/) | 1.70+            | 后端核心语言     |
+| [Node.js](https://nodejs.org/)     | 18.x 或 20.x LTS | 前端构建环境     |
+| [pnpm](https://pnpm.io/)           | 8.x+             | 包管理器（必须） |
+| [Git](https://git-scm.com/)        | 2.x+             | 版本控制         |
 
 ### 平台特定依赖
 
@@ -194,4 +194,5 @@ text
 4. **后续补全**：
    - `CODE_OF_CONDUCT.md`：可直接复制 [Contributor Covenant 官方模板](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
    - `LICENSE`：从 [MIT License 官网](https://opensource.org/licenses/MIT) 复制全文
-
+```
+````

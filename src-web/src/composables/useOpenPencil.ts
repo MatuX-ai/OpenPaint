@@ -10,7 +10,12 @@
 import { ref, type Ref } from 'vue';
 
 export interface OpenPencilMessage {
-  type: 'OPENPENCIL_READY' | 'OPENPENCIL_RESULT' | 'OPENPENCIL_EXPORT_SVG' | 'OPENPENCIL_ERROR' | 'OPENPENCIL_AI_GENERATE';
+  type:
+    | 'OPENPENCIL_READY'
+    | 'OPENPENCIL_RESULT'
+    | 'OPENPENCIL_EXPORT_SVG'
+    | 'OPENPENCIL_ERROR'
+    | 'OPENPENCIL_AI_GENERATE';
   payload?: unknown;
   _prefix?: string;
   [key: string]: unknown;

@@ -68,7 +68,9 @@ const uiStore = useUIStore();
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     background: transparent;
-    transition: background var(--transition-fast), color var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast);
 
     &:hover {
       background: var(--bg-hover);

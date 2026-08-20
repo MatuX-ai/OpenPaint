@@ -56,7 +56,7 @@ export const useUIStore = defineStore('ui', () => {
   watch(
     [theme, rightPanelMode, rightPanelWidth],
     ([t, m, w]) => persist({ theme: t, rightPanelMode: m, rightPanelWidth: w }),
-    { deep: false }
+    { deep: false },
   );
 
   function toggleTheme() {

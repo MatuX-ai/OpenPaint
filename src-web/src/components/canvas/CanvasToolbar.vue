@@ -10,10 +10,19 @@ import { useCanvasStore } from '@stores/canvasStore';
 const store = useCanvasStore();
 
 const showBrushControls = computed(
-  () => store.activeTool === 'brush' || store.activeTool === 'eraser'
+  () => store.activeTool === 'brush' || store.activeTool === 'eraser',
 );
 
-const swatches = ['#6c5ce7', '#000000', '#ffffff', '#fdcb6e', '#e17055', '#00b894', '#0984e3', '#d63031'];
+const swatches = [
+  '#6c5ce7',
+  '#000000',
+  '#ffffff',
+  '#fdcb6e',
+  '#e17055',
+  '#00b894',
+  '#0984e3',
+  '#d63031',
+];
 
 function pickColor(color: string) {
   store.setBrushColor(color);
@@ -95,8 +104,12 @@ function setRadius(e: Event) {
     outline: 1px solid var(--border-color);
     transition: transform var(--transition-fast);
 
-    &:hover { transform: scale(1.1); }
-    &.is-active { outline: 2px solid var(--accent); }
+    &:hover {
+      transform: scale(1.1);
+    }
+    &.is-active {
+      outline: 2px solid var(--accent);
+    }
   }
 
   &__radius {
@@ -106,10 +119,10 @@ function setRadius(e: Event) {
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
 
-    input[type="range"] {
-        width: 96px;
-        accent-color: var(--accent);
-      }
+    input[type='range'] {
+      width: 96px;
+      accent-color: var(--accent);
+    }
   }
 }
 </style>

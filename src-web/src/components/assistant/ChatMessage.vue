@@ -12,7 +12,10 @@ const props = defineProps<{ message: ChatMessage }>();
 const isUser = computed(() => props.message.role === 'user');
 const isTool = computed(() => props.message.role === 'tool');
 const time = computed(() =>
-  new Date(props.message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  new Date(props.message.timestamp).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
 );
 </script>
 
@@ -28,11 +31,7 @@ const time = computed(() =>
     <span class="chat-message__role">{{ isUser ? '你' : isTool ? '工具' : 'AI' }}</span>
     <div class="chat-message__content">
       <div class="chat-message__bubble">{{ message.content }}</div>
-      <ToolCallCard
-        v-for="call in message.toolCalls"
-        :key="call.id"
-        :call="call"
-      />
+      <ToolCallCard v-for="call in message.toolCalls" :key="call.id" :call="call" />
     </div>
     <span class="chat-message__time">{{ time }}</span>
   </div>

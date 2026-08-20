@@ -14,7 +14,7 @@ const local = ref(props.modelValue);
 
 watch(
   () => props.modelValue,
-  (v) => (local.value = v)
+  (v) => (local.value = v),
 );
 
 const runSearch = debounce(() => {

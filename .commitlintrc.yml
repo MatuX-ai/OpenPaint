@@ -9,31 +9,22 @@ rules:
     - 2
     - always
     - [
-        'feat',     # 新功能
-        'fix',      # Bug 修复
-        'docs',     # 文档更新
-        'style',    # 代码格式
+        'feat', # 新功能
+        'fix', # Bug 修复
+        'docs', # 文档更新
+        'style', # 代码格式
         'refactor', # 重构
-        'perf',     # 性能优化
-        'test',     # 测试
-        'chore',    # 构建/工具/依赖
-        'revert',   # 回滚
-        'ci'        # CI 配置
+        'perf', # 性能优化
+        'test', # 测试
+        'chore', # 构建/工具/依赖
+        'revert', # 回滚
+        'ci', # CI 配置
       ]
 
   scope-enum:
     - 2
     - always
-    - [
-        'canvas',
-        'agent',
-        'gallery',
-        'frontend',
-        'tools',
-        'build',
-        'docs',
-        'ci'
-      ]
+    - ['canvas', 'agent', 'gallery', 'frontend', 'tools', 'build', 'docs', 'ci']
 
   subject-max-length:
     - 2

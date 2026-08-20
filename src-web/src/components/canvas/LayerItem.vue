@@ -39,11 +39,7 @@ async function select() {
 </script>
 
 <template>
-  <li
-    class="layer-item"
-    :class="{ 'is-active': isActive() }"
-    @click="select"
-  >
+  <li class="layer-item" :class="{ 'is-active': isActive() }" @click="select">
     <button
       class="layer-item__icon-btn"
       type="button"
@@ -101,7 +97,9 @@ async function select() {
       background: var(--bg-hover);
     }
 
-    &--lock { opacity: 0.7; }
+    &--lock {
+      opacity: 0.7;
+    }
   }
 
   &__name {

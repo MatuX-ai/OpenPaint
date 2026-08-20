@@ -36,7 +36,7 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   // --- Computed ---
   const activeLayer = computed(
-    () => layerList.value.find((l) => l.id === activeLayerId.value) ?? null
+    () => layerList.value.find((l) => l.id === activeLayerId.value) ?? null,
   );
 
   // --- Actions ---

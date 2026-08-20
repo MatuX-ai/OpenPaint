@@ -11,20 +11,28 @@ const props = defineProps<{ call: ToolCall }>();
 
 const icon = computed(() => {
   switch (props.call.status) {
-    case 'success': return CheckCircle2;
-    case 'error': return XCircle;
+    case 'success':
+      return CheckCircle2;
+    case 'error':
+      return XCircle;
     case 'running':
-    case 'pending': return Loader2;
-    default: return Loader2;
+    case 'pending':
+      return Loader2;
+    default:
+      return Loader2;
   }
 });
 
 const statusLabel = computed(() => {
   switch (props.call.status) {
-    case 'success': return '完成';
-    case 'error': return '失败';
-    case 'running': return '执行中…';
-    default: return '等待中';
+    case 'success':
+      return '完成';
+    case 'error':
+      return '失败';
+    case 'running':
+      return '执行中…';
+    default:
+      return '等待中';
   }
 });
 </script>
@@ -32,12 +40,17 @@ const statusLabel = computed(() => {
 <template>
   <div class="tool-call-card" :class="`tool-call-card--${call.status}`">
     <div class="tool-call-card__header">
-      <component :is="icon" :size="12" :class="{ 'is-spinning': call.status === 'running' || call.status === 'pending' }" />
+      <component
+        :is="icon"
+        :size="12"
+        :class="{ 'is-spinning': call.status === 'running' || call.status === 'pending' }"
+      />
       <code class="tool-call-card__name">{{ call.name }}</code>
       <span class="tool-call-card__status">{{ statusLabel }}</span>
     </div>
-    <pre v-if="call.arguments && Object.keys(call.arguments).length" class="tool-call-card__args">
-{{ JSON.stringify(call.arguments, null, 2) }}</pre>
+    <pre v-if="call.arguments && Object.keys(call.arguments).length" class="tool-call-card__args">{{
+      JSON.stringify(call.arguments, null, 2)
+    }}</pre>
     <div v-if="call.error" class="tool-call-card__error">{{ call.error }}</div>
     <div v-if="call.result" class="tool-call-card__result">{{ call.result }}</div>
   </div>
@@ -99,6 +112,8 @@ const statusLabel = computed(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

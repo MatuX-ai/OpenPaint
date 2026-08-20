@@ -9,7 +9,9 @@ import type { Selection } from '@/types/canvas';
 
 const props = defineProps<{ selection: Selection | null }>();
 
-const visible = computed(() => !!props.selection && props.selection.width > 0 && props.selection.height > 0);
+const visible = computed(
+  () => !!props.selection && props.selection.width > 0 && props.selection.height > 0,
+);
 const style = computed(() => {
   if (!props.selection) return {};
   return {
@@ -23,7 +25,9 @@ const style = computed(() => {
 
 <template>
   <div v-if="visible" class="selection-rect" :style="style" aria-hidden="true">
-    <span class="selection-rect__tag">{{ Math.round(selection!.width) }} 脳 {{ Math.round(selection!.height) }}</span>
+    <span class="selection-rect__tag">
+      {{ Math.round(selection!.width) }} 脳 {{ Math.round(selection!.height) }}
+    </span>
   </div>
 </template>
 
@@ -52,8 +56,14 @@ const style = computed(() => {
 }
 
 @keyframes selection-marquee {
-  0% { border-color: var(--accent); }
-  50% { border-color: var(--accent-hover); }
-  100% { border-color: var(--accent); }
+  0% {
+    border-color: var(--accent);
+  }
+  50% {
+    border-color: var(--accent-hover);
+  }
+  100% {
+    border-color: var(--accent);
+  }
 }
 </style>

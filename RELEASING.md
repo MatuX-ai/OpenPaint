@@ -24,14 +24,14 @@
 ```jsonc
 {
   "productName": "OpenPaint",
-  "version": "0.2.0",          // ← 每次发版改这里（与 git tag 对齐）
+  "version": "0.2.0", // ← 每次发版改这里（与 git tag 对齐）
   "identifier": "dev.openpaint.app",
   "bundle": {
     "publisher": "OpenPaint Contributors",
     "category": "Graphics",
     "shortDescription": "开源 AI 原生设计工作台",
-    "longDescription": "OpenPaint 是一个开源 AI 原生设计工作台，将像素级图像编辑与 AI 大模型的生成能力无缝融合。"
-  }
+    "longDescription": "OpenPaint 是一个开源 AI 原生设计工作台，将像素级图像编辑与 AI 大模型的生成能力无缝融合。",
+  },
 }
 ```
 
@@ -62,11 +62,11 @@ git push origin v0.2.0
 
 每个平台独立 job 产出：
 
-| 平台       | 产物格式                         | 文件示例                                    |
-|------------|----------------------------------|---------------------------------------------|
-| Linux      | `.deb` / `.AppImage`             | `openpaint_0.2.0_amd64.deb`                 |
-| Windows    | `.msi` / `.exe` (NSIS)           | `OpenPaint_0.2.0_x64_en-US.msi`             |
-| macOS      | `.dmg` / `.app`                  | `OpenPaint_0.2.0_aarch64.dmg`               |
+| 平台    | 产物格式               | 文件示例                        |
+| ------- | ---------------------- | ------------------------------- |
+| Linux   | `.deb` / `.AppImage`   | `openpaint_0.2.0_amd64.deb`     |
+| Windows | `.msi` / `.exe` (NSIS) | `OpenPaint_0.2.0_x64_en-US.msi` |
+| macOS   | `.dmg` / `.app`        | `OpenPaint_0.2.0_aarch64.dmg`   |
 
 所有 bundle 会作为 **draft release** 自动挂到同名 GitHub Release 页：
 
@@ -132,18 +132,22 @@ pnpm tauri build --bundles dmg,app
 ## 七、常见问题
 
 ### Q1: Linux job 报错 `webkit2gtk-4.1 not found`
-   `tauri-cli` 2.x 必须 `libwebkit2gtk-4.1-dev`（Tauri 1.x 是 4.0）。已经写死在 release.yml 的安装步骤里。
-   如果你改了 runner 镜像（不是 ubuntu-22.04），需要重新适配系统包列表。
+
+`tauri-cli` 2.x 必须 `libwebkit2gtk-4.1-dev`（Tauri 1.x 是 4.0）。已经写死在 release.yml 的安装步骤里。
+如果你改了 runner 镜像（不是 ubuntu-22.04），需要重新适配系统包列表。
 
 ### Q2: macOS job 报错 `No signing identity found`
-   当前是预期行为——没配签名证书。如需签名见上文「五」。
+
+当前是预期行为——没配签名证书。如需签名见上文「五」。
 
 ### Q3: Windows job 一直卡在编译
-   Cargo 缓存首次冷启动可能 15~25 分钟。`swatinem/rust-cache` 会让第二次降到 3~5 分钟。
-   如果持续卡住，检查 `src-tauri/Cargo.toml` 是否有重型依赖（如 lancedb 特性）。
+
+Cargo 缓存首次冷启动可能 15~~25 分钟。`swatinem/rust-cache` 会让第二次降到 3~~5 分钟。
+如果持续卡住，检查 `src-tauri/Cargo.toml` 是否有重型依赖（如 lancedb 特性）。
 
 ### Q4: pnpm-lock.yaml 没生成，CI 在 bootstrap 模式
-   正常。第一次 CI 跑完后请把新生成的 `pnpm-lock.yaml` commit 进去，之后 CI 走 frozen 模式。
+
+正常。第一次 CI 跑完后请把新生成的 `pnpm-lock.yaml` commit 进去，之后 CI 走 frozen 模式。
 
 ---
 

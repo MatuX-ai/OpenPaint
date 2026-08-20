@@ -22,7 +22,10 @@ export interface UseResizeReturn {
   refresh: () => void;
 }
 
-export function useResize(target: Ref<HTMLElement | null>, opts: UseResizeOptions = {}): UseResizeReturn {
+export function useResize(
+  target: Ref<HTMLElement | null>,
+  opts: UseResizeOptions = {},
+): UseResizeReturn {
   const { watchWindow = true } = opts;
   const size = ref<Size>({ width: 0, height: 0 });
 

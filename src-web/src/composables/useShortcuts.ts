@@ -30,7 +30,13 @@ interface ResolvedBinding {
   run: (event: KeyboardEvent) => void | Promise<void>;
 }
 
-function parseCombo(combo: string): { ctrl: boolean; shift: boolean; alt: boolean; meta: boolean; key: string } {
+function parseCombo(combo: string): {
+  ctrl: boolean;
+  shift: boolean;
+  alt: boolean;
+  meta: boolean;
+  key: string;
+} {
   const parts = combo
     .split('+')
     .map((p) => p.trim())
@@ -51,7 +57,10 @@ function parseCombo(combo: string): { ctrl: boolean; shift: boolean; alt: boolea
   return { ctrl, shift, alt, meta, key };
 }
 
-function eventMatches(event: KeyboardEvent, parsed: Omit<ResolvedBinding, 'run' | 'whenEditable' | 'description'>): boolean {
+function eventMatches(
+  event: KeyboardEvent,
+  parsed: Omit<ResolvedBinding, 'run' | 'whenEditable' | 'description'>,
+): boolean {
   const ctrl = parsed.ctrl === (event.ctrlKey || event.metaKey);
   if (!ctrl) return false;
   if (parsed.shift !== event.shiftKey) return false;
@@ -86,21 +95,94 @@ export function useShortcuts(target: HTMLElement | Window = window) {
   function defaultBindings(): ShortcutBinding[] {
     return [
       // Tools (skip when typing)
-      { combo: 'V', description: '选择工具', whenEditable: false, run: () => canvasStore.setActiveTool('select') },
-      { combo: 'B', description: '画笔工具', whenEditable: false, run: () => canvasStore.setActiveTool('brush') },
-      { combo: 'E', description: '橡皮工具', whenEditable: false, run: () => canvasStore.setActiveTool('eraser') },
-      { combo: 'M', description: '矩形选区', whenEditable: false, run: () => canvasStore.setActiveTool('rect-select') },
-      { combo: 'H', description: '移动工具', whenEditable: false, run: () => canvasStore.setActiveTool('move') },
+      {
+        combo: 'V',
+        description: '选择工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('select'),
+      },
+      {
+        combo: 'B',
+        description: '画笔工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('brush'),
+      },
+      {
+        combo: 'E',
+        description: '橡皮工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('eraser'),
+      },
+      {
+        combo: 'M',
+        description: '矩形选区',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('rect-select'),
+      },
+      {
+        combo: 'H',
+        description: '移动工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('move'),
+      },
 
       // History
-      { combo: 'Ctrl+Z', description: '撤销', run: async () => { try { await canvasApi.undo(); canvasStore.canUndo = await refreshUndoFlag(); } catch (e) { console.error(e); } } },
-      { combo: 'Ctrl+Shift+Z', description: '重做', run: async () => { try { await canvasApi.redo(); canvasStore.canRedo = await refreshRedoFlag(); } catch (e) { console.error(e); } } },
-      { combo: 'Ctrl+Y', description: '重做', run: async () => { try { await canvasApi.redo(); canvasStore.canRedo = await refreshRedoFlag(); } catch (e) { console.error(e); } } },
+      {
+        combo: 'Ctrl+Z',
+        description: '撤销',
+        run: async () => {
+          try {
+            await canvasApi.undo();
+            canvasStore.canUndo = await refreshUndoFlag();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+      {
+        combo: 'Ctrl+Shift+Z',
+        description: '重做',
+        run: async () => {
+          try {
+            await canvasApi.redo();
+            canvasStore.canRedo = await refreshRedoFlag();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+      {
+        combo: 'Ctrl+Y',
+        description: '重做',
+        run: async () => {
+          try {
+            await canvasApi.redo();
+            canvasStore.canRedo = await refreshRedoFlag();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
 
       // Panel toggles
-      { combo: 'Ctrl+K', description: 'AI 助理显隐', whenEditable: false, run: () => uiStore.toggleAssistant() },
-      { combo: 'Ctrl+G', description: '图库面板', whenEditable: false, run: () => uiStore.switchRightPanel('gallery') },
-      { combo: 'Ctrl+G', description: 'OpenPencil 面板', whenEditable: false, run: () => uiStore.switchRightPanel('openpencil') },
+      {
+        combo: 'Ctrl+K',
+        description: 'AI 助理显隐',
+        whenEditable: false,
+        run: () => uiStore.toggleAssistant(),
+      },
+      {
+        combo: 'Ctrl+G',
+        description: '图库面板',
+        whenEditable: false,
+        run: () => uiStore.switchRightPanel('gallery'),
+      },
+      {
+        combo: 'Ctrl+G',
+        description: 'OpenPencil 面板',
+        whenEditable: false,
+        run: () => uiStore.switchRightPanel('openpencil'),
+      },
     ];
   }
 

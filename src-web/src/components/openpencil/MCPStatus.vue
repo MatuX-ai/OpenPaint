@@ -9,10 +9,14 @@ const props = defineProps<{ status: 'idle' | 'loading' | 'ready' | 'error' }>();
 
 const label = computed(() => {
   switch (props.status) {
-    case 'ready': return '已连接';
-    case 'error': return '连接错误';
-    case 'loading': return '连接中…';
-    default: return '未连接';
+    case 'ready':
+      return '已连接';
+    case 'error':
+      return '连接错误';
+    case 'loading':
+      return '连接中…';
+    default:
+      return '未连接';
   }
 });
 </script>
@@ -41,11 +45,23 @@ const label = computed(() => {
     background: var(--text-muted);
   }
 
-  &--ready .mcp-status__dot { background: var(--success); }
-  &--ready { color: var(--success); }
-  &--error .mcp-status__dot { background: var(--error); }
-  &--error { color: var(--error); }
-  &--loading .mcp-status__dot { background: var(--warning); }
-  &--loading { color: var(--warning); }
+  &--ready .mcp-status__dot {
+    background: var(--success);
+  }
+  &--ready {
+    color: var(--success);
+  }
+  &--error .mcp-status__dot {
+    background: var(--error);
+  }
+  &--error {
+    color: var(--error);
+  }
+  &--loading .mcp-status__dot {
+    background: var(--warning);
+  }
+  &--loading {
+    color: var(--warning);
+  }
 }
 </style>

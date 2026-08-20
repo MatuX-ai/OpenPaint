@@ -42,6 +42,7 @@ git push origin main
 `https://github.com/MatuX-ai/OpenPaint/actions/workflows/ci.yml`
 
 应该看到 4 个 job 在跑：
+
 - `frontend`（ubuntu/windows/macos × 3 矩阵）
 - `backend`（ubuntu/windows/macos × 3 矩阵）
 - `commit-lint`
@@ -67,6 +68,7 @@ git push origin v0.1.0
 打开：`https://github.com/MatuX-ai/OpenPaint/actions/workflows/release.yml`
 
 三个 job 会并行跑：
+
 - `Linux (.deb / .AppImage)` — ubuntu-22.04
 - `Windows (.msi / .exe)` — windows-latest
 - `macOS (.dmg / .app)` — macos-latest
@@ -81,6 +83,7 @@ git push origin v0.1.0
 ## 三、CI 失败排查
 
 ### Job: `frontend`
+
 **症状**：`pnpm install` 报错
 **原因**：bootstrap 模式应该能兜住，但你手动 `pnpm install` 之前可能本地 lockfile 不一致
 **排查**：去 Actions 日志看具体错误。最常见的是 `ERR_PNPM_PEER_DEP_ISSUES`（pinia/vue 版本不匹配）——这是 workspace 内 `src-web/package.json` 的依赖问题，跟 workflow 无关
@@ -90,9 +93,11 @@ git push origin v0.1.0
 **解决**：本地 `pnpm lint` 和 `pnpm type-check` 修一遍再提交
 
 ### Job: `backend`
+
 **症状**：`Rust fmt` 步骤报 `Diff in ...rs:N` 多处
 **原因**：Rust 代码不符合 rustfmt 规范
 **解决**：✅ **已自动化**——独立的 `backend-fmt-fix` job 会自动跑 `cargo fmt --all`，commit + push 回 main。
+
 - 第一次 push 后，bot 会创建 commit `style: apply cargo fmt (auto-fix from CI)`
 - 下次 CI 跑时 bot 检测到上一次 commit 是自己 → 跳过
 - 因此**不会再出现 fmt 失败**——除非 bot 自己 push 失败
@@ -106,38 +111,44 @@ git push origin v0.1.0
 **说明**：✅ **已在 ci.yml 的 backend job 加了 `if: matrix.os == 'ubuntu-latest'` 的 apt install 步骤**，理论上不会出这个问题。如果还报缺包，把 `apt-get install` 那段贴回来。
 
 ### Job: `commit-lint`
+
 **症状**：`subject may not be empty` / `type may not be empty` / `type must be one of ...`
 **原因**：commit message 不符合 conventional commits
 **解决**：用 `git commit --amend` 改 message 重新 push
 
 ### 任何 job 报 `pnpm-lock.yaml not found`
+
 **正常**：第一次 CI 会跑 bootstrap 模式生成 `pnpm-lock.yaml`
 **后续步骤**：CI 跑完后，**手动把生成的 `pnpm-lock.yaml` 提交回仓库**：
+
 ```powershell
 git add pnpm-lock.yaml
 git commit -m "chore: add pnpm-lock.yaml"
 git push origin main
 ```
+
 然后**删除** `package-lock.json`：
+
 ```powershell
 git rm package-lock.json
 git commit -m "chore: remove npm lockfile, switch to pnpm"
 git push origin main
 ```
+
 之后 CI 都走 frozen 模式。
 
 ---
 
 ## 四、时间预估
 
-| Step                    | 耗时                  |
-|-------------------------|-----------------------|
-| 提交 + push             | < 1 分钟              |
-| ci.yml 首次跑（前端）   | 5~10 分钟 × 3 OS      |
-| ci.yml 首次跑（后端）   | 10~25 分钟 × 3 OS     |
-| commit-lint             | < 1 分钟              |
-| release.yml 首次跑      | 20~40 分钟 × 3 OS     |
-| **合计**                | **45~120 分钟**       |
+| Step                  | 耗时              |
+| --------------------- | ----------------- |
+| 提交 + push           | < 1 分钟          |
+| ci.yml 首次跑（前端） | 5~10 分钟 × 3 OS  |
+| ci.yml 首次跑（后端） | 10~25 分钟 × 3 OS |
+| commit-lint           | < 1 分钟          |
+| release.yml 首次跑    | 20~40 分钟 × 3 OS |
+| **合计**              | **45~120 分钟**   |
 
 ---
 

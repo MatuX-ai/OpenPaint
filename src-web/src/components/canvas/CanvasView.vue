@@ -64,7 +64,9 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
       <!-- transformable wrapper handles zoom/pan -->
       <div
         class="canvas-view__viewport"
-        :style="{ transform: `translate(${viewport.panX}px, ${viewport.panY}px) scale(${viewport.zoom})` }"
+        :style="{
+          transform: `translate(${viewport.panX}px, ${viewport.panY}px) scale(${viewport.zoom})`,
+        }"
       >
         <div class="canvas-view__checker">
           <canvas ref="canvasRef" class="canvas-view__canvas" />
@@ -77,12 +79,17 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
         <button class="canvas-view__zoom-btn" type="button" @click="zoomOut">−</button>
         <span class="canvas-view__zoom-value">{{ Math.round(viewport.zoom * 100) }}%</span>
         <button class="canvas-view__zoom-btn" type="button" @click="zoomIn">+</button>
-        <button class="canvas-view__zoom-btn" type="button" @click="resetView" title="重置视图">⌂</button>
+        <button class="canvas-view__zoom-btn" type="button" @click="resetView" title="重置视图">
+          ⌂
+        </button>
       </div>
 
       <!-- pointer crosshair when active tool is something drawing -->
       <div
-        v-if="pointer && (activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rect-select')"
+        v-if="
+          pointer &&
+          (activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rect-select')
+        "
         class="canvas-view__crosshair"
         :style="{ left: pointer.x + 'px', top: pointer.y + 'px' }"
       />
@@ -105,12 +112,24 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
     overflow: hidden;
     background: var(--bg-primary);
 
-    &--tool-select { cursor: default; }
-    &--tool-brush { cursor: crosshair; }
-    &--tool-eraser { cursor: crosshair; }
-    &--tool-rect-select { cursor: crosshair; }
-    &--tool-move { cursor: move; }
-    &--tool-transform { cursor: nesw-resize; }
+    &--tool-select {
+      cursor: default;
+    }
+    &--tool-brush {
+      cursor: crosshair;
+    }
+    &--tool-eraser {
+      cursor: crosshair;
+    }
+    &--tool-rect-select {
+      cursor: crosshair;
+    }
+    &--tool-move {
+      cursor: move;
+    }
+    &--tool-transform {
+      cursor: nesw-resize;
+    }
   }
 
   &__viewport {
@@ -131,7 +150,11 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
       linear-gradient(45deg, transparent 75%, var(--bg-tertiary) 75%),
       linear-gradient(-45deg, transparent 75%, var(--bg-tertiary) 75%);
     background-size: 16px 16px;
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
     opacity: 0.4;
   }
 
@@ -193,8 +216,18 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
       background: var(--accent);
       opacity: 0.7;
     }
-    &::before { width: 12px; height: 1px; left: -6px; top: 0; }
-    &::after  { width: 1px; height: 12px; left: 0; top: -6px; }
+    &::before {
+      width: 12px;
+      height: 1px;
+      left: -6px;
+      top: 0;
+    }
+    &::after {
+      width: 1px;
+      height: 12px;
+      left: 0;
+      top: -6px;
+    }
   }
 
   &__drawing-flag {
