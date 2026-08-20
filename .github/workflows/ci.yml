@@ -124,7 +124,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      workflows: write    # bot 即使改 .github/workflows/*.yml 也能 push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
@@ -203,7 +202,6 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
-      workflows: write    # 防御：万一 cargo fmt 改了 yaml（不可能），也能 push
     # 只在 push 到 main 时跑，PR 上不跑（PR 不能直接 push）
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
