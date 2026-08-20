@@ -10,6 +10,7 @@
 | [api.md](./api.md)                           | Tauri 命令与前端 API 参考（待 W1 完成） | 后端   |
 | [tools.md](./tools.md)                       | 原子工具清单与参数说明（待 W3 完成）    | 后端   |
 | [plugin-dev-guide.md](./plugin-dev-guide.md) | 第三方 MCP 插件开发指南（待 W8 完成）   | 后端   |
+| [upgrade-resvg-usvg-0.48.md](./upgrade-resvg-usvg-0.48.md) | resvg / usvg 升级到 0.48.1 的说明      | 后端   |
 
 ## 设计文档（与根目录对应）
 
