@@ -28,11 +28,9 @@ onMounted(() => {
 <template>
   <div v-if="!runningInTauri" class="web-preview-banner" role="status">
     OpenPaint Web Preview · interactive demo of the desktop app ·
-    <a
-      href="https://github.com/MatuX-ai/OpenPaint/releases"
-      target="_blank"
-      rel="noopener"
-    >Download desktop</a>
+    <a href="https://github.com/MatuX-ai/OpenPaint/releases" target="_blank" rel="noopener">
+      Download desktop
+    </a>
   </div>
   <MainLayout />
   <AIAssistant />
