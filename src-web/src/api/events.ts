@@ -2,7 +2,7 @@
  * Tauri 事件统一管理
  */
 
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from './runtime';
 
 /** 事件类型映射 */
 type EventMap = {

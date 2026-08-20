@@ -1,0 +1,241 @@
+/**
+ * Runtime detection + web stubs for Tauri APIs.
+ *
+ * OpenPaint is a Tauri desktop app, but the same Vue 3 + Vite frontend
+ * is also built as a static SPA and deployed to Vercel as a "web preview".
+ *
+ * On the web preview there is no Tauri host, so the native IPC primitives
+ * (`invoke`, `listen`) would throw on first call. Instead of letting the
+ * UI crash, we:
+ *
+ *   - Detect "are we inside a Tauri WebView?" via `isTauri()`.
+ *   - Provide typed stubs that:
+ *       * return harmless empty defaults for read-only commands
+ *         so the UI can still render a meaningful "no data" state;
+ *       * reject with a clear WebPreviewUnsupportedError for write /
+ *         mutation commands so callers can show a "desktop only" hint;
+ *       * log every stubbed call to the browser console under the
+ *         `[web-preview]` prefix so it's easy to trace in DevTools.
+ *
+ * The desktop builds are unaffected: when `__TAURI_INTERNALS__` is
+ * defined, we re-export the real `@tauri-apps/api/core` and
+ * `@tauri-apps/api/event` modules, so production behavior is identical.
+ */
+
+import type { InvokeArgs } from '@tauri-apps/api/core';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+
+// ----------------------------------------------------------------
+// Runtime detection
+// ----------------------------------------------------------------
+
+/**
+ * True when running inside a Tauri WebView (desktop app).
+ * False on plain browsers (web preview, Vercel, etc.).
+ */
+export function isTauri(): boolean {
+  // Tauri v2 exposes the IPC bridge on `window.__TAURI_INTERNALS__`.
+  // We deliberately avoid `@tauri-apps/api/core`'s helper so this
+  // module has zero side effects at import time.
+  if (typeof window === 'undefined') return false;
+  const w = window as unknown as { __TAURI_INTERNALS__?: unknown };
+  return typeof w.__TAURI_INTERNALS__ !== 'undefined';
+}
+
+// ----------------------------------------------------------------
+// Errors
+// ----------------------------------------------------------------
+
+/**
+ * Thrown by the web preview stubs for write/mutation commands.
+ * Callers can `catch` this specifically to show "desktop only" UX
+ * without polluting the console with an ugly stack trace.
+ */
+export class WebPreviewUnsupportedError extends Error {
+  public readonly command: string;
+  constructor(command: string) {
+    super(
+      `[web-preview] Command "${command}" is not supported in the web preview build. ` +
+        `This feature requires the OpenPaint desktop app.`,
+    );
+    this.name = 'WebPreviewUnsupportedError';
+    this.command = command;
+  }
+}
+
+// ----------------------------------------------------------------
+// Logging helper (web only — no-op on desktop)
+// ----------------------------------------------------------------
+
+let warnedOnce = false;
+function warnWebOnce(): void {
+  if (warnedOnce) return;
+  warnedOnce = true;
+  // eslint-disable-next-line no-console
+  console.info(
+    '%c[web-preview]%c Running OpenPaint web preview. ' +
+      'Most canvas/AI commands are stubbed. Download the desktop app for full functionality.',
+    'color:#f59e0b;font-weight:bold',
+    'color:inherit',
+  );
+}
+
+function logStubbedCall(command: string, args?: unknown): void {
+  warnWebOnce();
+  // eslint-disable-next-line no-console
+  console.info(`[web-preview] invoke "${command}"`, args ?? {});
+}
+
+// ----------------------------------------------------------------
+// Stub command table
+// ----------------------------------------------------------------
+//
+// Each entry is a *factory* that returns the value the caller should
+// receive. We keep this list explicit so adding a new command forces
+// an explicit decision (mock vs reject) instead of silently falling
+// through to a generic stub.
+// ----------------------------------------------------------------
+
+type StubFactory = (args: unknown) => unknown;
+
+/**
+ * Commands that are safe to mock with empty/zero defaults so the UI
+ * can still render an "empty state" instead of crashing.
+ */
+const MOCK_COMMANDS: Record<string, StubFactory> = {
+  // App / debug
+  get_app_info: () => ({
+    name: 'OpenPaint (web preview)',
+    version: '0.1.0',
+    stage: 'web-preview',
+  }),
+  get_app_version: () => '0.1.0-web-preview',
+  hello_world: () => 'Hello from the OpenPaint web preview!',
+  echo: (args: unknown) => {
+    const a = (args ?? {}) as { payload?: { message?: string } };
+    const msg = a.payload?.message ?? '';
+    return { received: msg, length: msg.length, timestamp: Date.now() };
+  },
+
+  // Canvas (read-only)
+  get_canvas_summary: () => ({
+    width: 1280,
+    height: 720,
+    layers: [],
+    active_layer_id: null,
+    can_undo: false,
+    can_redo: false,
+  }),
+  get_selection_bounds: () => ({ x: 0, y: 0, width: 0, height: 0 }),
+  render_canvas_png: () => '',
+  get_canvas_selection: () => '',
+  list_tools: () => [],
+
+  // Gallery (read-only)
+  list_gallery: () => [],
+  search_gallery: () => ({ items: [], total: 0 }),
+  get_gallery_image: () => ({ item: null, png_base64: undefined }),
+};
+
+/**
+ * Commands we explicitly reject in the web preview. The list mirrors
+ * everything in `api/index.ts` that mutates state or depends on the
+ * Tauri-only plugins (fs / store / dialog / log).
+ *
+ * If you add a new Tauri command to `api/index.ts` and forget to add
+ * it here, the catch-all in `webInvoke` will throw a clear error
+ * rather than silently returning undefined.
+ */
+const REJECTED_COMMANDS = new Set<string>([
+  // Canvas (write)
+  'apply_brush_stroke',
+  'apply_eraser_stroke',
+  'paste_image_to_layer',
+  'set_rect_selection',
+  'clear_selection',
+  'move_layer',
+  'fill_layer',
+  'undo_canvas',
+  'redo_canvas',
+  'add_layer',
+  'remove_active_layer',
+  'set_active_layer',
+  'set_layer_visibility',
+  'resize_canvas',
+
+  // Gallery (write)
+  'save_to_gallery',
+  'delete_gallery_item',
+
+  // AI engine
+  'agent_chat',
+  'agent_command',
+  'send_to_ai_engine',
+  'render_svg_to_png',
+]);
+
+// ----------------------------------------------------------------
+// webInvoke — drop-in replacement for `@tauri-apps/api/core::invoke`
+// ----------------------------------------------------------------
+
+/**
+ * Web preview replacement for Tauri `invoke`.
+ *
+ * On the desktop it simply re-exports the real invoke; on the web
+ * it routes through the mock table above (or rejects for mutations).
+ */
+async function webInvoke<T = unknown>(command: string, args?: InvokeArgs): Promise<T> {
+  if (isTauri()) {
+    const real = await import('@tauri-apps/api/core');
+    return real.invoke<T>(command, args);
+  }
+
+  logStubbedCall(command, args);
+
+  if (Object.prototype.hasOwnProperty.call(MOCK_COMMANDS, command)) {
+    return MOCK_COMMANDS[command](args) as T;
+  }
+  if (REJECTED_COMMANDS.has(command)) {
+    throw new WebPreviewUnsupportedError(command);
+  }
+  // Unknown command — fail loudly so we notice during development.
+  throw new Error(
+    `[web-preview] Unknown command "${command}". ` +
+      `Add it to MOCK_COMMANDS or REJECTED_COMMANDS in src/api/runtime.ts.`,
+  );
+}
+
+// ----------------------------------------------------------------
+// webListen — drop-in replacement for `@tauri-apps/api/event::listen`
+// ----------------------------------------------------------------
+
+/**
+ * Web preview replacement for Tauri `listen`.
+ *
+ * On the desktop it forwards to the real `listen`; on the web it
+ * returns a no-op unsubscribe function. Event handlers are never
+ * invoked because no events are emitted in the web preview.
+ */
+async function webListen<T>(
+  event: string,
+  _handler: (e: { payload: T }) => void,
+): Promise<UnlistenFn> {
+  if (isTauri()) {
+    const real = await import('@tauri-apps/api/event');
+    return real.listen<T>(event, _handler);
+  }
+  warnWebOnce();
+  // eslint-disable-next-line no-console
+  console.info(`[web-preview] listen "${event}" (no-op in web preview)`);
+  return () => {
+    /* no-op */
+  };
+}
+
+// Public surface — mirrors the shape of the Tauri APIs we use.
+export const invoke = webInvoke;
+export const listen = webListen;
+
+// Type re-export so consumers don't need to import from
+// `@tauri-apps/api/event` directly.
+export type { UnlistenFn };

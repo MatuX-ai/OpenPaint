@@ -1,0 +1,41 @@
+# Vercel build context ignore. The web build only needs src-web + the
+# root manifests; everything Tauri/Rust related slows uploads and
+# risks leaking desktop-only tooling into the deployable surface.
+
+# Rust / Tauri backend
+src-tauri/
+**/Cargo.toml
+**/Cargo.lock
+
+# Git + CI
+.github/
+.git/
+
+# Local research notes
+resvg-research/
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Node + pnpm caches (Vercel installs fresh in its own runner)
+node_modules/
+.pnpm-store/
+
+# Root dist (if any)
+dist/
+
+# Docs that are not needed at runtime
+docs/
+
+# Project planning docs
+OpenPaint_*.md
+PROJECT_REORG.md
+RELEASE_RUNBOOK.md
+RELEASING.md
+.openpaint-root.md
+
+# The web-preview doc we wrote earlier — keep this around but Vercel
+# doesn't need to ship it; root docs/ already excluded above.

@@ -9,7 +9,7 @@
  *   2. Convert wire-format responses to camelCase in helpers.
  */
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from './runtime';
 import type {
   GalleryItem,
   GalleryItemWire,
