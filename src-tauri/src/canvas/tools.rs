@@ -117,7 +117,7 @@ impl BrushTool {
     /// 在图层上画一个圆形笔触
     fn draw_brush_dot(layer: &mut Layer, cx: i32, cy: i32, radius: u32, color: Color) {
         let r = radius as i32;
-        let r2 = (r * r) as i32;
+        let r2 = r * r;
         let lw = layer.width as i32;
         let lh = layer.height as i32;
 

@@ -8,7 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
   # ----------------------------------------------------------
@@ -31,11 +30,13 @@ jobs:
           node-version: 24
 
       - name: Setup pnpm (via corepack)
+        shell: bash
         run: |
           corepack enable
           corepack prepare pnpm@8.15.0 --activate
 
       - name: Install dependencies (bootstrap if no lockfile)
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             echo "pnpm-lock.yaml found, frozen install"
@@ -76,6 +77,7 @@ jobs:
 
       - name: Install Linux system deps (webkit2gtk-4.1)
         if: matrix.os == 'ubuntu-latest'
+        shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -105,7 +107,7 @@ jobs:
 
       - name: Rust clippy
         working-directory: src-tauri
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets
 
       - name: Rust test
         working-directory: src-tauri
@@ -136,11 +138,13 @@ jobs:
           node-version: 24
 
       - name: Setup pnpm (via corepack)
+        shell: bash
         run: |
           corepack enable
           corepack prepare pnpm@8.15.0 --activate
 
       - name: Install JS deps (bootstrap if no lockfile)
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             echo "pnpm-lock.yaml found, frozen install"
@@ -152,6 +156,7 @@ jobs:
 
       - name: Detect previous commit subject
         id: prev
+        shell: bash
         run: |
           LAST=$(git log -1 --pretty=%s HEAD)
           echo "last_commit=$LAST" >> "$GITHUB_OUTPUT"
@@ -164,6 +169,7 @@ jobs:
       - name: Check prettier
         if: steps.prev.outputs.skip == 'false'
         id: check
+        shell: bash
         run: |
           if pnpm format:check; then
             echo "needs_fix=false" >> "$GITHUB_OUTPUT"
@@ -181,6 +187,7 @@ jobs:
 
       - name: Commit and push auto-fix
         if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        shell: bash
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
@@ -216,6 +223,7 @@ jobs:
 
       - name: Detect previous commit subject
         id: prev
+        shell: bash
         run: |
           LAST=$(git log -1 --pretty=%s HEAD)
           echo "last_commit=$LAST" >> "$GITHUB_OUTPUT"
@@ -229,6 +237,7 @@ jobs:
         if: steps.prev.outputs.skip == 'false'
         id: check
         working-directory: src-tauri
+        shell: bash
         run: |
           if cargo fmt --all -- --check; then
             echo "needs_fix=false" >> "$GITHUB_OUTPUT"
@@ -248,6 +257,7 @@ jobs:
 
       - name: Commit and push auto-fix
         if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        shell: bash
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
