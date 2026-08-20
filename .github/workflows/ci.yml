@@ -28,16 +28,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: 24
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+      - name: Setup pnpm (via corepack)
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.0 --activate
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies (bootstrap if no lockfile)
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pnpm-lock.yaml found, frozen install"
+            pnpm install --frozen-lockfile
+          else
+            echo "pnpm-lock.yaml NOT found, generating one"
+            pnpm install
+          fi
 
       - name: Lint
         run: pnpm lint
@@ -68,21 +74,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Linux system deps (webkit2gtk-4.1)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          workspaces: src-tauri -> target
 
       - name: Rust fmt
         working-directory: src-tauri
