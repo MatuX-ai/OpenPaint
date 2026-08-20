@@ -50,8 +50,13 @@ parking_lot = "0.12"
 
 # --- 图像处理 ---
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
-resvg = "0.43"
-usvg = "0.43"
+# SVG 渲染：resvg / usvg 必须同版本对齐（tiny-skia 由 usvg/resvg 间接拉取，
+# 当前 0.48 系列对应 tiny-skia 0.12）。升级前已确认 call site（ai_commands.rs
+# render_svg_to_png_internal）保持 0.43 → 0.48 的源码兼容，唯一变化是
+# tiny_skia::Pixmap::encode_png 返回的 Err 类型不同（仍实现 std::error::Error，
+# 可被 anyhow::Result 自动接管）。
+resvg = "=0.48.1"
+usvg = "=0.48.1"
 base64 = "0.22"
 
 # --- 系统 ---
