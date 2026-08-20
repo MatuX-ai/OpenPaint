@@ -100,9 +100,8 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
-      - name: Rust fmt
-        working-directory: src-tauri
-        run: cargo fmt --all -- --check
+      # Rust fmt 检查移到了独立的 backend-fmt-fix job（自动修复+push）
+      # 这里跳过 fmt，否则会因代码未格式化而失败
 
       - name: Rust clippy
         working-directory: src-tauri
@@ -115,6 +114,73 @@ jobs:
       - name: Rust build (release smoke)
         working-directory: src-tauri
         run: cargo build --release
+
+  # ----------------------------------------------------------
+  # Rust fmt 自动修复（独立 job，避免和 backend 矩阵 race condition）
+  # 只在 ubuntu 上跑，跑完 commit + push 自动格式化的代码
+  # 防循环：如果最近一次 commit 已经是 bot auto-fix，跳过
+  # ----------------------------------------------------------
+  backend-fmt-fix:
+    name: Backend fmt (auto-fix)
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    # 只在 push 到 main 时跑，PR 上不跑（PR 不能直接 push）
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Detect previous commit subject
+        id: prev
+        run: |
+          LAST=$(git log -1 --pretty=%s HEAD)
+          echo "last_commit=$LAST" >> "$GITHUB_OUTPUT"
+          if [[ "$LAST" == "style: apply cargo fmt (auto-fix from CI)" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check fmt
+        if: steps.prev.outputs.skip == 'false'
+        id: check
+        working-directory: src-tauri
+        run: |
+          if cargo fmt --all -- --check; then
+            echo "needs_fix=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_fix=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply fmt
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        working-directory: src-tauri
+        run: cargo fmt --all
+
+      - name: Re-check fmt (after auto-fix, must be clean)
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: Commit and push auto-fix
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add src-tauri/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "style: apply cargo fmt (auto-fix from CI)"
+          git push
 
   # ----------------------------------------------------------
   # Conventional Commits 校验

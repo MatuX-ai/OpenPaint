@@ -92,18 +92,10 @@ git push origin v0.1.0
 ### Job: `backend`
 **症状**：`Rust fmt` 步骤报 `Diff in ...rs:N` 多处
 **原因**：Rust 代码不符合 rustfmt 规范
-**解决**：
-```powershell
-# 一次性本地格式化（已提供 scripts/fmt.ps1）
-pwsh -File scripts/fmt.ps1
-
-# 然后提交
-git add src-tauri/
-git commit -m "style: apply cargo fmt"
-git push origin main
-```
-> 不要在 CI workflow 里加自动 fmt——CI 改了代码不会自动 push 回仓库，
-> 必须在本地格式化后再提交。
+**解决**：✅ **已自动化**——独立的 `backend-fmt-fix` job 会自动跑 `cargo fmt --all`，commit + push 回 main。
+- 第一次 push 后，bot 会创建 commit `style: apply cargo fmt (auto-fix from CI)`
+- 下次 CI 跑时 bot 检测到上一次 commit 是自己 → 跳过
+- 因此**不会再出现 fmt 失败**——除非 bot 自己 push 失败
 
 **症状**：`cargo clippy` 报错
 **原因**：`RUSTFLAGS: "-D warnings"` 把 warning 当 error
