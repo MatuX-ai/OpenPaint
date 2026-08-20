@@ -97,10 +97,15 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Cache Cargo
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
+      - name: Clear cargo registry cache (防止索引损坏)
+        shell: bash
+        run: |
+          rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
+          rm -rf ~/.cargo/registry/index/* 2>/dev/null || true
+          echo "cargo cache cleared"
+
+      # 不缓存 cargo target——首次跑会慢5分钟，但保证 cargo 不被损坏缓存污染
+      # 如果之后 CI 稳定，可以重新引入 actions/cache，只缓存 src-tauri/target
 
       # Rust fmt 检查移到了独立的 backend-fmt-fix job（自动修复+push）
       # 这里跳过 fmt，否则会因代码未格式化而失败
