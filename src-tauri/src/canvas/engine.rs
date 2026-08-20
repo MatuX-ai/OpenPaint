@@ -60,7 +60,8 @@ impl CanvasRenderer {
                     continue;
                 }
                 let dst_pixel = target.get_pixel(tx, ty);
-                let blended = Self::blend_pixel(*dst_pixel, *src_pixel, layer.blend_mode, layer.opacity);
+                let blended =
+                    Self::blend_pixel(*dst_pixel, *src_pixel, layer.blend_mode, layer.opacity);
                 target.put_pixel(tx, ty, blended);
             }
         }
@@ -69,12 +70,7 @@ impl CanvasRenderer {
     }
 
     /// 像素混合
-    fn blend_pixel(
-        dst: Rgba<u8>,
-        src: Rgba<u8>,
-        mode: BlendMode,
-        opacity: f32,
-    ) -> Rgba<u8> {
+    fn blend_pixel(dst: Rgba<u8>, src: Rgba<u8>, mode: BlendMode, opacity: f32) -> Rgba<u8> {
         // 跳过完全透明的源像素
         if src[3] == 0 {
             return dst;

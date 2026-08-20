@@ -15,7 +15,7 @@ pub mod gallery;
 pub mod state;
 pub mod tools;
 
-pub use agent::mcp as mcp;
+pub use agent::mcp;
 
 use std::sync::Arc;
 
@@ -55,11 +55,9 @@ pub fn run() {
             // Application info (debug)
             tools::app::get_app_info,
             tools::app::get_app_version,
-
             // W1 placeholders
             tools::placeholder::hello_world,
             tools::placeholder::echo,
-
             // W2 canvas operations
             tools::canvas_commands::get_canvas_summary,
             tools::canvas_commands::render_canvas_png,
@@ -77,20 +75,17 @@ pub fn run() {
             tools::canvas_commands::set_layer_visibility,
             tools::canvas_commands::resize_canvas,
             tools::canvas_commands::list_tools,
-
             // W3 canvas atomic tools (M-08)
             tools::canvas_tools::get_canvas_selection,
             tools::canvas_tools::get_selection_bounds,
             tools::canvas_tools::paste_image_to_layer,
             tools::canvas_tools::get_layer_info,
-
             // W3 gallery commands (M-06/M-10)
             tools::gallery_commands::save_to_gallery,
             tools::gallery_commands::list_gallery,
             tools::gallery_commands::search_gallery,
             tools::gallery_commands::delete_gallery_item,
             tools::gallery_commands::get_gallery_image,
-
             // W4 AI commands (M-09/M-10)
             tools::ai_commands::send_to_ai_engine,
             tools::ai_commands::render_svg_to_png,
@@ -98,7 +93,6 @@ pub fn run() {
             tools::ai_commands::agent_command,
             tools::ai_commands::load_scenario,
             tools::ai_commands::list_scenarios,
-
             // W6 multi-LLM provider
             tools::llm_commands::list_providers,
             tools::llm_commands::set_provider,

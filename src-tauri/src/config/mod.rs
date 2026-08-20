@@ -94,8 +94,8 @@ impl AppConfig {
         if !path.exists() {
             Self::generate_default(&path)?;
         }
-        let content = std::fs::read_to_string(&path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let content =
+            std::fs::read_to_string(&path).map_err(|e| format!("Failed to read config: {}", e))?;
         serde_yaml::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))
     }
 
@@ -137,8 +137,14 @@ pub fn ensure_initialized() -> Result<(), String> {
     // 强制写入默认场景文件
     let scenarios = dir.join("scenarios");
     for (name, content) in [
-        ("ios-icons.yaml", include_str!("../../../assets/scenarios/ios-icons.yaml")),
-        ("web-icons.yaml", include_str!("../../../assets/scenarios/web-icons.yaml")),
+        (
+            "ios-icons.yaml",
+            include_str!("../../../assets/scenarios/ios-icons.yaml"),
+        ),
+        (
+            "web-icons.yaml",
+            include_str!("../../../assets/scenarios/web-icons.yaml"),
+        ),
     ] {
         let target = scenarios.join(name);
         if !target.exists() {

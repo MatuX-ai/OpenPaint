@@ -16,7 +16,9 @@ pub use engine::CanvasRenderer;
 pub use history::{HistorySnapshot, HistoryStack};
 pub use layer::{BlendMode, Layer};
 pub use selection::Selection;
-pub use tools::{BrushTool, CanvasTool, Color, EraserTool, FillTool, MoveTool, RectSelectTool, ToolInput};
+pub use tools::{
+    BrushTool, CanvasTool, Color, EraserTool, FillTool, MoveTool, RectSelectTool, ToolInput,
+};
 
 use uuid::Uuid;
 

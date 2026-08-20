@@ -36,15 +36,14 @@ pub enum McpContent {
 
 /// 图库工具列表（供 `tools/list` 返回）
 pub fn list_gallery_tools() -> Vec<&'static str> {
-    vec![
-        "save_to_gallery",
-        "search_gallery",
-        "get_gallery_image",
-    ]
+    vec!["save_to_gallery", "search_gallery", "get_gallery_image"]
 }
 
 /// 处理图库工具调用（同步版本，供 `bin/mcp.rs` 使用）
-pub fn dispatch_gallery_tool(name: &str, params: serde_json::Value) -> Result<GalleryMcpResult, String> {
+pub fn dispatch_gallery_tool(
+    name: &str,
+    params: serde_json::Value,
+) -> Result<GalleryMcpResult, String> {
     match name {
         "save_to_gallery" => {
             let image_data = params
@@ -96,18 +95,17 @@ pub fn dispatch_gallery_tool(name: &str, params: serde_json::Value) -> Result<Ga
                 .get("tag")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let limit = params
-                .get("limit")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(50) as usize;
+            let limit = params.get("limit").and_then(|v| v.as_u64()).unwrap_or(50) as usize;
 
             let (db, _dir) = open_gallery_db().map_err(|e| e.to_string())?;
             let items = if let Some(tag) = tag {
-                db.search_by_tag(&tag, limit).map_err(|e| format!("search: {}", e))?
+                db.search_by_tag(&tag, limit)
+                    .map_err(|e| format!("search: {}", e))?
             } else if let Some(q) = query {
                 db.search(&q, limit).map_err(|e| format!("search: {}", e))?
             } else {
-                db.list(limit as u32, 0).map_err(|e| format!("list: {}", e))?
+                db.list(limit as u32, 0)
+                    .map_err(|e| format!("list: {}", e))?
             };
             let total = db.count().map_err(|e| e.to_string())?;
             Ok(GalleryMcpResult {
@@ -171,7 +169,8 @@ fn open_gallery_db() -> Result<(GalleryDatabase, std::path::PathBuf), String> {
     let dir = home.join(".openpaint").join("gallery");
     let db_path = dir.join("gallery.db");
     std::fs::create_dir_all(&dir).map_err(|e| format!("mkdir gallery: {}", e))?;
-    std::fs::create_dir_all(dir.join("originals")).map_err(|e| format!("mkdir originals: {}", e))?;
+    std::fs::create_dir_all(dir.join("originals"))
+        .map_err(|e| format!("mkdir originals: {}", e))?;
     std::fs::create_dir_all(dir.join("thumbnails")).map_err(|e| format!("mkdir thumbs: {}", e))?;
     let db = GalleryDatabase::open(&db_path).map_err(|e| format!("db open: {}", e))?;
     let _ = cfg; // 当前实现下 cfg 仅用于触发初始化路径
@@ -180,16 +179,19 @@ fn open_gallery_db() -> Result<(GalleryDatabase, std::path::PathBuf), String> {
 
 /// 打开完整图库引擎（save_to_gallery 需要 thumbnails 写入）
 fn open_gallery_engine() -> Result<(GalleryEngine, std::path::PathBuf), String> {
-    use std::sync::Arc;
     use parking_lot::RwLock;
+    use std::sync::Arc;
 
     let dir = {
         let (_db, dir) = open_gallery_db()?;
         dir
     };
-    let db = GalleryDatabase::open(&dir.join("gallery.db")).map_err(|e| format!("db open: {}", e))?;
+    let db =
+        GalleryDatabase::open(&dir.join("gallery.db")).map_err(|e| format!("db open: {}", e))?;
     let engine = GalleryEngine::new(Arc::new(RwLock::new(db)), dir.clone());
-    engine.ensure_dirs().map_err(|e| format!("ensure_dirs: {}", e))?;
+    engine
+        .ensure_dirs()
+        .map_err(|e| format!("ensure_dirs: {}", e))?;
     Ok((engine, dir))
 }
 

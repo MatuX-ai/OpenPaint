@@ -75,7 +75,11 @@ impl HistoryStack {
             self.snapshots.drain(0..overflow);
             self.cursor = self.snapshots.len();
         }
-        debug!("History push: cursor={}, total={}", self.cursor, self.snapshots.len());
+        debug!(
+            "History push: cursor={}, total={}",
+            self.cursor,
+            self.snapshots.len()
+        );
     }
 
     /// 后退一步

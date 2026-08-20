@@ -122,10 +122,7 @@ pub async fn render_svg_to_png(
 
 /// 3. 与 Hermes Agent 对话
 #[tauri::command]
-pub async fn agent_chat(
-    state: State<'_, AppState>,
-    message: String,
-) -> Result<String, String> {
+pub async fn agent_chat(state: State<'_, AppState>, message: String) -> Result<String, String> {
     let agent = AgentManager::global();
     agent
         .chat(&state.app_handle, &message)
@@ -152,8 +149,8 @@ pub async fn load_scenario(scenario_name: String) -> Result<Scenario, String> {
     let path = std::path::PathBuf::from("assets/scenarios").join(format!("{}.yaml", scenario_name));
     let content = std::fs::read_to_string(&path)
         .map_err(|e| format!("scenario not found: {} ({})", path.display(), e))?;
-    let scenario: Scenario = serde_yaml::from_str(&content)
-        .map_err(|e| format!("yaml parse: {}", e))?;
+    let scenario: Scenario =
+        serde_yaml::from_str(&content).map_err(|e| format!("yaml parse: {}", e))?;
     Ok(scenario)
 }
 
@@ -224,11 +221,9 @@ async fn agent_call_ai(_llm: &LlmConfig, image_data: &str, prompt: &str) -> Resu
     if let Some(svg) = result.get("svg").and_then(|v| v.as_str()) {
         Ok(svg.to_string())
     } else if let Some(md) = result.get("svg_markdown").and_then(|v| v.as_str()) {
-        extract_svg_from_markdown(md)
-            .ok_or_else(|| anyhow!("Agent did not return valid SVG"))
+        extract_svg_from_markdown(md).ok_or_else(|| anyhow!("Agent did not return valid SVG"))
     } else if let Some(s) = result.as_str() {
-        extract_svg_from_markdown(s)
-            .ok_or_else(|| anyhow!("Agent response is not SVG"))
+        extract_svg_from_markdown(s).ok_or_else(|| anyhow!("Agent response is not SVG"))
     } else {
         Err(anyhow!("Unexpected agent response shape: {}", result))
     }
@@ -260,11 +255,29 @@ async fn call_llm(llm: &LlmConfig, image_data: &str, prompt: &str) -> Result<Str
         .map_err(|e| anyhow!("http client: {}", e))?;
 
     match provider {
-        LlmProvider::Anthropic => call_anthropic(&client, &endpoint, api_key.as_deref(), &model, image_data, prompt).await,
+        LlmProvider::Anthropic => {
+            call_anthropic(
+                &client,
+                &endpoint,
+                api_key.as_deref(),
+                &model,
+                image_data,
+                prompt,
+            )
+            .await
+        }
         LlmProvider::Ollama => call_ollama(&client, &endpoint, &model, image_data, prompt).await,
         // OpenAI / DeepSeek 共享 OpenAI Chat Completions 协议
         LlmProvider::Openai | LlmProvider::Deepseek => {
-            call_openai_compat(&client, &endpoint, api_key.as_deref(), &model, image_data, prompt).await
+            call_openai_compat(
+                &client,
+                &endpoint,
+                api_key.as_deref(),
+                &model,
+                image_data,
+                prompt,
+            )
+            .await
         }
     }
 }
@@ -318,8 +331,12 @@ async fn call_openai_compat(
         .and_then(|m| m.get("content"))
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow!("choices[0].message.content missing: {}", json))?;
-    extract_svg_from_markdown(content)
-        .ok_or_else(|| anyhow!("LLM did not return SVG: {}", content.chars().take(200).collect::<String>()))
+    extract_svg_from_markdown(content).ok_or_else(|| {
+        anyhow!(
+            "LLM did not return SVG: {}",
+            content.chars().take(200).collect::<String>()
+        )
+    })
 }
 
 /// Anthropic Messages API
@@ -377,8 +394,12 @@ async fn call_anthropic(
         .and_then(|c| c.get("text"))
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow!("content[0].text missing: {}", json))?;
-    extract_svg_from_markdown(content)
-        .ok_or_else(|| anyhow!("Anthropic did not return SVG: {}", content.chars().take(200).collect::<String>()))
+    extract_svg_from_markdown(content).ok_or_else(|| {
+        anyhow!(
+            "Anthropic did not return SVG: {}",
+            content.chars().take(200).collect::<String>()
+        )
+    })
 }
 
 /// Ollama /api/chat（本地）
@@ -419,8 +440,12 @@ async fn call_ollama(
         .and_then(|m| m.get("content"))
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow!("message.content missing: {}", json))?;
-    extract_svg_from_markdown(content)
-        .ok_or_else(|| anyhow!("Ollama did not return SVG: {}", content.chars().take(200).collect::<String>()))
+    extract_svg_from_markdown(content).ok_or_else(|| {
+        anyhow!(
+            "Ollama did not return SVG: {}",
+            content.chars().take(200).collect::<String>()
+        )
+    })
 }
 
 pub const SVG_SYSTEM_PROMPT: &str = "你是一位专业的矢量图标与图形设计师。\n根据用户的需求和参考图，输出可直接渲染的 SVG 矢量图。\n要求：\n1. 使用 <svg xmlns=\"http://www.w3.org/2000/svg\" ...> 包裹\n2. viewBox 推荐 0 0 512 512\n3. 仅使用基础形状（rect/circle/path/polygon/text）、填色与透明度\n4. 完整闭合，无未完成标签\n5. 输出格式必须为 ```svg\\n...\\n``` 代码块";
@@ -477,8 +502,7 @@ pub fn render_svg_to_png_internal(svg: &str, width: u32, height: u32) -> Result<
     use resvg::tiny_skia;
     use usvg::{Options, Tree};
 
-    let tree = Tree::from_str(svg, &Options::default())
-        .map_err(|e| anyhow!("SVG parse: {}", e))?;
+    let tree = Tree::from_str(svg, &Options::default()).map_err(|e| anyhow!("SVG parse: {}", e))?;
     let src_size = tree.size();
     let mut pixmap = tiny_skia::Pixmap::new(width, height)
         .ok_or_else(|| anyhow!("Pixmap alloc failed for {}x{}", width, height))?;
@@ -526,6 +550,8 @@ mod tests {
         let b64 = render_svg_to_png_internal(svg, 64, 64).unwrap();
         assert!(!b64.is_empty());
         // 标准 base64
-        assert!(b64.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
+        assert!(b64
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
     }
 }

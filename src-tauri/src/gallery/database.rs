@@ -100,8 +100,11 @@ impl GalleryDatabase {
         .map_err(|e| e.to_string())?;
 
         // 重建标签索引
-        conn.execute("DELETE FROM gallery_tags WHERE item_id = ?1", params![item.id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "DELETE FROM gallery_tags WHERE item_id = ?1",
+            params![item.id],
+        )
+        .map_err(|e| e.to_string())?;
         for tag in &item.tags {
             conn.execute(
                 "INSERT OR IGNORE INTO gallery_tags (tag, item_id) VALUES (?1, ?2)",
@@ -209,7 +212,9 @@ impl GalleryDatabase {
     pub fn count(&self) -> Result<u32, String> {
         let conn = self.conn.lock();
         let n: i64 = conn
-            .query_row("SELECT COUNT(*) FROM gallery_items", [], |r| r.get::<_, i64>(0))
+            .query_row("SELECT COUNT(*) FROM gallery_items", [], |r| {
+                r.get::<_, i64>(0)
+            })
             .map_err(|e| e.to_string())?;
         Ok(n as u32)
     }
@@ -218,14 +223,16 @@ impl GalleryDatabase {
     pub fn rotate(&self, max_items: u32) -> Result<u32, String> {
         let conn = self.conn.lock();
         let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM gallery_items", [], |r| r.get::<_, i64>(0))
+            .query_row("SELECT COUNT(*) FROM gallery_items", [], |r| {
+                r.get::<_, i64>(0)
+            })
             .map_err(|e| e.to_string())?;
         if count <= max_items as i64 {
             return Ok(0);
         }
         let overflow = count - max_items as i64;
-        let to_delete = (overflow + (max_items as i64 / 10).max(1) - 1)
-            / (max_items as i64 / 10).max(1);
+        let to_delete =
+            (overflow + (max_items as i64 / 10).max(1) - 1) / (max_items as i64 / 10).max(1);
         let deleted = conn
             .execute(
                 "DELETE FROM gallery_items WHERE id IN (

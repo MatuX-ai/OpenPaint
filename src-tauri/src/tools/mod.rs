@@ -9,13 +9,13 @@
 //! - gallery_commands: Gallery commands (M-06, W3)
 //! - llm_commands   : LLM provider commands (W6)
 
+pub mod ai_commands;
 pub mod app;
-pub mod placeholder;
 pub mod canvas_commands;
 pub mod canvas_tools;
-pub mod ai_commands;
 pub mod gallery_commands;
 pub mod llm_commands;
+pub mod placeholder;
 
 #[cfg(feature = "mcp-server")]
 pub mod ai_tools;

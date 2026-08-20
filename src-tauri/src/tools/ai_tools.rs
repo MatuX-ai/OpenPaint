@@ -39,11 +39,7 @@ pub enum McpContent {
 
 /// AI 工具列表（供 `tools/list` 返回）
 pub fn list_ai_tools() -> Vec<&'static str> {
-    vec![
-        "send_to_ai_engine",
-        "render_svg_to_png",
-        "get_current_svg",
-    ]
+    vec!["send_to_ai_engine", "render_svg_to_png", "get_current_svg"]
 }
 
 /// 处理 AI 工具调用（同步版本，供 `bin/mcp.rs` 在 tokio runtime 中调用）
@@ -77,14 +73,8 @@ pub fn dispatch_ai_tool(name: &str, params: serde_json::Value) -> Result<AiMcpRe
                 .get("svg")
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| "svg required".to_string())?;
-            let width = params
-                .get("width")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(512) as u32;
-            let height = params
-                .get("height")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(512) as u32;
+            let width = params.get("width").and_then(|v| v.as_u64()).unwrap_or(512) as u32;
+            let height = params.get("height").and_then(|v| v.as_u64()).unwrap_or(512) as u32;
 
             let png_b64 = crate::tools::ai_commands::render_svg_to_png_internal(svg, width, height)
                 .map_err(|e| format!("render_svg: {}", e))?;
@@ -188,8 +178,12 @@ fn send_to_ai_engine_sync(
                 .and_then(|c| c.get("text"))
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| "anthropic content missing".to_string())?;
-            extract_svg_from_markdown(content)
-                .ok_or_else(|| format!("anthropic did not return svg: {}", &content.chars().take(200).collect::<String>()))
+            extract_svg_from_markdown(content).ok_or_else(|| {
+                format!(
+                    "anthropic did not return svg: {}",
+                    &content.chars().take(200).collect::<String>()
+                )
+            })
         }
         LlmProvider::Ollama => {
             let url = format!("{}/api/chat", endpoint.trim_end_matches('/'));
@@ -217,8 +211,12 @@ fn send_to_ai_engine_sync(
                 .and_then(|m| m.get("content"))
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| "ollama message.content missing".to_string())?;
-            extract_svg_from_markdown(content)
-                .ok_or_else(|| format!("ollama did not return svg: {}", &content.chars().take(200).collect::<String>()))
+            extract_svg_from_markdown(content).ok_or_else(|| {
+                format!(
+                    "ollama did not return svg: {}",
+                    &content.chars().take(200).collect::<String>()
+                )
+            })
         }
         LlmProvider::Openai | LlmProvider::Deepseek => {
             let url = format!("{}/chat/completions", endpoint.trim_end_matches('/'));
@@ -259,8 +257,12 @@ fn send_to_ai_engine_sync(
                 .and_then(|m| m.get("content"))
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| "openai choices missing".to_string())?;
-            extract_svg_from_markdown(content)
-                .ok_or_else(|| format!("openai did not return svg: {}", &content.chars().take(200).collect::<String>()))
+            extract_svg_from_markdown(content).ok_or_else(|| {
+                format!(
+                    "openai did not return svg: {}",
+                    &content.chars().take(200).collect::<String>()
+                )
+            })
         }
     }
 }
@@ -338,7 +340,8 @@ mod tests {
 
     #[test]
     fn test_extract_svg_from_markdown() {
-        let text = "前置\n```svg\n<svg xmlns=\"http://www.w3.org/2000/svg\"><circle/></svg>\n```\n后置";
+        let text =
+            "前置\n```svg\n<svg xmlns=\"http://www.w3.org/2000/svg\"><circle/></svg>\n```\n后置";
         let svg = extract_svg_from_markdown(text).unwrap();
         assert!(svg.contains("<circle"));
     }

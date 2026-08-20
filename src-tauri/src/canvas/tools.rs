@@ -20,9 +20,24 @@ pub struct Color {
 }
 
 impl Color {
-    pub const TRANSPARENT: Color = Color { r: 0, g: 0, b: 0, a: 0 };
-    pub const BLACK: Color = Color { r: 0, g: 0, b: 0, a: 255 };
-    pub const WHITE: Color = Color { r: 255, g: 255, b: 255, a: 255 };
+    pub const TRANSPARENT: Color = Color {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    };
+    pub const BLACK: Color = Color {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const WHITE: Color = Color {
+        r: 255,
+        g: 255,
+        b: 255,
+        a: 255,
+    };
 
     pub fn from_hex(hex: &str) -> Option<Self> {
         let hex = hex.trim_start_matches('#');
@@ -52,7 +67,12 @@ pub enum ToolInput {
         color: Color,
     },
     /// 矩形选区
-    RectSelect { x: u32, y: u32, width: u32, height: u32 },
+    RectSelect {
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    },
     /// 移动图层
     MoveLayer { layer_id: Uuid, dx: i32, dy: i32 },
     /// 填充整图层
@@ -69,7 +89,13 @@ pub struct BrushTool;
 
 impl CanvasTool for BrushTool {
     fn apply(&self, state: &mut CanvasState, input: ToolInput) -> Result<()> {
-        if let ToolInput::Stroke { layer_id, points, radius, color } = input {
+        if let ToolInput::Stroke {
+            layer_id,
+            points,
+            radius,
+            color,
+        } = input
+        {
             let layer = state
                 .layers
                 .iter_mut()
@@ -129,7 +155,13 @@ pub struct EraserTool;
 
 impl CanvasTool for EraserTool {
     fn apply(&self, state: &mut CanvasState, input: ToolInput) -> Result<()> {
-        if let ToolInput::Stroke { layer_id, points, radius, .. } = input {
+        if let ToolInput::Stroke {
+            layer_id,
+            points,
+            radius,
+            ..
+        } = input
+        {
             let layer = state
                 .layers
                 .iter_mut()
@@ -152,7 +184,13 @@ pub struct RectSelectTool;
 
 impl CanvasTool for RectSelectTool {
     fn apply(&self, state: &mut CanvasState, input: ToolInput) -> Result<()> {
-        if let ToolInput::RectSelect { x, y, width, height } = input {
+        if let ToolInput::RectSelect {
+            x,
+            y,
+            width,
+            height,
+        } = input
+        {
             // 边界裁剪
             let x = x.min(state.width);
             let y = y.min(state.height);
@@ -167,7 +205,13 @@ impl CanvasTool for RectSelectTool {
                 None
             };
 
-            state.selection = Some(Selection { x, y, width, height, data });
+            state.selection = Some(Selection {
+                x,
+                y,
+                width,
+                height,
+                data,
+            });
             debug!("RectSelect set: {}x{} at ({},{})", width, height, x, y);
             Ok(())
         } else {

@@ -104,24 +104,17 @@ pub async fn list_providers() -> Result<Vec<ProviderInfo>, String> {
 
 /// 2. 切换活跃 Provider
 #[tauri::command]
-pub async fn set_provider(
-    state: State<'_, AppState>,
-    provider: LlmProvider,
-) -> Result<(), String> {
+pub async fn set_provider(state: State<'_, AppState>, provider: LlmProvider) -> Result<(), String> {
     info!("Switching to provider: {}", provider.id());
     let mut config = state.config.write();
     config.llm.provider = provider.id().to_string();
-    config
-        .save()
-        .map_err(|e| format!("save config: {}", e))?;
+    config.save().map_err(|e| format!("save config: {}", e))?;
     Ok(())
 }
 
 /// 3. 获取当前 Provider 配置
 #[tauri::command]
-pub async fn get_provider_config(
-    state: State<'_, AppState>,
-) -> Result<ProviderConfig, String> {
+pub async fn get_provider_config(state: State<'_, AppState>) -> Result<ProviderConfig, String> {
     let config = state.config.read();
     let provider = match config.llm.provider.as_str() {
         "anthropic" => LlmProvider::Anthropic,

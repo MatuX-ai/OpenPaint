@@ -9,7 +9,7 @@ use anyhow::Result;
 use base64::Engine;
 use chrono::Utc;
 use parking_lot::RwLock;
-use tracing::{debug};
+use tracing::debug;
 
 use crate::canvas::CanvasRenderer;
 use crate::gallery::database::GalleryDatabase;
@@ -62,12 +62,18 @@ impl GalleryEngine {
         let (width, height) = (img.width(), img.height());
 
         // 保存原图
-        let original_path = self.gallery_dir.join("originals").join(format!("{}.png", id));
+        let original_path = self
+            .gallery_dir
+            .join("originals")
+            .join(format!("{}.png", id));
         std::fs::create_dir_all(original_path.parent().unwrap())?;
         img.save(&original_path)?;
 
         // 生成并保存缩略图
-        let thumb_path = self.gallery_dir.join("thumbnails").join(format!("{}.webp", id));
+        let thumb_path = self
+            .gallery_dir
+            .join("thumbnails")
+            .join(format!("{}.webp", id));
         let thumb_bytes = CanvasRenderer::thumbnail(&img, 256)?;
         std::fs::write(&thumb_path, &thumb_bytes)?;
 
@@ -85,7 +91,10 @@ impl GalleryEngine {
             created_at: Utc::now().timestamp_millis(),
             source: source.to_string(),
         };
-        self.db.write().insert(&item).map_err(|e| anyhow::anyhow!("db insert failed: {}", e))?;
+        self.db
+            .write()
+            .insert(&item)
+            .map_err(|e| anyhow::anyhow!("db insert failed: {}", e))?;
 
         debug!("Gallery saved item {}", id);
         Ok(item)
@@ -93,10 +102,18 @@ impl GalleryEngine {
 
     /// 自动轮转（条目超过 max_items 时删除最旧的 10%）
     pub fn rotate(&self, max_items: u32) -> Result<u32> {
-        let deleted = self.db.read().rotate(max_items).map_err(|e| anyhow::anyhow!("db rotate failed: {}", e))?;
+        let deleted = self
+            .db
+            .read()
+            .rotate(max_items)
+            .map_err(|e| anyhow::anyhow!("db rotate failed: {}", e))?;
         if deleted > 0 {
             // 删除文件（墓碑记录保留 30 天，此处仅删除文件）
-            let items = self.db.read().list(deleted, 0).map_err(|e| anyhow::anyhow!("db list failed: {}", e))?;
+            let items = self
+                .db
+                .read()
+                .list(deleted, 0)
+                .map_err(|e| anyhow::anyhow!("db list failed: {}", e))?;
             for item in items {
                 let _ = std::fs::remove_file(&item.thumbnail_path);
                 if let Some(p) = item.full_size_path {
@@ -156,7 +173,8 @@ mod tests {
     use super::*;
 
     fn test_db() -> (GalleryDatabase, PathBuf) {
-        let dir = std::env::temp_dir().join(format!("openpaint_engine_test_{}", uuid::Uuid::new_v4()));
+        let dir =
+            std::env::temp_dir().join(format!("openpaint_engine_test_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let db = GalleryDatabase::open(&dir.join("test.db")).unwrap();
         (db, dir)

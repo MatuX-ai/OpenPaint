@@ -242,7 +242,10 @@ impl AgentManager {
         AgentStatus {
             binary_found: inner.hermes_path.is_some(),
             running: inner.child.is_some(),
-            binary_path: inner.hermes_path.as_ref().map(|p| p.to_string_lossy().to_string()),
+            binary_path: inner
+                .hermes_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string()),
             last_error: inner.last_error.clone(),
         }
     }

@@ -113,8 +113,7 @@ pub async fn get_canvas_summary(state: State<'_, AppState>) -> Result<CanvasSumm
 #[tauri::command]
 pub async fn render_canvas_png(state: State<'_, AppState>) -> Result<String, String> {
     let canvas = state.canvas.read();
-    let img = CanvasRenderer::composite(&canvas)
-        .map_err(|e| format!("composite failed: {}", e))?;
+    let img = CanvasRenderer::composite(&canvas).map_err(|e| format!("composite failed: {}", e))?;
     CanvasRenderer::to_base64_png(&img).map_err(|e| format!("encode failed: {}", e))
 }
 
@@ -127,8 +126,8 @@ pub async fn apply_brush_stroke(
     let mut canvas = state.canvas.write();
     let color = crate::canvas::Color::from_hex(&args.color)
         .ok_or_else(|| format!("Invalid hex color: {}", args.color))?;
-    let layer_id = Uuid::parse_str(&args.layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let layer_id =
+        Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
 
     canvas.push_history("brush_stroke");
     BrushTool
@@ -151,9 +150,10 @@ pub async fn apply_eraser_stroke(
     args: StrokeArgs,
 ) -> Result<(), String> {
     let mut canvas = state.canvas.write();
-    let color = crate::canvas::Color::from_hex(&args.color).unwrap_or(crate::canvas::Color::TRANSPARENT);
-    let layer_id = Uuid::parse_str(&args.layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let color =
+        crate::canvas::Color::from_hex(&args.color).unwrap_or(crate::canvas::Color::TRANSPARENT);
+    let layer_id =
+        Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
 
     canvas.push_history("eraser_stroke");
     EraserTool
@@ -202,8 +202,8 @@ pub async fn clear_selection(state: State<'_, AppState>) -> Result<(), String> {
 #[tauri::command]
 pub async fn move_layer(state: State<'_, AppState>, args: MoveLayerArgs) -> Result<(), String> {
     let mut canvas = state.canvas.write();
-    let layer_id = Uuid::parse_str(&args.layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let layer_id =
+        Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
     canvas.push_history("move_layer");
     MoveTool
         .apply(
@@ -223,14 +223,11 @@ pub async fn fill_layer(state: State<'_, AppState>, args: FillLayerArgs) -> Resu
     let mut canvas = state.canvas.write();
     let color = crate::canvas::Color::from_hex(&args.color)
         .ok_or_else(|| format!("Invalid hex color: {}", args.color))?;
-    let layer_id = Uuid::parse_str(&args.layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let layer_id =
+        Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
     canvas.push_history("fill_layer");
     FillTool
-        .apply(
-            &mut canvas,
-            ToolInput::FillLayer { layer_id, color },
-        )
+        .apply(&mut canvas, ToolInput::FillLayer { layer_id, color })
         .map_err(|e| format!("fill_layer: {}", e))
 }
 
@@ -306,8 +303,7 @@ pub async fn set_layer_visibility(
     visible: bool,
 ) -> Result<(), String> {
     let mut canvas = state.canvas.write();
-    let id = Uuid::parse_str(&layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let id = Uuid::parse_str(&layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
     if let Some(layer) = canvas.layers.iter_mut().find(|l| l.id == id) {
         layer.visible = visible;
         Ok(())
@@ -320,8 +316,7 @@ pub async fn set_layer_visibility(
 #[tauri::command]
 pub async fn set_active_layer(state: State<'_, AppState>, layer_id: String) -> Result<(), String> {
     let mut canvas = state.canvas.write();
-    let id = Uuid::parse_str(&layer_id)
-        .map_err(|e| format!("Invalid layer id: {}", e))?;
+    let id = Uuid::parse_str(&layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
     if canvas.layers.iter().any(|l| l.id == id) {
         canvas.active_layer_id = id;
         Ok(())
@@ -343,7 +338,10 @@ pub async fn resize_canvas(
     // 调整所有图层尺寸（重新分配缓冲）
     for layer in &mut canvas.layers {
         if layer.width != width || layer.height != height {
-            let old = std::mem::replace(&mut layer.image_data, vec![0; (width * height * 4) as usize]);
+            let old = std::mem::replace(
+                &mut layer.image_data,
+                vec![0; (width * height * 4) as usize],
+            );
             // 简化版：丢弃旧数据
             let _ = old;
             layer.width = width;
