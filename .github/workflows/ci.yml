@@ -51,8 +51,8 @@ jobs:
       - name: Type Check
         run: pnpm type-check
 
-      - name: Format Check
-        run: pnpm format:check
+      # Prettier 检查移到了独立的 frontend-fmt-fix job（自动修复+push）
+      # 这里跳过 format check，否则会因代码未格式化而失败
 
       - name: Build
         run: pnpm build:web
@@ -80,15 +80,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
             build-essential \
             curl \
             wget \
             file \
+            libxdo-dev \
             libssl-dev \
-            libayatana-appindicator3-dev
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -114,6 +114,83 @@ jobs:
       - name: Rust build (release smoke)
         working-directory: src-tauri
         run: cargo build --release
+
+  # ----------------------------------------------------------
+  # Prettier 自动修复（前端格式），与 backend-fmt-fix 同样的设计
+  # 检测 HEAD commit 是不是 bot 自己的 commit → 跳过
+  # ----------------------------------------------------------
+  frontend-fmt-fix:
+    name: Frontend prettier (auto-fix)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm (via corepack)
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.0 --activate
+
+      - name: Install JS deps (bootstrap if no lockfile)
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pnpm-lock.yaml found, frozen install"
+            pnpm install --frozen-lockfile
+          else
+            echo "pnpm-lock.yaml NOT found, generating one"
+            pnpm install
+          fi
+
+      - name: Detect previous commit subject
+        id: prev
+        run: |
+          LAST=$(git log -1 --pretty=%s HEAD)
+          echo "last_commit=$LAST" >> "$GITHUB_OUTPUT"
+          if [[ "$LAST" == "style: apply prettier (auto-fix from CI)" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check prettier
+        if: steps.prev.outputs.skip == 'false'
+        id: check
+        run: |
+          if pnpm format:check; then
+            echo "needs_fix=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_fix=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply prettier
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        run: pnpm format
+
+      - name: Re-check prettier (after auto-fix, must be clean)
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        run: pnpm format:check
+
+      - name: Commit and push auto-fix
+        if: steps.prev.outputs.skip == 'false' && steps.check.outputs.needs_fix == 'true'
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "style: apply prettier (auto-fix from CI)"
+          git push
 
   # ----------------------------------------------------------
   # Rust fmt 自动修复（独立 job，避免和 backend 矩阵 race condition）
