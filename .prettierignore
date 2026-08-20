@@ -8,3 +8,5 @@ pnpm-lock.yaml
 *.min.css
 public/logo.svg
 CHANGELOG.md
+# 防止 bot auto-fix 时修改 workflow 文件触发 GitHub 安全拒绝
+.github/
