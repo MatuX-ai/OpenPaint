@@ -44,45 +44,25 @@ function scrollToSection(event: Event, id: string): void {
   <div class="landing">
     <header class="landing-header">
       <div class="landing-header__brand">
-        <img
-          src="/logo.svg"
-          alt="OpenPaint"
-          class="landing-header__logo"
-        >
+        <img src="/logo.svg" alt="OpenPaint" class="landing-header__logo" />
         <span class="landing-header__name">OpenPaint</span>
       </div>
       <nav class="landing-header__nav">
-        <a
-          href="#features"
-          @click="scrollToSection($event, 'features')"
-        >核心功能</a>
-        <a
-          href="#compare"
-          @click="scrollToSection($event, 'compare')"
-        >平替对比</a>
-        <a
-          href="#scenarios"
-          @click="scrollToSection($event, 'scenarios')"
-        >使用场景</a>
-        <a
-          href="#architecture"
-          @click="scrollToSection($event, 'architecture')"
-        >技术架构</a>
-        <a
-          href="#download"
-          @click="scrollToSection($event, 'download')"
-        >下载</a>
+        <a href="#features" @click="scrollToSection($event, 'features')">核心功能</a>
+        <a href="#compare" @click="scrollToSection($event, 'compare')">平替对比</a>
+        <a href="#scenarios" @click="scrollToSection($event, 'scenarios')">使用场景</a>
+        <a href="#architecture" @click="scrollToSection($event, 'architecture')">技术架构</a>
+        <a href="#download" @click="scrollToSection($event, 'download')">下载</a>
       </nav>
     </header>
 
     <main class="landing-main">
       <!-- Hero -->
       <section class="hero">
-        <p class="hero__eyebrow">
-          开源 · 跨平台 · 本地优先
-        </p>
+        <p class="hero__eyebrow">开源 · 跨平台 · 本地优先</p>
         <h1 class="hero__title">
-          轻量设计工具，<br>
+          轻量设计工具，
+          <br />
           为创作者而生
         </h1>
         <p class="hero__desc">
@@ -90,10 +70,7 @@ function scrollToSection(event: Event, id: string): void {
           轻量、快速、可扩展，让你专注于创作本身。
         </p>
         <div class="hero__actions">
-          <router-link
-            to="/app"
-            class="hero__cta hero__cta--primary"
-          >
+          <router-link to="/app" class="hero__cta hero__cta--primary">
             在线试用
             <ArrowRight :size="16" />
           </router-link>
@@ -110,13 +87,8 @@ function scrollToSection(event: Event, id: string): void {
       </section>
 
       <!-- 核心特性 -->
-      <section
-        id="features"
-        class="features"
-      >
-        <h2 class="section-title">
-          核心特性
-        </h2>
+      <section id="features" class="features">
+        <h2 class="section-title">核心特性</h2>
         <div class="features__grid">
           <div class="feature-card">
             <div class="feature-card__icon">
@@ -164,16 +136,9 @@ function scrollToSection(event: Event, id: string): void {
       </section>
 
       <!-- 平替对比 -->
-      <section
-        id="compare"
-        class="compare"
-      >
-        <h2 class="section-title">
-          可以平替哪些软件？
-        </h2>
-        <p class="section-subtitle">
-          一个工具，覆盖像素编辑、矢量设计、代码驱动的完整工作流
-        </p>
+      <section id="compare" class="compare">
+        <h2 class="section-title">可以平替哪些软件？</h2>
+        <p class="section-subtitle">一个工具，覆盖像素编辑、矢量设计、代码驱动的完整工作流</p>
         <div class="compare__grid">
           <div class="compare-card">
             <div class="compare-card__header">
@@ -263,63 +228,37 @@ function scrollToSection(event: Event, id: string): void {
       </section>
 
       <!-- 差异化场景 -->
-      <section
-        id="scenarios"
-        class="scenarios"
-      >
-        <h2 class="section-title">
-          不一样的使用场景
-        </h2>
-        <p class="section-subtitle">
-          用自然语言与代码思维驱动设计，减少重复操作
-        </p>
+      <section id="scenarios" class="scenarios">
+        <h2 class="section-title">不一样的使用场景</h2>
+        <p class="section-subtitle">用自然语言与代码思维驱动设计，减少重复操作</p>
         <div class="scenarios__grid">
           <div class="scenario-card">
             <div class="scenario-card__tag">01</div>
             <h3>快速生成 Logo 方案</h3>
-            <p>
-              描述想要的风格，智能助理调用 OpenPencil 生成矢量稿，
-              落回画布后再手动微调。
-            </p>
+            <p>描述想要的风格，智能助理调用 OpenPencil 生成矢量稿， 落回画布后再手动微调。</p>
           </div>
           <div class="scenario-card">
             <div class="scenario-card__tag">02</div>
             <h3>批量导出全平台图标</h3>
-            <p>
-              画好一个图标，通过指令自动生成 iOS、Android、Web 所需的全套尺寸，
-              并按平台归档。
-            </p>
+            <p>画好一个图标，通过指令自动生成 iOS、Android、Web 所需的全套尺寸， 并按平台归档。</p>
           </div>
           <div class="scenario-card">
             <div class="scenario-card__tag">03</div>
             <h3>语义召回历史资产</h3>
-            <p>
-              用自然语言描述要找的内容，图库通过向量搜索秒级定位，
-              无需手动翻找文件夹。
-            </p>
+            <p>用自然语言描述要找的内容，图库通过向量搜索秒级定位， 无需手动翻找文件夹。</p>
           </div>
           <div class="scenario-card">
             <div class="scenario-card__tag">04</div>
             <h3>本地模型，数据不出门</h3>
-            <p>
-              对接本地 Ollama，所有推理在本机完成，
-              设计稿和创意素材完全不上传。
-            </p>
+            <p>对接本地 Ollama，所有推理在本机完成， 设计稿和创意素材完全不上传。</p>
           </div>
         </div>
       </section>
 
       <!-- 技术架构 -->
-      <section
-        id="architecture"
-        class="architecture"
-      >
-        <h2 class="section-title">
-          技术架构
-        </h2>
-        <p class="section-subtitle">
-          基于 Tauri + Rust + Vue 3 构建，轻量、安全、可扩展
-        </p>
+      <section id="architecture" class="architecture">
+        <h2 class="section-title">技术架构</h2>
+        <p class="section-subtitle">基于 Tauri + Rust + Vue 3 构建，轻量、安全、可扩展</p>
         <div class="architecture__diagram">
           <div class="arch-layer arch-layer--top">
             <div class="arch-layer__title">前端界面层</div>
@@ -384,40 +323,22 @@ function scrollToSection(event: Event, id: string): void {
 
       <!-- 使用流程 -->
       <section class="workflow">
-        <h2 class="section-title">
-          三步开始创作
-        </h2>
+        <h2 class="section-title">三步开始创作</h2>
         <div class="workflow__steps">
           <div class="workflow__step">
-            <div class="workflow__number">
-              1
-            </div>
+            <div class="workflow__number">1</div>
             <h3>描述需求</h3>
             <p>用文字描述你想要的设计，例如「设计一个蓝色科技风 Logo」。</p>
           </div>
-          <div
-            class="workflow__arrow"
-            aria-hidden="true"
-          >
-            →
-          </div>
+          <div class="workflow__arrow" aria-hidden="true">→</div>
           <div class="workflow__step">
-            <div class="workflow__number">
-              2
-            </div>
+            <div class="workflow__number">2</div>
             <h3>生成与编辑</h3>
             <p>智能助理调用画布与 OpenPencil 生成素材，你随时框选微调。</p>
           </div>
-          <div
-            class="workflow__arrow"
-            aria-hidden="true"
-          >
-            →
-          </div>
+          <div class="workflow__arrow" aria-hidden="true">→</div>
           <div class="workflow__step">
-            <div class="workflow__number">
-              3
-            </div>
+            <div class="workflow__number">3</div>
             <h3>导出归档</h3>
             <p>一键导出多尺寸资产并自动存入图库，方便下次语义召回复用。</p>
           </div>
@@ -425,23 +346,13 @@ function scrollToSection(event: Event, id: string): void {
       </section>
 
       <!-- 下载 -->
-      <section
-        id="download"
-        class="download"
-      >
-        <h2 class="section-title">
-          获取 OpenPaint
-        </h2>
+      <section id="download" class="download">
+        <h2 class="section-title">获取 OpenPaint</h2>
         <p class="download__desc">
           桌面版提供完整画布、文件系统与本地能力；Web 预览可快速体验界面与交互。
         </p>
         <div class="download__actions">
-          <router-link
-            to="/app"
-            class="hero__cta hero__cta--primary"
-          >
-            在线试用
-          </router-link>
+          <router-link to="/app" class="hero__cta hero__cta--primary">在线试用</router-link>
           <a
             href="https://github.com/MatuX-ai/OpenPaint/releases"
             target="_blank"
@@ -458,15 +369,9 @@ function scrollToSection(event: Event, id: string): void {
     <footer class="landing-footer">
       <div class="landing-footer__inner">
         <div class="landing-footer__brand">
-          <img
-            src="/logo.svg"
-            alt="OpenPaint"
-            class="landing-footer__logo"
-          >
+          <img src="/logo.svg" alt="OpenPaint" class="landing-footer__logo" />
           <span>OpenPaint</span>
-          <p class="landing-footer__tagline">
-            开源设计工作台
-          </p>
+          <p class="landing-footer__tagline">开源设计工作台</p>
         </div>
         <div class="landing-footer__cols">
           <div class="landing-footer__col">
@@ -533,11 +438,7 @@ function scrollToSection(event: Event, id: string): void {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://github.com/MatuX-ai/OpenPaint"
-                  target="_blank"
-                  rel="noopener"
-                >
+                <a href="https://github.com/MatuX-ai/OpenPaint" target="_blank" rel="noopener">
                   <BookOpen :size="14" />
                   GitHub 仓库
                 </a>
