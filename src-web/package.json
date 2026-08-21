@@ -22,7 +22,8 @@
     "@tauri-apps/plugin-log": "^2.0.0",
     "lucide-vue-next": "^0.344.0",
     "pinia": "^2.1.7",
-    "vue": "^3.4.21"
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

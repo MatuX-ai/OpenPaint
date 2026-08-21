@@ -2,13 +2,14 @@
  * OpenPaint 前端入口
  * - 挂载 Vue 应用
  * - 注册 Pinia
- * - 注入全局样式
+ * - 注入全局样式与路由
  */
 
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
 import App from './App.vue';
+import router from './router';
 
 // 样式
 import '@/assets/styles/reset.scss';
@@ -18,4 +19,5 @@ const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
+app.use(router);
 app.mount('#app');
