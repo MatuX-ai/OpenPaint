@@ -487,9 +487,9 @@ function scrollToSection(event: Event, id: string): void {
   }
 
   &__name {
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
   &__nav {
@@ -566,12 +566,12 @@ function scrollToSection(event: Event, id: string): void {
 
     &--primary {
       color: #fff;
-      background: var(--text-primary);
-      border: 1px solid var(--text-primary);
+      background: var(--accent);
+      border: 1px solid var(--accent);
 
       &:hover {
-        background: var(--text-secondary);
-        border-color: var(--text-secondary);
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
       }
     }
 
@@ -937,7 +937,7 @@ function scrollToSection(event: Event, id: string): void {
   &__inner {
     max-width: 960px;
     margin: 0 auto;
-    padding: var(--space-10) var(--space-6) var(--space-8);
+    padding: var(--space-16) var(--space-6) var(--space-8);
     display: grid;
     grid-template-columns: 1.5fr 2fr;
     gap: var(--space-12);
