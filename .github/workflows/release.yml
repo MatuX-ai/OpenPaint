@@ -42,6 +42,21 @@ jobs:
         with:
           node-version: 24
 
+      - name: Setup pnpm (via corepack)
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.0 --activate
+
+      - name: Install JS deps (bootstrap if no lockfile)
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pnpm-lock.yaml found, frozen install"
+            pnpm install --frozen-lockfile
+          else
+            echo "pnpm-lock.yaml NOT found, generating one"
+            pnpm install
+          fi
+
       - name: Verify version consistency (tauri.conf.json / Cargo.toml / package.json / git tag)
         run: node scripts/version.mjs --check "${GITHUB_REF_NAME}"
 
@@ -51,6 +66,7 @@ jobs:
   linux:
     name: Linux (.deb / .AppImage)
     runs-on: ubuntu-22.04
+    needs: [verify-version]
     steps:
       - uses: actions/checkout@v4
 
@@ -123,6 +139,7 @@ jobs:
   windows:
     name: Windows (.msi / .exe)
     runs-on: windows-latest
+    needs: [verify-version]
     steps:
       - uses: actions/checkout@v4
 
@@ -183,6 +200,7 @@ jobs:
   macos:
     name: macOS (.dmg / .app)
     runs-on: macos-latest
+    needs: [verify-version]
     steps:
       - uses: actions/checkout@v4
 
