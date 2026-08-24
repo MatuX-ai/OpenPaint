@@ -15,7 +15,7 @@ describe('canvasStore', () => {
   describe('initial state', () => {
     it('should have correct default values', () => {
       const store = useCanvasStore();
-      
+
       expect(store.activeTool).toBe('select');
       expect(store.zoom).toBe(1.0);
       expect(store.panX).toBe(0);
@@ -35,13 +35,13 @@ describe('canvasStore', () => {
   describe('setActiveTool', () => {
     it('should change active tool', () => {
       const store = useCanvasStore();
-      
+
       store.setActiveTool('brush');
       expect(store.activeTool).toBe('brush');
-      
+
       store.setActiveTool('eraser');
       expect(store.activeTool).toBe('eraser');
-      
+
       store.setActiveTool('select');
       expect(store.activeTool).toBe('select');
     });
@@ -49,10 +49,15 @@ describe('canvasStore', () => {
     it('should accept all valid tool types', () => {
       const store = useCanvasStore();
       const tools: Array<'select' | 'brush' | 'eraser' | 'move' | 'transform' | 'rect-select'> = [
-        'select', 'brush', 'eraser', 'move', 'transform', 'rect-select'
+        'select',
+        'brush',
+        'eraser',
+        'move',
+        'transform',
+        'rect-select',
       ];
-      
-      tools.forEach(tool => {
+
+      tools.forEach((tool) => {
         store.setActiveTool(tool);
         expect(store.activeTool).toBe(tool);
       });
@@ -62,30 +67,30 @@ describe('canvasStore', () => {
   describe('setZoom', () => {
     it('should set zoom within valid range', () => {
       const store = useCanvasStore();
-      
+
       store.setZoom(2.0);
       expect(store.zoom).toBe(2.0);
-      
+
       store.setZoom(0.5);
       expect(store.zoom).toBe(0.5);
     });
 
     it('should clamp zoom to minimum 0.1', () => {
       const store = useCanvasStore();
-      
+
       store.setZoom(0.01);
       expect(store.zoom).toBe(0.1);
-      
+
       store.setZoom(-1);
       expect(store.zoom).toBe(0.1);
     });
 
     it('should clamp zoom to maximum 10.0', () => {
       const store = useCanvasStore();
-      
+
       store.setZoom(15);
       expect(store.zoom).toBe(10.0);
-      
+
       store.setZoom(100);
       expect(store.zoom).toBe(10.0);
     });
@@ -94,14 +99,14 @@ describe('canvasStore', () => {
   describe('resetView', () => {
     it('should reset zoom and pan to defaults', () => {
       const store = useCanvasStore();
-      
+
       // Change values first
       store.setZoom(3.0);
       store.panX = 100;
       store.panY = 200;
-      
+
       store.resetView();
-      
+
       expect(store.zoom).toBe(1.0);
       expect(store.panX).toBe(0);
       expect(store.panY).toBe(0);
@@ -111,10 +116,10 @@ describe('canvasStore', () => {
   describe('setBrushColor', () => {
     it('should update brush color', () => {
       const store = useCanvasStore();
-      
+
       store.setBrushColor('#ff0000');
       expect(store.brushColor).toBe('#ff0000');
-      
+
       store.setBrushColor('rgb(0, 255, 0)');
       expect(store.brushColor).toBe('rgb(0, 255, 0)');
     });
@@ -123,30 +128,30 @@ describe('canvasStore', () => {
   describe('setBrushRadius', () => {
     it('should set brush radius within valid range', () => {
       const store = useCanvasStore();
-      
+
       store.setBrushRadius(10);
       expect(store.brushRadius).toBe(10);
-      
+
       store.setBrushRadius(50);
       expect(store.brushRadius).toBe(50);
     });
 
     it('should clamp brush radius to minimum 1', () => {
       const store = useCanvasStore();
-      
+
       store.setBrushRadius(0);
       expect(store.brushRadius).toBe(1);
-      
+
       store.setBrushRadius(-5);
       expect(store.brushRadius).toBe(1);
     });
 
     it('should clamp brush radius to maximum 200', () => {
       const store = useCanvasStore();
-      
+
       store.setBrushRadius(250);
       expect(store.brushRadius).toBe(200);
-      
+
       store.setBrushRadius(1000);
       expect(store.brushRadius).toBe(200);
     });
@@ -178,10 +183,10 @@ describe('canvasStore', () => {
         offsetX: 0,
         offsetY: 0,
       };
-      
+
       store.layerList = [mockLayer];
       store.activeLayerId = 'layer-1';
-      
+
       expect(store.activeLayer).toEqual(mockLayer);
     });
 
@@ -211,12 +216,12 @@ describe('canvasStore', () => {
         offsetX: 10,
         offsetY: 10,
       };
-      
+
       store.layerList = [layer1, layer2];
-      
+
       store.activeLayerId = 'layer-1';
       expect(store.activeLayer?.name).toBe('Layer 1');
-      
+
       store.activeLayerId = 'layer-2';
       expect(store.activeLayer?.name).toBe('Layer 2');
     });
@@ -251,7 +256,7 @@ describe('canvasStore', () => {
           offsetY: 0,
         },
       ];
-      
+
       store.layerList = layers;
       expect(store.layerList).toHaveLength(2);
       expect(store.layerList[0].name).toBe('Background');
@@ -262,14 +267,14 @@ describe('canvasStore', () => {
   describe('selection state', () => {
     it('should allow setting selection', () => {
       const store = useCanvasStore();
-      
+
       store.selection = { x: 10, y: 20, width: 100, height: 50 };
       expect(store.selection).toEqual({ x: 10, y: 20, width: 100, height: 50 });
     });
 
     it('should allow clearing selection', () => {
       const store = useCanvasStore();
-      
+
       store.selection = { x: 10, y: 20, width: 100, height: 50 };
       store.selection = null;
       expect(store.selection).toBeNull();
@@ -279,10 +284,10 @@ describe('canvasStore', () => {
   describe('history state', () => {
     it('should allow setting undo/redo flags', () => {
       const store = useCanvasStore();
-      
+
       store.canUndo = true;
       store.canRedo = true;
-      
+
       expect(store.canUndo).toBe(true);
       expect(store.canRedo).toBe(true);
     });

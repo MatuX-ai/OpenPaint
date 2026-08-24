@@ -15,7 +15,7 @@ describe('chatStore', () => {
   describe('initial state', () => {
     it('should have correct default values', () => {
       const store = useChatStore();
-      
+
       expect(store.messages).toEqual([]);
       expect(store.isProcessing).toBe(false);
       expect(store.inputText).toBe('');
@@ -31,9 +31,9 @@ describe('chatStore', () => {
         content: 'Hello, AI!',
         timestamp: Date.now(),
       };
-      
+
       store.appendMessage(msg);
-      
+
       expect(store.messages).toHaveLength(1);
       expect(store.messages[0]).toEqual(msg);
     });
@@ -46,9 +46,9 @@ describe('chatStore', () => {
         content: 'How can I help you?',
         timestamp: Date.now(),
       };
-      
+
       store.appendMessage(msg);
-      
+
       expect(store.messages[0].role).toBe('assistant');
       expect(store.messages[0].content).toBe('How can I help you?');
     });
@@ -73,11 +73,11 @@ describe('chatStore', () => {
         content: 'Third message',
         timestamp: 3000,
       };
-      
+
       store.appendMessage(msg1);
       store.appendMessage(msg2);
       store.appendMessage(msg3);
-      
+
       expect(store.messages).toHaveLength(3);
       expect(store.messages[0].id).toBe('msg-1');
       expect(store.messages[1].id).toBe('msg-2');
@@ -100,9 +100,9 @@ describe('chatStore', () => {
         timestamp: Date.now(),
         toolCalls: [toolCall],
       };
-      
+
       store.appendMessage(msg);
-      
+
       expect(store.messages[0].toolCalls).toHaveLength(1);
       expect(store.messages[0].toolCalls?.[0].name).toBe('create_layer');
       expect(store.messages[0].toolCalls?.[0].status).toBe('success');
@@ -116,9 +116,9 @@ describe('chatStore', () => {
         content: 'System initialized',
         timestamp: Date.now(),
       };
-      
+
       store.appendMessage(msg);
-      
+
       expect(store.messages[0].role).toBe('system');
     });
 
@@ -130,9 +130,9 @@ describe('chatStore', () => {
         content: '{"result": "ok"}',
         timestamp: Date.now(),
       };
-      
+
       store.appendMessage(msg);
-      
+
       expect(store.messages[0].role).toBe('tool');
     });
   });
@@ -140,7 +140,7 @@ describe('chatStore', () => {
   describe('clearMessages', () => {
     it('should remove all messages', () => {
       const store = useChatStore();
-      
+
       store.appendMessage({
         id: 'msg-1',
         role: 'user',
@@ -153,20 +153,20 @@ describe('chatStore', () => {
         content: 'Response',
         timestamp: Date.now(),
       });
-      
+
       expect(store.messages).toHaveLength(2);
-      
+
       store.clearMessages();
-      
+
       expect(store.messages).toHaveLength(0);
       expect(store.messages).toEqual([]);
     });
 
     it('should work on empty message list', () => {
       const store = useChatStore();
-      
+
       store.clearMessages();
-      
+
       expect(store.messages).toEqual([]);
     });
   });
@@ -174,29 +174,29 @@ describe('chatStore', () => {
   describe('setProcessing', () => {
     it('should set processing to true', () => {
       const store = useChatStore();
-      
+
       store.setProcessing(true);
-      
+
       expect(store.isProcessing).toBe(true);
     });
 
     it('should set processing to false', () => {
       const store = useChatStore();
-      
+
       store.setProcessing(true);
       store.setProcessing(false);
-      
+
       expect(store.isProcessing).toBe(false);
     });
 
     it('should toggle processing state', () => {
       const store = useChatStore();
-      
+
       expect(store.isProcessing).toBe(false);
-      
+
       store.setProcessing(true);
       expect(store.isProcessing).toBe(true);
-      
+
       store.setProcessing(false);
       expect(store.isProcessing).toBe(false);
     });
@@ -205,18 +205,18 @@ describe('chatStore', () => {
   describe('inputText', () => {
     it('should allow setting input text', () => {
       const store = useChatStore();
-      
+
       store.inputText = 'Hello world';
-      
+
       expect(store.inputText).toBe('Hello world');
     });
 
     it('should allow clearing input text', () => {
       const store = useChatStore();
-      
+
       store.inputText = 'Some text';
       store.inputText = '';
-      
+
       expect(store.inputText).toBe('');
     });
   });
@@ -224,7 +224,7 @@ describe('chatStore', () => {
   describe('message ordering and integrity', () => {
     it('should preserve message order after multiple operations', () => {
       const store = useChatStore();
-      
+
       // Add messages
       for (let i = 0; i < 5; i++) {
         store.appendMessage({
@@ -234,9 +234,9 @@ describe('chatStore', () => {
           timestamp: i * 1000,
         });
       }
-      
+
       expect(store.messages).toHaveLength(5);
-      
+
       // Verify order
       store.messages.forEach((msg, index) => {
         expect(msg.id).toBe(`msg-${index}`);
@@ -246,7 +246,7 @@ describe('chatStore', () => {
 
     it('should handle rapid message additions', () => {
       const store = useChatStore();
-      
+
       for (let i = 0; i < 100; i++) {
         store.appendMessage({
           id: `rapid-${i}`,
@@ -255,7 +255,7 @@ describe('chatStore', () => {
           timestamp: Date.now(),
         });
       }
-      
+
       expect(store.messages).toHaveLength(100);
     });
   });

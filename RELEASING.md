@@ -26,11 +26,11 @@ OpenPaint 采用 **SemVer**（语义化版本）：`MAJOR.MINOR.PATCH[-prereleas
 `src-tauri/tauri.conf.json` 的 `version` 是**唯一权威版本号**（Tauri 打包时据此生成安装包文件名）。
 每次发版需同步三处：
 
-| 文件                      | 作用                       | 权威 |
-| ------------------------- | -------------------------- | ---- |
+| 文件                        | 作用                         | 权威 |
+| --------------------------- | ---------------------------- | ---- |
 | `src-tauri/tauri.conf.json` | 打包产物版本（安装包文件名） | ✅   |
-| `src-tauri/Cargo.toml`     | Rust crate 版本            | 同步 |
-| `src-web/package.json`     | 前端包版本                 | 同步 |
+| `src-tauri/Cargo.toml`      | Rust crate 版本              | 同步 |
+| `src-web/package.json`      | 前端包版本                   | 同步 |
 
 ### 使用版本脚本（推荐）
 
@@ -62,11 +62,11 @@ git push origin v0.2.0        # 3. 推送触发 Release
 
 ### 安装包文件名（由 Tauri 自动生成）
 
-| 平台    | 文件命名规则                                    |
-| ------- | ----------------------------------------------- |
+| 平台    | 文件命名规则                                              |
+| ------- | --------------------------------------------------------- |
 | Windows | `OpenPaint_<version>_x64_en-US.msi` / `..._x64-setup.exe` |
-| Linux   | `openpaint_<version>_amd64.deb` / `..._amd64.AppImage`     |
-| macOS   | `OpenPaint_<version>_aarch64.dmg` / `..._x64.dmg`          |
+| Linux   | `openpaint_<version>_amd64.deb` / `..._amd64.AppImage`    |
+| macOS   | `OpenPaint_<version>_aarch64.dmg` / `..._x64.dmg`         |
 
 无需手动命名——文件名始终跟随 `tauri.conf.json` 的 version。
 
