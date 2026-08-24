@@ -17,25 +17,87 @@
 
 ---
 
-## 二、版本号与 bundle 配置
+## 二、版本号管理计划（Versioning Plan）
+
+OpenPaint 采用 **SemVer**（语义化版本）：`MAJOR.MINOR.PATCH[-prerelease][+build]`。
+
+### 版本号单一来源
+
+`src-tauri/tauri.conf.json` 的 `version` 是**唯一权威版本号**（Tauri 打包时据此生成安装包文件名）。
+每次发版需同步三处：
+
+| 文件                      | 作用                       | 权威 |
+| ------------------------- | -------------------------- | ---- |
+| `src-tauri/tauri.conf.json` | 打包产物版本（安装包文件名） | ✅   |
+| `src-tauri/Cargo.toml`     | Rust crate 版本            | 同步 |
+| `src-web/package.json`     | 前端包版本                 | 同步 |
+
+### 使用版本脚本（推荐）
+
+```bash
+# 查看当前三处版本是否一致
+pnpm version:show
+
+# 设置新版本并同步三处（自动改写 tauri.conf.json / Cargo.toml / package.json）
+pnpm version:set 0.2.0
+
+# 校验一致性（CI 用，可带 tag 校验）
+pnpm version:check
+node scripts/version.mjs --check v0.2.0
+```
+
+> ⚠️ 不要手动分别改三个文件——`version.mjs` 保证三处原子同步。
+> 版本号示例：`0.2.0`（正式）、`0.3.0-beta.1`（预发布）。
+
+### 版本号与 git tag 对齐
+
+`release.yml` 已内置 `verify-version` job：**推送的 tag 必须与三处版本一致**，否则构建立即失败。
+
+```bash
+pnpm version:set 0.2.0        # 1. 同步版本
+git add -A && git commit -m "chore: release v0.2.0"
+git tag v0.2.0                # 2. 打 tag（v + SemVer）
+git push origin v0.2.0        # 3. 推送触发 Release
+```
+
+### 安装包文件名（由 Tauri 自动生成）
+
+| 平台    | 文件命名规则                                    |
+| ------- | ----------------------------------------------- |
+| Windows | `OpenPaint_<version>_x64_en-US.msi` / `..._x64-setup.exe` |
+| Linux   | `openpaint_<version>_amd64.deb` / `..._amd64.AppImage`     |
+| macOS   | `OpenPaint_<version>_aarch64.dmg` / `..._x64.dmg`          |
+
+无需手动命名——文件名始终跟随 `tauri.conf.json` 的 version。
+
+### 版本演进规则
+
+- **PATCH**（`0.2.0 → 0.2.1`）：bug 修复、不破坏兼容
+- **MINOR**（`0.2.0 → 0.3.0`）：新功能、向后兼容
+- **MAJOR**（`0.x → 1.0`）：破坏性变更 / 首个稳定版
+- **预发布**（`-beta.1` / `-rc.1`）：正式版前的候选，CI 同样可用
+
+### bundle 配置
 
 `src-tauri/tauri.conf.json` 是发布元数据的来源。发版前请同步更新：
 
 ```jsonc
 {
   "productName": "OpenPaint",
-  "version": "0.2.0", // ← 每次发版改这里（与 git tag 对齐）
-  "identifier": "dev.openpaint.app",
+  "version": "0.2.0", // ← 用 pnpm version:set 改，不要手改
+  "identifier": "dev.openpaint.desktop",
   "bundle": {
     "publisher": "OpenPaint Contributors",
-    "category": "Graphics",
+    "category": "Graphics and Design",
     "shortDescription": "开源 AI 原生设计工作台",
     "longDescription": "OpenPaint 是一个开源 AI 原生设计工作台，将像素级图像编辑与 AI 大模型的生成能力无缝融合。",
   },
 }
 ```
 
-`Cargo.toml` 的 `version` 字段也要同步更新。
+> ℹ️ `identifier` 不要以 `.app` 结尾（会与 macOS 应用包扩展名冲突），建议 `dev.openpaint.desktop`。
+
+`Cargo.toml` 的 `version` 字段由 `version.mjs` 自动同步，无需手工维护。
 
 ---
 

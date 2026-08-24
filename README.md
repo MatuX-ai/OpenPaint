@@ -32,7 +32,7 @@ OpenPaint 是一个**开源、AI 原生、轻量级的设计工作台**。它将
 
 ### 方式一：下载安装包（推荐）
 
-前往 [Releases](https://github.com/your-org/openpaint/releases) 下载对应平台的安装包：
+前往 [Releases](https://github.com/MatuX-ai/OpenPaint/releases) 下载对应平台的安装包：
 
 - Windows: `.exe` / `.msi`
 - macOS: `.dmg`
@@ -42,7 +42,7 @@ OpenPaint 是一个**开源、AI 原生、轻量级的设计工作台**。它将
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/your-org/openpaint.git
+git clone https://github.com/MatuX-ai/OpenPaint.git
 cd openpaint
 
 # 2. 安装依赖

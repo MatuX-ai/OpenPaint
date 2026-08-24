@@ -10,8 +10,8 @@ authors = ["OpenPaint Contributors"]
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
-repository = "https://github.com/your-org/openpaint"
-homepage = "https://openpaint.dev"
+repository = "https://github.com/MatuX-ai/OpenPaint"
+homepage = "https://github.com/MatuX-ai/OpenPaint"
 keywords = ["design", "canvas", "ai", "tauri", "mcp"]
 categories = ["multimedia", "graphics", "design"]
 

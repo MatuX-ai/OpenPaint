@@ -18,7 +18,7 @@
 
 ## 💡 功能建议
 
-1. 先在 [Issues](https://github.com/your-org/openpaint/issues) 中搜索，避免重复
+1. 先在 [Issues](https://github.com/MatuX-ai/OpenPaint/issues) 中搜索，避免重复
 2. 使用 **Feature Request 模板**，清晰描述：
    - 这个功能解决什么问题
    - 你期望的交互方式

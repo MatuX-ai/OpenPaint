@@ -13,8 +13,8 @@ out/
 *.tsbuildinfo
 
 # Rust / Cargo
+# 注意：src-tauri/Cargo.lock 必须提交（Tauri 是可执行应用，锁定依赖保证可复现构建）
 src-tauri/target/
-src-tauri/Cargo.lock
 **/*.rs.bk
 
 # Tauri

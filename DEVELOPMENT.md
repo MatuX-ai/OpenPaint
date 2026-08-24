@@ -62,7 +62,7 @@ sudo dnf install -y \
 🚀 快速开始
 1. 克隆仓库
 bash
-git clone https://github.com/your-org/openpaint.git
+git clone https://github.com/MatuX-ai/OpenPaint.git
 cd openpaint
 2. 安装前端依赖
 bash
@@ -180,18 +180,13 @@ text
 
 ## ✅ 使用建议
 
-1. **创建文件**：在项目根目录分别创建 `README.md`、`CONTRIBUTING.md`、`DEVELOPMENT.md`，将以上内容粘贴进去。
+1. 如果有官方文档地址，一并更新 `DEVELOPMENT.md` 中的相关资源链接。
 
-2. **替换占位链接**：
-   - 将 `your-org` 替换为你的 GitHub 组织/用户名
-   - 将 `https://discord.gg/xxx` 替换为实际的 Discord 邀请链接
-   - 如果有官方文档地址，一并更新
-
-3. **调整细节**：
+2. **调整细节**：
    - 根据需要调整 `README.md` 中的状态徽章（如 `status-alpha`）
    - 根据实际测试环境补充 `DEVELOPMENT.md` 中的常见问题
 
-4. **后续补全**：
+3. **后续补全**：
    - `CODE_OF_CONDUCT.md`：可直接复制 [Contributor Covenant 官方模板](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
    - `LICENSE`：从 [MIT License 官网](https://opensource.org/licenses/MIT) 复制全文
 ```
