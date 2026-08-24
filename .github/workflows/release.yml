@@ -72,7 +72,11 @@ jobs:
 
       - name: Install Linux system deps (webkit2gtk-4.1)
         run: |
-          sudo apt-get update
+          for i in 1 2 3; do
+            sudo apt-get update && break
+            echo "apt-get update failed, retry $i"
+            sleep 5
+          done
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
@@ -141,7 +145,7 @@ jobs:
   # ----------------------------------------------------------
   windows:
     name: Windows (.msi / .exe)
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -174,6 +178,15 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Clean target dir (force fresh build)
+        run: |
+          if (Test-Path src-tauri/target) {
+            Remove-Item -Recurse -Force src-tauri/target
+            Write-Host "target directory cleaned"
+          } else {
+            Write-Host "target directory does not exist, nothing to clean"
+          }
 
       - name: Build frontend
         run: pnpm build:web
