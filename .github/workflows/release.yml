@@ -19,6 +19,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v0.1.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -38,10 +44,15 @@ jobs:
           fetch-depth: 0
 
       - name: Verify version consistency (tauri.conf.json / Cargo.toml / package.json / git tag)
+        env:
+          TAG_REF: ${{ github.ref_name }}
+          TAG_INPUT: ${{ github.event.inputs.version }}
         run: |
-          # Extract version from tauri.conf.json (no external deps needed)
+          # Use manual input if provided (workflow_dispatch), otherwise use the tag ref
+          TAG_VERSION="${TAG_INPUT:-${TAG_REF#refs/tags/}}"
+          # Extract version from tauri.conf.json
           VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_VERSION="${TAG_VERSION#v}"
           echo "Project version: $VERSION"
           echo "Git tag:         v$TAG_VERSION"
           if [ "$VERSION" != "$TAG_VERSION" ]; then
