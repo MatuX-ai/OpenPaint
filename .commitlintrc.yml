@@ -24,7 +24,20 @@ rules:
   scope-enum:
     - 2
     - always
-    - ['canvas', 'agent', 'gallery', 'frontend', 'tools', 'build', 'docs', 'ci', 'landing', 'openpencil', 'config', 'release']
+    - [
+        'canvas',
+        'agent',
+        'gallery',
+        'frontend',
+        'tools',
+        'build',
+        'docs',
+        'ci',
+        'landing',
+        'openpencil',
+        'config',
+        'release',
+      ]
 
   subject-max-length:
     - 2
