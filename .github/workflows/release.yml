@@ -102,11 +102,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Build frontend
+        run: pnpm build:web
+
       - name: Build Tauri (Linux)
         run: pnpm tauri build --bundles=deb,appimage
 
       - name: Upload bundles
-        uses: actions/upload-artifact@v4
         with:
           name: openpaint-linux
           path: |
@@ -160,6 +162,9 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Build frontend
+        run: pnpm build:web
 
       - name: Build Tauri (Windows)
         run: pnpm tauri build --bundles=msi,nsis
@@ -218,6 +223,9 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Build frontend
+        run: pnpm build:web
 
       - name: Build Tauri (macOS)
         run: pnpm tauri build --bundles=dmg,app
