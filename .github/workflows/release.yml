@@ -145,7 +145,7 @@ jobs:
   # ----------------------------------------------------------
   windows:
     name: Windows (.msi / .exe)
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -189,9 +189,11 @@ jobs:
           }
 
       - name: Build frontend
+        shell: bash
         run: pnpm build:web
 
       - name: Build Tauri (Windows)
+        shell: bash
         run: pnpm tauri build --bundles=msi,nsis
 
       - name: Upload bundles
