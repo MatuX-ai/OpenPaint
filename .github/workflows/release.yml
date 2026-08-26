@@ -66,28 +66,32 @@ jobs:
   # ----------------------------------------------------------
   linux:
     name: Linux (.deb / .AppImage)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Linux system deps (webkit2gtk-4.1)
         run: |
           for i in 1 2 3; do
-            sudo apt-get update && break
-            echo "apt-get update failed, retry $i"
-            sleep 5
+            echo "=== apt-get update attempt $i ==="
+            sudo apt-get update && break || echo "apt-get update failed"
+            sleep 3
           done
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libssl-dev \
-            libayatana-appindicator3-dev
+          for i in 1 2 3; do
+            echo "=== apt-get install attempt $i ==="
+            sudo apt-get install -y \
+              libwebkit2gtk-4.1-dev \
+              libappindicator3-dev \
+              librsvg2-dev \
+              patchelf \
+              build-essential \
+              curl \
+              wget \
+              file \
+              libssl-dev \
+              libayatana-appindicator3-dev && break || echo "apt-get install failed"
+            sleep 3
+          done
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
