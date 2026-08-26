@@ -125,7 +125,7 @@ jobs:
         run: pnpm build:web
 
       - name: Build Tauri (Linux)
-        run: pnpm tauri build --bundles=deb,appimage
+        run: pnpm tauri build --bundles=deb
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
@@ -133,7 +133,6 @@ jobs:
           name: openpaint-linux
           path: |
             src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Attach to Release
         uses: softprops/action-gh-release@v2
@@ -142,7 +141,6 @@ jobs:
           generate_release_notes: true
           files: |
             src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
 
   # ----------------------------------------------------------
   # Windows：msi / nsis (.exe)
