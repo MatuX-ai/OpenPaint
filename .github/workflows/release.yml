@@ -21,10 +21,11 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version tag (e.g. v0.1.0)'
-        required: true
+      include_linux:
+        description: 'Build Linux (.deb) on ubuntu-latest (may fail due to runner issues)'
+        required: false
         type: string
+        default: 'false'
 
 permissions:
   contents: write
@@ -62,11 +63,15 @@ jobs:
           echo "Version check passed"
 
   # ----------------------------------------------------------
-  # Linux：deb / AppImage
+  # Linux：deb (.deb)
+  # NOTE: Linux builds on GitHub Actions ubuntu-latest have persistent
+  # bundling failures; use workflow_dispatch with 'include_linux: true'
+  # to build manually, or run locally with: pnpm tauri build --bundles=deb
   # ----------------------------------------------------------
   linux:
-    name: Linux (.deb / .AppImage)
+    name: Linux (.deb)
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.include_linux == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
