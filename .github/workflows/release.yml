@@ -89,7 +89,8 @@ jobs:
               wget \
               file \
               libssl-dev \
-              libayatana-appindicator3-dev && break || echo "apt-get install failed"
+              libayatana-appindicator3-dev \
+              dpkg-dev && break || echo "apt-get install failed"
             sleep 3
           done
 
