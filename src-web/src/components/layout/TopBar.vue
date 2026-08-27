@@ -90,7 +90,12 @@ function togglePanel(mode: 'openpencil' | 'gallery') {
 
       <span class="top-bar__divider" />
 
-      <button class="top-bar__btn" type="button" title="设置" disabled>
+      <button
+        class="top-bar__btn"
+        type="button"
+        title="设置"
+        @click="uiStore.toggleSettings"
+      >
         <Settings :size="16" />
       </button>
     </div>

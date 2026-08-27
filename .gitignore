@@ -46,6 +46,9 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# 审计验收日志（保留最新 90 天在本地即可）
+.audit-logs/
+
 # Hermes Agent 二进制（仅保留 README 说明）
 src-tauri/bin/hermes*
 src-tauri/bin/*.exe

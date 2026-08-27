@@ -27,7 +27,10 @@ use crate::state::AppState;
 /// Tauri application entry point. Used by `src/main.rs` and unit tests.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    init_tracing();
+    // 注意：日志系统由 tauri_plugin_log 在下面初始化，
+    // 这里不再单独 init tracing 的全局 subscriber，否则会触发
+    // "attempted to set a logger after the logging system was already initialized"。
+    // tracing 仍然可以通过 log facade 输出（tauri_plugin_log 默认使用 env_logger/log）。
 
     info!("OpenPaint starting up...");
 

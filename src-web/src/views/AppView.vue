@@ -8,6 +8,7 @@
 import { onMounted } from 'vue';
 import MainLayout from '@/components/layout/MainLayout.vue';
 import AIAssistant from '@/components/assistant/AIAssistant.vue';
+import SettingsModal from '@/components/settings/SettingsModal.vue';
 import { isTauri } from '@api/runtime';
 
 const runningInTauri = isTauri();
@@ -27,6 +28,7 @@ onMounted(() => {
   </div>
   <MainLayout />
   <AIAssistant />
+  <SettingsModal />
 </template>
 
 <style lang="scss">

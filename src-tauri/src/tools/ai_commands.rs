@@ -267,8 +267,15 @@ async fn call_llm(llm: &LlmConfig, image_data: &str, prompt: &str) -> Result<Str
             .await
         }
         LlmProvider::Ollama => call_ollama(&client, &endpoint, &model, image_data, prompt).await,
-        // OpenAI / DeepSeek 共享 OpenAI Chat Completions 协议
-        LlmProvider::Openai | LlmProvider::Deepseek => {
+        // OpenAI / DeepSeek 以及国内 OpenAI 兼容厂商（通义千问 DashScope、
+        // 智谱 BigModel、月之暗面 Moonshot、火山引擎豆包、MiniMax）均走 Chat Completions 协议。
+        LlmProvider::Openai
+        | LlmProvider::Deepseek
+        | LlmProvider::Qwen
+        | LlmProvider::Zhipu
+        | LlmProvider::Moonshot
+        | LlmProvider::Doubao
+        | LlmProvider::Minimax => {
             call_openai_compat(
                 &client,
                 &endpoint,
@@ -493,6 +500,11 @@ fn parse_provider(s: &str) -> LlmProvider {
         "anthropic" => LlmProvider::Anthropic,
         "deepseek" => LlmProvider::Deepseek,
         "ollama" => LlmProvider::Ollama,
+        "qwen" => LlmProvider::Qwen,
+        "zhipu" => LlmProvider::Zhipu,
+        "moonshot" => LlmProvider::Moonshot,
+        "doubao" => LlmProvider::Doubao,
+        "minimax" => LlmProvider::Minimax,
         _ => LlmProvider::Openai,
     }
 }

@@ -448,7 +448,7 @@ function scrollToSection(event: Event, id: string): void {
         </div>
       </div>
       <div class="landing-footer__bottom">
-        <p>© 2026 OpenPaint · MIT License</p>
+        <p>© 2026 OpenPaint · CXZ · MIT License</p>
       </div>
     </footer>
   </div>

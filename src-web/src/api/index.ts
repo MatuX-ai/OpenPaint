@@ -293,3 +293,51 @@ export const aiApi = {
   renderSvgToPng: (svg: string, width: number, height: number): Promise<SvgRenderResponse> =>
     invoke<SvgRenderResponse>('render_svg_to_png', { svg, width, height }),
 };
+
+// ----------------------------------------------------------------
+// LLM provider commands (W6)
+// ----------------------------------------------------------------
+
+export type LlmProviderId =
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'ollama'
+  | 'qwen'
+  | 'zhipu'
+  | 'moonshot'
+  | 'doubao'
+  | 'minimax';
+
+export interface LlmProviderInfo {
+  id: LlmProviderId;
+  label: string;
+  default_endpoint: string;
+  default_model: string;
+  requires_api_key: boolean;
+}
+
+export interface LlmProviderConfig {
+  provider: LlmProviderId;
+  api_key: string | null;
+  endpoint: string;
+  model: string;
+}
+
+/** True when the current provider is configured and ready to use. */
+export function isLlmConfigured(cfg: LlmProviderConfig | null): boolean {
+  if (!cfg) return false;
+  // Ollama is the only provider that doesn't need an API key.
+  if (cfg.provider === 'ollama') return true;
+  return !!cfg.api_key && cfg.api_key.trim().length > 0;
+}
+
+export const llmApi = {
+  listProviders: (): Promise<LlmProviderInfo[]> => invoke<LlmProviderInfo[]>('list_providers'),
+  getProviderConfig: (): Promise<LlmProviderConfig> =>
+    invoke<LlmProviderConfig>('get_provider_config'),
+  setProvider: (provider: LlmProviderId): Promise<void> =>
+    invoke<void>('set_provider', { provider }),
+  setApiKey: (provider: LlmProviderId, apiKey: string): Promise<void> =>
+    invoke<void>('set_api_key', { provider, apiKey }),
+};

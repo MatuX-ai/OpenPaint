@@ -1,5 +1,7 @@
 <!--
-  MCP connection status indicator.
+  OpenPencil editor status indicator. Reflects the live mount state of the
+  embedded `@open-pencil/vue` editor (loading / ready / error), not an
+  external MCP server handshake.
 -->
 
 <script setup lang="ts">
@@ -10,13 +12,13 @@ const props = defineProps<{ status: 'idle' | 'loading' | 'ready' | 'error' }>();
 const label = computed(() => {
   switch (props.status) {
     case 'ready':
-      return '已连接';
+      return 'OpenPencil: 已就绪';
     case 'error':
-      return '连接错误';
+      return 'OpenPencil: 加载失败';
     case 'loading':
-      return '连接中…';
+      return 'OpenPencil: 加载中…';
     default:
-      return '未连接';
+      return 'OpenPencil: 未初始化';
   }
 });
 </script>
@@ -24,7 +26,7 @@ const label = computed(() => {
 <template>
   <div class="mcp-status" :class="`mcp-status--${status}`">
     <span class="mcp-status__dot" />
-    <span class="mcp-status__label">MCP: {{ label }}</span>
+    <span class="mcp-status__label">{{ label }}</span>
   </div>
 </template>
 

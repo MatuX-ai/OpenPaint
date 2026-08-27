@@ -46,6 +46,7 @@ export const useUIStore = defineStore('ui', () => {
   const assistantVisible = ref(true);
   const previewModalVisible = ref(false);
   const previewPayload = ref<{ svg?: string; png?: string; title?: string } | null>(null);
+  const settingsModalVisible = ref(false);
 
   // Apply persisted theme to <html> on boot.
   if (typeof document !== 'undefined') {
@@ -86,6 +87,18 @@ export const useUIStore = defineStore('ui', () => {
     assistantVisible.value = !assistantVisible.value;
   }
 
+  function openSettings() {
+    settingsModalVisible.value = true;
+  }
+
+  function closeSettings() {
+    settingsModalVisible.value = false;
+  }
+
+  function toggleSettings() {
+    settingsModalVisible.value = !settingsModalVisible.value;
+  }
+
   return {
     theme,
     rightPanelMode,
@@ -93,11 +106,15 @@ export const useUIStore = defineStore('ui', () => {
     assistantVisible,
     previewModalVisible,
     previewPayload,
+    settingsModalVisible,
     toggleTheme,
     switchRightPanel,
     setRightPanelWidth,
     openPreview,
     closePreview,
     toggleAssistant,
+    openSettings,
+    closeSettings,
+    toggleSettings,
   };
 });

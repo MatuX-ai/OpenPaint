@@ -15,11 +15,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@open-pencil/core": "^0.14.0",
+    "@open-pencil/vue": "^0.14.0",
     "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-fs": "^2.0.0",
-    "@tauri-apps/plugin-store": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-fs": "^2.0.0",
     "@tauri-apps/plugin-log": "^2.0.0",
+    "@tauri-apps/plugin-store": "^2.0.0",
+    "canvaskit-wasm": "^0.39.0",
     "lucide-vue-next": "^0.344.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",

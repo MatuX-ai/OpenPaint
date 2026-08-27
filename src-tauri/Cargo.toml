@@ -15,6 +15,10 @@ homepage = "https://github.com/MatuX-ai/OpenPaint"
 keywords = ["design", "canvas", "ai", "tauri", "mcp"]
 categories = ["multimedia", "graphics", "design"]
 
+# 同时存在 openpaint (桌面端) 与 openpaint-mcp 两个二进制，
+# 未显式 --bin 时 cargo run 无法选择；这里将桌面端作为默认入口。
+default-run = "openpaint"
+
 # 二进制入口
 [[bin]]
 name = "openpaint"

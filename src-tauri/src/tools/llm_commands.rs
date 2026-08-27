@@ -10,6 +10,10 @@ use tracing::info;
 use crate::state::AppState;
 
 /// LLM Provider 枚举
+///
+/// 涵盖 OpenAI / Anthropic 以及国内主流 OpenAI 兼容服务（DeepSeek、
+/// 通义千问 DashScope、智谱 BigModel、月之暗面、火山引擎豆包、MiniMax）。
+/// 自定义协议厂商（文心、讯飞、腾讯混元等）暂不接入，需要独立 SDK。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum LlmProvider {
@@ -17,6 +21,16 @@ pub enum LlmProvider {
     Anthropic,
     Deepseek,
     Ollama,
+    /// 阿里云 DashScope / 通义千问 Qwen
+    Qwen,
+    /// 智谱 BigModel / GLM
+    Zhipu,
+    /// 月之暗面 Moonshot / Kimi
+    Moonshot,
+    /// 字节跳动 火山引擎 / 豆包
+    Doubao,
+    /// MiniMax / MiniMax（API 协议兼容 OpenAI Chat Completions）
+    Minimax,
 }
 
 impl LlmProvider {
@@ -26,6 +40,11 @@ impl LlmProvider {
             LlmProvider::Anthropic => "anthropic",
             LlmProvider::Deepseek => "deepseek",
             LlmProvider::Ollama => "ollama",
+            LlmProvider::Qwen => "qwen",
+            LlmProvider::Zhipu => "zhipu",
+            LlmProvider::Moonshot => "moonshot",
+            LlmProvider::Doubao => "doubao",
+            LlmProvider::Minimax => "minimax",
         }
     }
 
@@ -35,6 +54,11 @@ impl LlmProvider {
             LlmProvider::Anthropic => "Anthropic Claude",
             LlmProvider::Deepseek => "DeepSeek",
             LlmProvider::Ollama => "Ollama (本地)",
+            LlmProvider::Qwen => "通义千问 (Qwen / 阿里云)",
+            LlmProvider::Zhipu => "智谱 GLM",
+            LlmProvider::Moonshot => "月之暗面 (Kimi)",
+            LlmProvider::Doubao => "豆包 (火山引擎 / 字节)",
+            LlmProvider::Minimax => "Minimax (MiniMax)",
         }
     }
 
@@ -44,6 +68,40 @@ impl LlmProvider {
             LlmProvider::Anthropic => "https://api.anthropic.com/v1",
             LlmProvider::Deepseek => "https://api.deepseek.com/v1",
             LlmProvider::Ollama => "http://localhost:11434",
+            // 国内厂商均提供 OpenAI 兼容端点。
+            LlmProvider::Qwen => "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            LlmProvider::Zhipu => "https://open.bigmodel.cn/api/paas/v4",
+            LlmProvider::Moonshot => "https://api.moonshot.cn/v1",
+            LlmProvider::Doubao => "https://ark.cn-beijing.volces.com/api/v3",
+            // MiniMax 同时提供国际 (MiniMax.chat) 与国内 (MiniMax.cn) 两个端点，
+            // 默认填国际端点；用户可在 UI 里手动改成国内。
+            LlmProvider::Minimax => "https://api.minimaxi.chat/v1",
+        }
+    }
+
+    pub fn default_model(&self) -> &'static str {
+        match self {
+            LlmProvider::Openai => "gpt-4o",
+            LlmProvider::Anthropic => "claude-3-5-sonnet-20241022",
+            LlmProvider::Deepseek => "deepseek-chat",
+            LlmProvider::Ollama => "llama3.1",
+            LlmProvider::Qwen => "qwen-plus",
+            LlmProvider::Zhipu => "glm-4-plus",
+            LlmProvider::Moonshot => "moonshot-v1-8k",
+            LlmProvider::Doubao => "doubao-pro-32k",
+            LlmProvider::Minimax => "MiniMax-Text-01",
+        }
+    }
+
+    /// 汇总该 Provider 对前端展示所需的全部元数据。
+    /// Ollama 本地部署无需 API Key，其他云端服务都需要。
+    pub fn as_info(&self) -> ProviderInfo {
+        ProviderInfo {
+            id: self.id().into(),
+            label: self.label().into(),
+            default_endpoint: self.default_endpoint().into(),
+            default_model: self.default_model().into(),
+            requires_api_key: !matches!(self, LlmProvider::Ollama),
         }
     }
 }
@@ -70,35 +128,18 @@ pub struct ProviderInfo {
 /// 1. 列出可用 Provider
 #[tauri::command]
 pub async fn list_providers() -> Result<Vec<ProviderInfo>, String> {
+    // 顺序就是用户在设置下拉里看到的顺序；需要优先曝光哪些提供商，
+    // 直接调整这里即可，不用再手动同步 ProviderInfo 字段。
     Ok(vec![
-        ProviderInfo {
-            id: LlmProvider::Openai.id().into(),
-            label: LlmProvider::Openai.label().into(),
-            default_endpoint: LlmProvider::Openai.default_endpoint().into(),
-            default_model: "gpt-4o".into(),
-            requires_api_key: true,
-        },
-        ProviderInfo {
-            id: LlmProvider::Anthropic.id().into(),
-            label: LlmProvider::Anthropic.label().into(),
-            default_endpoint: LlmProvider::Anthropic.default_endpoint().into(),
-            default_model: "claude-3-5-sonnet-20241022".into(),
-            requires_api_key: true,
-        },
-        ProviderInfo {
-            id: LlmProvider::Deepseek.id().into(),
-            label: LlmProvider::Deepseek.label().into(),
-            default_endpoint: LlmProvider::Deepseek.default_endpoint().into(),
-            default_model: "deepseek-chat".into(),
-            requires_api_key: true,
-        },
-        ProviderInfo {
-            id: LlmProvider::Ollama.id().into(),
-            label: LlmProvider::Ollama.label().into(),
-            default_endpoint: LlmProvider::Ollama.default_endpoint().into(),
-            default_model: "llama3.1".into(),
-            requires_api_key: false,
-        },
+        LlmProvider::Openai.as_info(),
+        LlmProvider::Anthropic.as_info(),
+        LlmProvider::Deepseek.as_info(),
+        LlmProvider::Qwen.as_info(),
+        LlmProvider::Zhipu.as_info(),
+        LlmProvider::Moonshot.as_info(),
+        LlmProvider::Doubao.as_info(),
+        LlmProvider::Minimax.as_info(),
+        LlmProvider::Ollama.as_info(),
     ])
 }
 
@@ -120,6 +161,11 @@ pub async fn get_provider_config(state: State<'_, AppState>) -> Result<ProviderC
         "anthropic" => LlmProvider::Anthropic,
         "deepseek" => LlmProvider::Deepseek,
         "ollama" => LlmProvider::Ollama,
+        "qwen" => LlmProvider::Qwen,
+        "zhipu" => LlmProvider::Zhipu,
+        "moonshot" => LlmProvider::Moonshot,
+        "doubao" => LlmProvider::Doubao,
+        "minimax" => LlmProvider::Minimax,
         _ => LlmProvider::Openai,
     };
     let api_key = if config.llm.api_key.is_empty() {
@@ -127,6 +173,8 @@ pub async fn get_provider_config(state: State<'_, AppState>) -> Result<ProviderC
     } else {
         Some(config.llm.api_key.clone())
     };
+    // 配置文件中没有显式 endpoint/base_url 时，回落到该 provider 的官方默认值，
+    // 包括新增的国内厂商。这样老用户配置迁移也能直接使用。
     let endpoint = config
         .llm
         .base_url
@@ -137,9 +185,13 @@ pub async fn get_provider_config(state: State<'_, AppState>) -> Result<ProviderC
             .llm
             .local_model
             .clone()
-            .unwrap_or_else(|| "llama3.1".to_string())
+            .unwrap_or_else(|| provider.default_model().to_string())
     } else {
-        config.llm.model.clone()
+        if config.llm.model.trim().is_empty() {
+            provider.default_model().to_string()
+        } else {
+            config.llm.model.clone()
+        }
     };
     Ok(ProviderConfig {
         provider,

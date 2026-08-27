@@ -1,85 +1,86 @@
 <!--
   OpenPencil embedded editor (right panel).
-  MVP: renders a placeholder iframe that speaks the postMessage
-  protocol; the real OpenPencil web app can be swapped in later.
+
+  Real integration of the `@open-pencil/vue` SDK:
+    - creates an editor instance via `createEditor`
+    - provides it to the subtree with `provideEditor`
+    - binds a <canvas> to it through `useCanvas` (rendering + hit-testing)
+    - wires `useCanvasInput` for pointer / keyboard input
+    - wires `useCanvasDrop` for image file drop
+    - renders the official <ToolbarRoot> for tool selection
+
+  AI generation (image + prompt -> SVG) flows through the existing Rust
+  backend `send_to_ai_engine` and is dropped back into the editor via
+  `editor.pasteFromHTML`. OK exports the SVG via `editor.copySelectionAsSVG`
+  and renders it to PNG with the Rust resvg tool before pasting it into the
+  central canvas via `canvasApi.pasteImage`.
+
+  The previous iframe + srcdoc placeholder was removed; the right window is
+  now backed by a real Skia/CanvasKit-powered editor surface.
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useOpenPencil } from '@composables/useOpenPencil';
+import { onMounted, ref } from 'vue';
+import {
+  provideEditor,
+  ToolbarRoot,
+  useCanvas,
+  useCanvasDrop,
+  useCanvasInput,
+} from '@open-pencil/vue';
+import { EDITOR_TOOLS } from '@open-pencil/core/editor';
+import { createOpenPencilBridge } from '@composables/useOpenPencil';
 import { useUIStore } from '@stores/uiStore';
 import { aiApi, canvasApi } from '@api/index';
 import OpenPencilToolbar from './OpenPencilToolbar.vue';
 import MCPStatus from './MCPStatus.vue';
 
 const uiStore = useUIStore();
-const { iframeRef, status, sendImageToAI, exportSVG, onResult, onStatusChange } = useOpenPencil();
+const { editor, status, lastResult, exportSVG, sendImageToAI } = createOpenPencilBridge();
 
-const lastResult = ref<{ svg?: string; png?: string } | null>(null);
-const srcDoc = ref('');
-let cleanup: (() => void) | null = null;
+provideEditor(editor);
+
+const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 onMounted(() => {
-  // The placeholder page speaks the same postMessage protocol.
-  srcDoc.value = `<!doctype html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;font-family:system-ui;background:#f5f5f7;color:#333">
-  <div style="padding:16px;text-align:center">
-    <h3 style="margin:0 0 8px">OpenPencil 嵌入占位</h3>
-    <p style="font-size:13px;color:#666">MVP: 通过 postMessage 协议通信</p>
-    <button id="gen" style="padding:6px 12px;margin-top:8px">生成一张示例图</button>
-    <script>
-      const send = (type, payload) => window.parent.postMessage({ _prefix: 'openpaint:', type, payload }, '*');
-      window.addEventListener('message', (e) => {
-        const d = e.data || {};
-        if (d._prefix !== 'openpaint:') return;
-        if (d.type === 'OPENPENCIL_AI_GENERATE') {
-          send('OPENPENCIL_RESULT', { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="#6c5ce7"/><circle cx="128" cy="128" r="64" fill="#fff" opacity="0.8"/></svg>' });
-        }
-        if (d.type === 'OPENPENCIL_EXPORT_SVG') {
-          send('OPENPENCIL_RESULT', { svg: lastSvg || '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"/>' });
-        }
-      });
-      let lastSvg = null;
-      document.getElementById('gen').onclick = () => {
-        lastSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="#a29bfe"/><rect x="64" y="64" width="128" height="128" fill="#fff"/></svg>';
-        send('OPENPENCIL_RESULT', { svg: lastSvg });
-      };
-      send('OPENPENCIL_READY');
-    </scr${'/'}ipt>
-  </div>
-</body></html>`;
+  try {
+    const canvasCtl = useCanvas(canvasRef, editor, {
+      onReady: () => {
+        status.value = 'ready';
+      },
+    });
 
-  const unsubResult = onResult((r) => {
-    lastResult.value = r;
-  });
-  const unsubStatus = onStatusChange(() => {
-    /* status updates are surfaced via MCPStatus */
-  });
-  cleanup = () => {
-    unsubResult();
-    unsubStatus();
-  };
-});
+    // Pointer + keyboard input — the SDK is headless, so consumers wire this
+    // explicitly. `useCanvasInput` binds drag/click/keyboard to editor
+    // commands for the active tool.
+    useCanvasInput(
+      canvasRef,
+      editor,
+      canvasCtl.hitTestSectionTitle,
+      canvasCtl.hitTestComponentLabel,
+      canvasCtl.hitTestFrameTitle,
+    );
 
-onBeforeUnmount(() => {
-  cleanup?.();
-  cleanup = null;
+    // Drag-and-drop images onto the canvas to embed them.
+    useCanvasDrop(canvasRef, editor);
+  } catch (err) {
+    status.value = 'error';
+    console.error('[OpenPencilView] SDK mount failed:', err);
+  }
 });
 
 async function handleOK() {
-  // Export the current SVG from the editor.
-  exportSVG();
-  // Wait briefly for the result, then render into the canvas.
-  await new Promise((r) => setTimeout(r, 300));
-  if (lastResult.value?.png) {
-    await canvasApi.pasteImage(lastResult.value.png);
-  } else if (lastResult.value?.svg) {
-    try {
-      const res = await aiApi.renderSvgToPng(lastResult.value.svg, 512, 512);
-      await canvasApi.pasteImage(res.png_data);
-    } catch (e) {
-      console.error('[OpenPencilView] render failed:', e);
-    }
+  const svg = exportSVG();
+  if (!svg) {
+    console.warn('[OpenPencilView] exportSVG returned null — nothing to land');
+    uiStore.closePreview();
+    return;
+  }
+  try {
+    const { png_data } = await aiApi.renderSvgToPng(svg, 512, 512);
+    await canvasApi.pasteImage(png_data);
+  } catch (err) {
+    console.error('[OpenPencilView] render or paste failed:', err);
   }
   uiStore.closePreview();
 }
@@ -89,20 +90,23 @@ function handleCancel() {
   lastResult.value = null;
 }
 
+function handleRefresh() {
+  editor.requestRepaint();
+}
+
 defineExpose({ status, lastResult, sendImageToAI, exportSVG, handleOK, handleCancel });
 </script>
 
 <template>
   <div class="openpencil-view">
-    <OpenPencilToolbar @ok="handleOK" @cancel="handleCancel" />
+    <OpenPencilToolbar @ok="handleOK" @cancel="handleCancel" @refresh="handleRefresh" />
+    <ToolbarRoot
+      v-if="status === 'ready'"
+      :tools="EDITOR_TOOLS"
+      class="openpencil-view__tools"
+    />
     <div class="openpencil-view__body">
-      <iframe
-        ref="iframeRef"
-        class="openpencil-view__frame"
-        :srcdoc="srcDoc"
-        sandbox="allow-scripts allow-same-origin"
-        title="OpenPencil"
-      />
+      <canvas ref="canvasRef" class="openpencil-view__frame" />
     </div>
     <MCPStatus :status="status" />
   </div>
@@ -115,9 +119,17 @@ defineExpose({ status, lastResult, sendImageToAI, exportSVG, handleOK, handleCan
   width: 100%;
   height: 100%;
 
+  &__tools {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+
   &__body {
     flex: 1;
     min-height: 0;
+    position: relative;
+    overflow: hidden;
   }
 
   &__frame {
@@ -125,6 +137,7 @@ defineExpose({ status, lastResult, sendImageToAI, exportSVG, handleOK, handleCan
     height: 100%;
     border: none;
     background: #f5f5f7;
+    touch-action: none;
   }
 }
 </style>

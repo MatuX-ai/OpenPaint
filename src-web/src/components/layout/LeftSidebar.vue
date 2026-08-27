@@ -17,12 +17,12 @@ interface ToolDef {
 }
 
 const tools: ToolDef[] = [
-  { id: 'select', label: '閫夋嫨', shortcut: 'V', icon: MousePointer2 },
-  { id: 'rect-select', label: '鐭╁舰閫夊尯', shortcut: 'M', icon: Square },
-  { id: 'brush', label: '鐢荤瑪', shortcut: 'B', icon: Brush },
-  { id: 'eraser', label: '姗＄毊', shortcut: 'E', icon: Eraser },
-  { id: 'move', label: '绉诲姩', shortcut: 'H', icon: Hand },
-  { id: 'transform', label: '鍙樺舰', shortcut: 'T', icon: Crop },
+  { id: 'select', label: '选择', shortcut: 'V', icon: MousePointer2 },
+  { id: 'rect-select', label: '矩形选区', shortcut: 'M', icon: Square },
+  { id: 'brush', label: '画笔', shortcut: 'B', icon: Brush },
+  { id: 'eraser', label: '橡皮', shortcut: 'E', icon: Eraser },
+  { id: 'move', label: '移动', shortcut: 'H', icon: Hand },
+  { id: 'transform', label: '变形', shortcut: 'T', icon: Crop },
 ];
 
 const store = useCanvasStore();

@@ -56,29 +56,5 @@
       }
     }
   },
-  "plugins": {
-    "log": {
-      "level": "info",
-      "targets": [
-        {
-          "kind": "Stdout"
-        },
-        {
-          "kind": "File",
-          "path": "/tmp/openpaint/app.log"
-        }
-      ]
-    },
-    "store": {},
-    "fs": {
-      "scope": {
-        "allow": [
-          "$HOME/.openpaint/**",
-          "$APPDATA/openpaint/**",
-          "$APPLOCALDATA/openpaint/**",
-          "$APPCONFIG/openpaint/**"
-        ]
-      }
-    }
-  }
+  "plugins": {}
 }

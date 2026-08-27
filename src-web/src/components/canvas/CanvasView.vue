@@ -65,6 +65,8 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
       <div
         class="canvas-view__viewport"
         :style="{
+          width: canvasStore.canvasWidth + 'px',
+          height: canvasStore.canvasHeight + 'px',
           transform: `translate(${viewport.panX}px, ${viewport.panY}px) scale(${viewport.zoom})`,
         }"
       >
