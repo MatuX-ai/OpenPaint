@@ -56,3 +56,10 @@ src-tauri/bin/*.exe
 
 # 图库运行时数据（开发期可忽略）
 .openpaint-dev/
+
+# 代码签名证书（绝不能提交！配置在 GitHub Secrets 中）
+*.pfx
+*.p12
+openpaint-codesign.pfx
+openpaint-codesign.b64.txt
+CODE_SIGNING_SETUP.md

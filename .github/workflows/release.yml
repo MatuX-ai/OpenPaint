@@ -204,6 +204,76 @@ jobs:
         shell: bash
         run: pnpm tauri build --bundles=msi,nsis
 
+      - name: Sign Windows binaries (Authenticode)
+        if: ${{ env.OPENPAINT_CERT_PFX != '' && env.OPENPAINT_CERT_PASSWORD != '' }}
+        env:
+          OPENPAINT_CERT_PFX: ${{ secrets.OPENPAINT_CERT_PFX }}
+          OPENPAINT_CERT_PASSWORD: ${{ secrets.OPENPAINT_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          if (-not $env:OPENPAINT_CERT_PFX) {
+            Write-Host "::warning::No signing certificate provided (OPENPAINT_CERT_PFX empty). Skipping signing."
+            exit 0
+          }
+          # 安装 osslsigncode
+          choco install osslsigncode -y --no-progress --limit-output
+          # 恢复 PFX 证书
+          $pfxBytes = [Convert]::FromBase64String($env:OPENPAINT_CERT_PFX)
+          $pfxPath = Join-Path $env:TEMP "openpaint-codesign.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          $password = ConvertTo-SecureString -String $env:OPENPAINT_CERT_PASSWORD -Force -AsPlainText
+          $timestampUrl = "http://timestamp.digicert.com"
+          $description = "OpenPaint Desktop"
+          $url = "https://github.com/MatuX-ai/OpenPaint"
+          # 对 .exe 主程序签名
+          $exe = "src-tauri/target/release/openpaint.exe"
+          if (Test-Path $exe) {
+            Write-Host "Signing $exe..."
+            osslsigncode sign `
+              -pkcs12 "$pfxPath" `
+              -pass "$($env:OPENPAINT_CERT_PASSWORD)" `
+              -n "$description" `
+              -i "$url" `
+              -t "$timestampUrl" `
+              -in "$exe" `
+              -out "$exe.signed"
+            Move-Item -Force "$exe.signed" "$exe"
+            Write-Host "✓ Signed $exe"
+          }
+          # 对 MSI 签名
+          Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
+            $signed = "$($_.FullName).signed"
+            Write-Host "Signing $($_.Name)..."
+            osslsigncode sign `
+              -pkcs12 "$pfxPath" `
+              -pass "$($env:OPENPAINT_CERT_PASSWORD)" `
+              -n "$description" `
+              -i "$url" `
+              -t "$timestampUrl" `
+              -in "$_.FullName" `
+              -out "$signed"
+            Move-Item -Force "$signed" $_.FullName
+            Write-Host "✓ Signed $($_.Name)"
+          }
+          # 对 NSIS .exe 签名
+          Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | ForEach-Object {
+            $signed = "$($_.FullName).signed"
+            Write-Host "Signing $($_.Name)..."
+            osslsigncode sign `
+              -pkcs12 "$pfxPath" `
+              -pass "$($env:OPENPAINT_CERT_PASSWORD)" `
+              -n "$description" `
+              -i "$url" `
+              -t "$timestampUrl" `
+              -in "$_.FullName" `
+              -out "$signed"
+            Move-Item -Force "$signed" $_.FullName
+            Write-Host "✓ Signed $($_.Name)"
+          }
+          # 清理 PFX
+          Remove-Item -Force $pfxPath
+          Write-Host "All Windows binaries signed successfully"
+
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:

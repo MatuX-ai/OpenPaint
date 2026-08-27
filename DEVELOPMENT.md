@@ -178,6 +178,65 @@ text
 
 ---
 
+## 🔐 代码签名（Code Signing）
+
+未签名的 Windows 二进制容易被杀毒软件（特别是国产杀软如火绒、360）误判为威胁并静默拦截。OpenPaint 使用 **osslsigncode** + 自签名证书为 Windows 产物签名。
+
+### 为什么需要签名？
+
+- ✅ 给二进制添加发布者身份（`Publisher: OpenPaint Contributors`）
+- ✅ 大幅降低火绒/360/Defender 的误报率
+- ✅ 在文件属性中显示签名信息
+- ⚠️ 自签名证书仍会显示"未知发布者"警告，但不会被静默拦截
+
+### CI 自动签名
+
+GitHub Actions 中已经集成签名步骤（见 `.github/workflows/release.yml`）。前提是配置了两个 Secret：
+
+| Secret | 值 |
+|--------|-----|
+| `OPENPAINT_CERT_PFX` | base64 编码的 PFX 文件内容 |
+| `OPENPAINT_CERT_PASSWORD` | PFX 密码 |
+
+### 本地签名测试
+
+```bash
+# 安装 osslsigncode
+# Windows: choco install osslsigncode
+# macOS:   brew install osslsigncode
+# Linux:   apt install osslsigncode
+
+osslsigncode sign \
+  -pkcs12 ./openpaint-codesign.pfx \
+  -pass 'your-password' \
+  -n "OpenPaint Desktop" \
+  -i "https://github.com/MatuX-ai/OpenPaint" \
+  -t "http://timestamp.digicert.com" \
+  -in src-tauri/target/release/openpaint.exe \
+  -out openpaint-signed.exe
+```
+
+### 验证签名
+
+```powershell
+# Windows PowerShell
+Get-AuthenticodeSignature ".\openpaint.exe" | Format-List
+```
+
+输出应包含 `SignerCertificate` 字段，证明已签名。
+
+### 申请正式 EV 证书（可选）
+
+要彻底消除"未知发布者"警告，可申请 EV 代码签名证书：
+
+- **Certum Open Source**：约 $30/年
+- **SSL.com EV Open Source**：约 $70/年
+- 详见 [Open Source Code Signing 指南](https://www.ssl.com/how-to/order-ev-code-signing-for-open-source/)
+
+申请后将 EV 证书 PFX 上传到 Secrets 即可，CI 无需修改。
+
+---
+
 ## ✅ 使用建议
 
 1. 如果有官方文档地址，一并更新 `DEVELOPMENT.md` 中的相关资源链接。
