@@ -36,7 +36,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "deb",
+    "targets": ["deb", "msi", "nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -49,7 +49,14 @@
     "longDescription": "OpenPaint 是一个开源 AI 原生设计工作台，将像素级图像编辑与 AI 大模型的生成能力无缝融合。",
     "publisher": "OpenPaint Contributors",
     "copyright": "Copyright (c) 2026 OpenPaint Contributors",
-    "licenseFile": "../LICENSE"
+    "licenseFile": "../LICENSE",
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "displayLanguageSelector": false,
+        "webview2InstallMode": "downloadBootstrapper"
+      }
+    }
   },
   "plugins": {
     "log": {
