@@ -4,15 +4,21 @@
   Renders the canvas PNG returned by the backend and forwards pointer
   events to the active tool via `useCanvas`. All state lives in
   `canvasStore` and is mutated through `useCanvas` actions.
+
+  Also accepts drag-and-drop file imports (US-3 drag).
 -->
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useCanvas } from '@composables/useCanvas';
 import { useCanvasStore } from '@stores/canvasStore';
+import { useFileActions } from '@composables/useFileActions';
+import { useToast } from '@composables/useToast';
 import SelectionRect from './SelectionRect.vue';
 
 const canvasStore = useCanvasStore();
+const files = useFileActions();
+const toast = useToast();
 const {
   canvasRef,
   isDrawing,
@@ -31,6 +37,44 @@ const {
 
 const cursorClass = computed(() => `canvas-view__canvas-area--tool-${activeTool.value}`);
 
+// ---- Drag-and-drop import (US-3) ----
+const isDragOver = ref(false);
+let dragDepth = 0;
+
+function onDragEnter(event: DragEvent) {
+  if (!event.dataTransfer) return;
+  event.preventDefault();
+  dragDepth++;
+  if (event.dataTransfer.types.includes('Files')) {
+    isDragOver.value = true;
+  }
+}
+
+function onDragOver(event: DragEvent) {
+  if (!event.dataTransfer) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
+}
+
+function onDragLeave(event: DragEvent) {
+  event.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) isDragOver.value = false;
+}
+
+async function onDrop(event: DragEvent) {
+  event.preventDefault();
+  dragDepth = 0;
+  isDragOver.value = false;
+  const fileList = event.dataTransfer?.files;
+  if (!fileList || fileList.length === 0) return;
+  if (!files) {
+    toast.warn('文件操作尚未就绪');
+    return;
+  }
+  await files.importFromFiles(fileList);
+}
+
 onMounted(async () => {
   // First paint: ask the backend for a fresh render and layer list.
   try {
@@ -39,9 +83,6 @@ onMounted(async () => {
     console.warn('[CanvasView] initial refresh failed:', e);
   }
 });
-
-// React to brush colour / radius changes via the store; nothing to do
-// beyond ensuring the composable reads from the store (already does).
 
 // Re-render when the user resizes the window so the canvas DOM size
 // tracks the host element.
@@ -53,7 +94,14 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
 </script>
 
 <template>
-  <main class="canvas-view" :class="cursorClass">
+  <main
+    class="canvas-view"
+    :class="cursorClass"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <div
       class="canvas-view__canvas-area"
       @pointerdown="onPointerDown"
@@ -96,6 +144,22 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
         :style="{ left: pointer.x + 'px', top: pointer.y + 'px' }"
       />
       <div v-if="isDrawing" class="canvas-view__drawing-flag" />
+    </div>
+
+    <!-- drag-and-drop overlay (US-3) -->
+    <div
+      v-if="isDragOver"
+      class="canvas-view__dropzone"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="canvas-view__dropzone-inner">
+        <div class="canvas-view__dropzone-icon">📥</div>
+        <div class="canvas-view__dropzone-title">松手导入</div>
+        <div class="canvas-view__dropzone-desc">
+          支持 PNG / JPG / WebP / SVG（≤ 50MB）
+        </div>
+      </div>
     </div>
   </main>
 </template>
@@ -241,6 +305,46 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
     color: var(--accent);
     background: var(--accent-light);
     border-radius: var(--radius-sm);
+  }
+
+  &__dropzone {
+    position: absolute;
+    inset: var(--space-3);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(108 92 231 / 12%);
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-lg);
+    pointer-events: none;
+  }
+
+  &__dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-8);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
+
+  &__dropzone-icon {
+    font-size: 40px;
+  }
+
+  &__dropzone-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__dropzone-desc {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 }
 </style>

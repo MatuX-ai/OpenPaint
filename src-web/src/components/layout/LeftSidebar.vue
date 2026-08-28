@@ -30,17 +30,20 @@ const store = useCanvasStore();
 
 <template>
   <aside class="left-sidebar">
-    <nav class="left-sidebar__tools">
+    <nav class="left-sidebar__tools" :aria-label="'绘图工具'">
       <button
         v-for="tool in tools"
         :key="tool.id"
         class="left-sidebar__tool"
         type="button"
         :title="`${tool.label} (${tool.shortcut})`"
+        :aria-label="`${tool.label}（快捷键 ${tool.shortcut}）`"
+        :aria-pressed="store.activeTool === tool.id"
         :class="{ 'is-active': store.activeTool === tool.id }"
         @click="store.setActiveTool(tool.id)"
       >
-        <component :is="tool.icon" :size="20" />
+        <component :is="tool.icon" :size="18" />
+        <span class="left-sidebar__shortcut" aria-hidden="true">{{ tool.shortcut }}</span>
       </button>
     </nav>
   </aside>
@@ -63,9 +66,11 @@ const store = useCanvasStore();
 
   &__tool {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 40px;
+    gap: 2px;
+    width: 44px;
     height: 40px;
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
@@ -78,10 +83,36 @@ const store = useCanvasStore();
       color: var(--text-primary);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
     &.is-active {
       background: var(--accent-light);
       color: var(--accent);
+
+      .left-sidebar__shortcut {
+        color: var(--accent);
+        background: var(--bg-secondary);
+      }
     }
+  }
+
+  &__shortcut {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 12px;
+    height: 12px;
+    padding: 0 2px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--text-muted);
+    background: var(--bg-tertiary, transparent);
+    border-radius: 2px;
+    letter-spacing: 0;
   }
 }
 </style>

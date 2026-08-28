@@ -128,6 +128,14 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   }),
   get_selection_bounds: () => ({ x: 0, y: 0, width: 0, height: 0 }),
   render_canvas_png: () => '',
+  render_canvas_image: () => ({
+    format: 'png',
+    mime: 'image/png',
+    bytes_base64: '',
+    width: 0,
+    height: 0,
+    byte_size: 0,
+  }),
   get_canvas_selection: () => '',
   list_tools: () => [],
 

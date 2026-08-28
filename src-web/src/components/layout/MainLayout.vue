@@ -1,13 +1,14 @@
 <!--
   OpenPaint main layout.
   Structure:
-    TopBar                  title bar (48px)
+    AppMenuBar              菜单栏 (32px)  -- 文件 / 编辑 / 视图 / 帮助
+    TopBar                  title bar (48px) -- 标题 + 全局操作
     [LeftSidebar | Center | RightSidebar | LayerPanel]
     StatusBar               footer (24px)
 -->
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import AppMenuBar from './AppMenuBar.vue';
 import TopBar from './TopBar.vue';
 import LeftSidebar from './LeftSidebar.vue';
 import RightSidebar from './RightSidebar.vue';
@@ -15,21 +16,11 @@ import StatusBar from './StatusBar.vue';
 import CanvasView from '@/components/canvas/CanvasView.vue';
 import CanvasToolbar from '@/components/canvas/CanvasToolbar.vue';
 import LayerPanel from '@/components/canvas/LayerPanel.vue';
-import { useShortcuts } from '@composables/useShortcuts';
-
-const shortcuts = useShortcuts();
-
-onMounted(() => {
-  shortcuts.install();
-  // Register default editor shortcuts.
-  for (const binding of shortcuts.defaultBindings()) {
-    shortcuts.register(binding);
-  }
-});
 </script>
 
 <template>
   <div class="main-layout">
+    <AppMenuBar class="main-layout__menu" />
     <TopBar class="main-layout__top" />
 
     <div class="main-layout__body">
@@ -53,6 +44,10 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   background: var(--bg-primary);
+
+  &__menu {
+    flex-shrink: 0;
+  }
 
   &__top {
     flex-shrink: 0;

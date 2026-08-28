@@ -10,7 +10,11 @@
 | [api.md](./api.md)                                         | Tauri 命令与前端 API 参考（待 W1 完成） | 后端   |
 | [tools.md](./tools.md)                                     | 原子工具清单与参数说明（待 W3 完成）    | 后端   |
 | [plugin-dev-guide.md](./plugin-dev-guide.md)               | 第三方 MCP 插件开发指南（待 W8 完成）   | 后端   |
-| [upgrade-resvg-usvg-0.48.md](./upgrade-resvg-usvg-0.48.md) | resvg / usvg 升级到 0.48.1 的说明       | 后端   |
+| [ux-onboarding-requirements.md](./ux-onboarding-requirements.md) | UX 与入门体验需求文档（PRD，含 US-1~US-11、ONB-xxx 测试矩阵、W7/W8 排期） | 前端 + 设计 |
+| [验收缺陷与建议.md](./验收缺陷与建议.md)                    | 验收缺陷 / 风险 / 改进建议登记（含 R-A*、R-D*、UX-A*） | 审计 |
+| [模块验收清单.md](./模块验收清单.md)                        | 阶段模块验收清单                         | QA     |
+| [测试用例集.md](./测试用例集.md)                            | TC-* 测试用例（与 ONB-* 并列）          | QA     |
+| [升级 resvg-usvg-0.48.md](./upgrade-resvg-usvg-0.48.md) | resvg / usvg 升级到 0.48.1 的说明       | 后端   |
 
 ## 设计文档（与根目录对应）
 

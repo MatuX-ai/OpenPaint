@@ -23,6 +23,7 @@ const uiStore = useUIStore();
 const { providerConfig, refresh: refreshLlm } = useLlmConfig();
 
 const visible = computed(() => uiStore.settingsModalVisible);
+const llmHighlight = computed(() => uiStore.llmSettingsHighlight);
 
 const providers = ref<LlmProviderInfo[]>([]);
 const loadingProviders = ref(false);
@@ -195,7 +196,11 @@ async function save() {
         </header>
 
         <div class="settings-modal__body">
-          <section class="settings-modal__section">
+          <section
+            class="settings-modal__section"
+            :class="{ 'is-llm-highlight': llmHighlight }"
+            :data-llm-highlight="llmHighlight ? 'true' : 'false'"
+          >
             <h3 class="settings-modal__section-title">大模型接入</h3>
             <p class="settings-modal__section-desc">
               选择一个 Provider 并填入 API Key，之后 AI 助理就可以开始工作。
@@ -601,6 +606,48 @@ async function save() {
         color: #fff;
       }
     }
+  }
+
+  // UX-A07：从 AI 助理未配置点 CTA 进来时的 LLM 区高亮脉冲
+  &__section.is-llm-highlight {
+    position: relative;
+    border-radius: var(--radius);
+    animation: settings-llm-pulse 1.4s ease-in-out 0s 3;
+  }
+
+  &__section.is-llm-highlight::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    pointer-events: none;
+    border: 2px solid var(--accent);
+    border-radius: calc(var(--radius) + 4px);
+    animation: settings-llm-ring 1.4s ease-in-out 0s 3;
+  }
+}
+
+@keyframes settings-llm-pulse {
+  0%,
+  100% {
+    background: transparent;
+  }
+  50% {
+    background: var(--accent-light, rgba(108, 92, 231, 0.08));
+  }
+}
+
+@keyframes settings-llm-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
   }
 }
 </style>

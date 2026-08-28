@@ -9,12 +9,15 @@
 //   3. src-web/package.json       (前端包版本)
 //
 // 用法：
-//   node scripts/version.mjs                # 显示当前版本
-//   node scripts/version.mjs 0.2.0          # 设置新版本（SemVer）
-//   node scripts/version.mjs --check        # 校验三处版本是否一致（CI 用）
-//   node scripts/version.mjs --check v0.2.0 # 校验三处版本 + git tag 是否一致
+//   node scripts/version.mjs                  # 显示当前版本
+//   node scripts/version.mjs 0.2.0            # 设置新版本（严格 SemVer，PATCH 不允许前导零）
+//   node scripts/version.mjs --bump           # PATCH +1；超过 99 时进位到 MINOR+1，PATCH=0
+//   node scripts/version.mjs --check          # 校验三处版本是否一致（CI 用）
+//   node scripts/version.mjs --check v0.2.0   # 校验三处版本 + git tag 是否一致
 //
-// 版本规范：SemVer（MAJOR.MINOR.PATCH，可选 -prerelease 与 +build）
+// 版本规范：严格 SemVer（MAJOR.MINOR.PATCH[-prerelease][+build]）。
+// PATCH 段不允许前导零（SemVer 9.1.2），约定最多两位数字（0-99）。
+// --bump 会自动进位：0.1.0 → 0.1.1 → ... → 0.1.99 → 0.2.0。
 // ============================================================
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -29,7 +32,12 @@ const FILES = {
   web: join(root, 'src-web', 'package.json'),
 };
 
-const SEMVER_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+// 严格 SemVer：PATCH 段不允许前导零（SemVer §2）。
+// --bump 输出 1-2 位数字（无前导零），与 Cargo / Tauri CLI 的解析器一致。
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d{0,1})(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+
+// PATCH 段最大 99（两位数字上限）；超过时由 --bump 自动进位到 MINOR+1 并重置 PATCH=0。
+const PATCH_MAX = 99;
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -80,7 +88,7 @@ function checkConsistency(print = true) {
 
 function setVersion(newVersion) {
   if (!SEMVER_RE.test(newVersion)) {
-    console.error(`❌ 非法版本号 "${newVersion}"，须符合 SemVer：MAJOR.MINOR.PATCH[-prerelease][+build]`);
+    console.error(`❌ 非法版本号 "${newVersion}"，须符合严格 SemVer：MAJOR.MINOR.PATCH[-prerelease][+build]（PATCH 1-2 位数字，无前导零）`);
     process.exit(1);
   }
 
@@ -99,8 +107,45 @@ function setVersion(newVersion) {
   checkConsistency();
 }
 
+/**
+ * PATCH 段 +1；达到 99 后再次 +1 时进位到 MINOR+1，PATCH 重置为 00。
+ * 输出统一以两位零填充（如 0.1.01、0.1.10、0.2.00）。
+ * 忽略 SemVer 的 -prerelease / +build 后缀，仅在数字段做递增。
+ */
+function bumpVersion() {
+  const v = currentVersions();
+  const match = v.tauri.match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!match) {
+    console.error(`❌ 当前版本 "${v.tauri}" 格式异常，无法 bump`);
+    process.exit(1);
+  }
+
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  const patch = Number(match[3]);
+
+  let nextMinor = minor;
+  let nextPatch = patch + 1;
+  if (nextPatch > PATCH_MAX) {
+    nextPatch = 0;
+    nextMinor += 1;
+  }
+
+  const padded = String(nextPatch); // 无前导零（SemVer §2）
+  const nextVersion = `${major}.${nextMinor}.${padded}`;
+  console.log(`🔼 bump: ${v.tauri} → ${nextVersion}（PATCH 上限 ${PATCH_MAX}，溢出自动进位）`);
+  setVersion(nextVersion);
+  return nextVersion;
+}
+
 async function main() {
   const args = process.argv.slice(2);
+
+  // --bump：PATCH +1，超过 99 自动进位
+  if (args[0] === '--bump') {
+    bumpVersion();
+    return;
+  }
 
   // --check [tag]
   if (args[0] === '--check') {

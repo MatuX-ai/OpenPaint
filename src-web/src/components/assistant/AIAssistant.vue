@@ -60,9 +60,10 @@ async function onSend(text: string) {
   scrollToBottom();
 }
 
-// “【设置】”点击后直接打开设置对话框。
+// "打开设置"：UX-A07 — 打开设置对话框，并让 LLM provider 区在 8s 内高亮指引。
 function openSettings() {
   uiStore.openSettings();
+  uiStore.highlightLlmSettings();
 }
 </script>
 
@@ -96,15 +97,19 @@ function openSettings() {
       >
         <Bot :size="28" />
         <p class="ai-assistant__empty-headline">
-          嗨，老板，还没有接入{{ llmLabel }}，我还无法工作
+          嗨，老板，还没有接入 {{ llmLabel }}，我还无法工作
+        </p>
+        <p class="ai-assistant__empty-hint">
+          需要先配置 OpenAI / Anthropic / DeepSeek / Ollama 之一，点击下方按钮直达 LLM 接入面板。
         </p>
         <button
           type="button"
           class="ai-assistant__settings-link"
+          aria-label="打开 LLM 设置"
           @click="openSettings"
         >
           <SettingsIcon :size="13" />
-          <span>【设置】</span>
+          <span>打开设置</span>
         </button>
       </div>
 
@@ -224,19 +229,38 @@ function openSettings() {
     font-size: var(--font-size-sm);
   }
 
+  &__empty-hint {
+    max-width: 280px;
+    margin: 0;
+    line-height: 1.6;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+  }
+
   &__settings-link {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 14px;
+    gap: 6px;
+    margin-top: var(--space-2);
+    padding: 8px 18px;
     font-size: var(--font-size-sm);
+    font-weight: 600;
     color: #fff;
     background: var(--accent);
     border-radius: var(--radius);
-    transition: background var(--transition-fast);
+    box-shadow: 0 2px 8px var(--accent-light, transparent);
+    transition:
+      background var(--transition-fast),
+      transform var(--transition-fast);
 
     &:hover {
       background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
   }
 

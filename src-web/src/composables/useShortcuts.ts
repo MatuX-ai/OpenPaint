@@ -125,6 +125,12 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         whenEditable: false,
         run: () => canvasStore.setActiveTool('move'),
       },
+      {
+        combo: 'T',
+        description: '变形工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('transform'),
+      },
 
       // History
       {
@@ -178,10 +184,167 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         run: () => uiStore.switchRightPanel('gallery'),
       },
       {
-        combo: 'Ctrl+G',
+        combo: 'Ctrl+Alt+P',
         description: 'OpenPencil 面板',
         whenEditable: false,
         run: () => uiStore.switchRightPanel('openpencil'),
+      },
+
+      // File / Save / Export — 通过 useMenuActions.dispatch 转发
+      {
+        combo: 'Ctrl+N',
+        description: '新建画布',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.new'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+O',
+        description: '打开本地图片',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.open'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+S',
+        description: '保存到图库',
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.save'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+Shift+S',
+        description: '另存为本地',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.saveAs'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+E',
+        description: '导出 PNG',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.export.png'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+Shift+E',
+        description: '批量导出',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('file.batchExport'),
+          );
+        },
+      },
+
+      // Edit
+      {
+        // Ctrl+C → 走 menu bus 到 edit.copy handler（桌面端经 tauri-plugin-clipboard-manager
+        // 写系统剪贴板；web preview 仅 toast 提示，见 AppView.vue:104）。
+        combo: 'Ctrl+C',
+        description: '复制',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('edit.copy'),
+          );
+        },
+      },
+      {
+        // Ctrl+V → 走 menu bus 到 edit.paste handler（桌面端从系统剪贴板读 PNG 并 pasteImage 到画布）。
+        // 不带 whenEditable=false 以保留输入框文本粘贴行为；
+        // 但 edit.paste 在文本剪贴板上调用 readImage 会抛错并 toast 提示，因此安全。
+        combo: 'Ctrl+V',
+        description: '粘贴',
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('edit.paste'),
+          );
+        },
+      },
+      {
+        combo: 'Ctrl+A',
+        description: '全选',
+        whenEditable: false,
+        run: async () => {
+          try {
+            const bounds = await canvasApi.getSelectionBounds();
+            // 没选区时 bounds == canvas size，already covers all
+            void bounds;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+      {
+        combo: 'Ctrl+D',
+        description: '取消选区',
+        whenEditable: false,
+        run: async () => {
+          try {
+            await canvasApi.clearSelection();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+
+      // View — zoom
+      {
+        combo: 'Ctrl+0',
+        description: '缩放至 100%',
+        whenEditable: false,
+        run: () => canvasStore.setZoom(1),
+      },
+      {
+        combo: 'Ctrl+Shift+0',
+        description: '适配窗口',
+        whenEditable: false,
+        run: () => canvasStore.resetView(),
+      },
+      {
+        combo: '=',
+        description: '放大',
+        whenEditable: false,
+        run: () => canvasStore.setZoom(canvasStore.zoom * 1.2),
+      },
+      {
+        combo: '+',
+        description: '放大',
+        whenEditable: false,
+        run: () => canvasStore.setZoom(canvasStore.zoom * 1.2),
+      },
+      {
+        combo: '-',
+        description: '缩小',
+        whenEditable: false,
+        run: () => canvasStore.setZoom(canvasStore.zoom / 1.2),
+      },
+
+      // Help
+      {
+        combo: '?',
+        description: '快捷键速查',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('help.cheatsheet'),
+          );
+        },
       },
     ];
   }

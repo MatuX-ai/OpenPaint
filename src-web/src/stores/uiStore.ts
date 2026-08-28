@@ -11,6 +11,9 @@ import type { RightPanelMode, Theme } from '@/types/global';
 
 const STORAGE_KEY = 'openpaint:ui-state';
 
+// UX-A07：从 AI 助理未配置状态点 CTA → 设置高亮 LLM 区最多持续 8s。
+const HIGHLIGHT_DURATION_MS = 8000;
+
 interface PersistedState {
   theme?: Theme;
   rightPanelMode?: RightPanelMode;
@@ -47,6 +50,8 @@ export const useUIStore = defineStore('ui', () => {
   const previewModalVisible = ref(false);
   const previewPayload = ref<{ svg?: string; png?: string; title?: string } | null>(null);
   const settingsModalVisible = ref(false);
+  const llmSettingsHighlight = ref(false);
+  let highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Apply persisted theme to <html> on boot.
   if (typeof document !== 'undefined') {
@@ -99,6 +104,19 @@ export const useUIStore = defineStore('ui', () => {
     settingsModalVisible.value = !settingsModalVisible.value;
   }
 
+  /**
+   * UX-A07：让 SettingsModal 在 8 秒内视觉高亮 LLM provider 区。
+   * 当 AI 助理未配置时，用户在浮窗点 CTA 会调到这里。
+   */
+  function highlightLlmSettings() {
+    llmSettingsHighlight.value = true;
+    if (highlightTimer) clearTimeout(highlightTimer);
+    highlightTimer = setTimeout(() => {
+      llmSettingsHighlight.value = false;
+      highlightTimer = null;
+    }, HIGHLIGHT_DURATION_MS);
+  }
+
   return {
     theme,
     rightPanelMode,
@@ -107,6 +125,7 @@ export const useUIStore = defineStore('ui', () => {
     previewModalVisible,
     previewPayload,
     settingsModalVisible,
+    llmSettingsHighlight,
     toggleTheme,
     switchRightPanel,
     setRightPanelWidth,
@@ -116,5 +135,6 @@ export const useUIStore = defineStore('ui', () => {
     openSettings,
     closeSettings,
     toggleSettings,
+    highlightLlmSettings,
   };
 });

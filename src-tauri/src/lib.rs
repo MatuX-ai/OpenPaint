@@ -64,6 +64,7 @@ pub fn run() {
             // W2 canvas operations
             tools::canvas_commands::get_canvas_summary,
             tools::canvas_commands::render_canvas_png,
+            tools::canvas_commands::render_canvas_image,
             tools::canvas_commands::apply_brush_stroke,
             tools::canvas_commands::apply_eraser_stroke,
             tools::canvas_commands::set_rect_selection,

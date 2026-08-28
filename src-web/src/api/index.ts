@@ -117,6 +117,31 @@ export const canvasApi = {
   /** Render the entire canvas to Base64 PNG. */
   renderCanvasPng: (): Promise<string> => invoke('render_canvas_png'),
 
+  /**
+   * Render the canvas as a specific format (png/jpg/webp) with quality and target long edge.
+   * Returns { format, mime, bytesBase64, width, height, byteSize }.
+   */
+  renderCanvasImage: (args: {
+    format: 'png' | 'jpg' | 'jpeg' | 'webp';
+    quality?: number;
+    targetLongEdge?: number;
+  }): Promise<{
+    format: string;
+    mime: string;
+    bytesBase64: string;
+    width: number;
+    height: number;
+    byteSize: number;
+  }> =>
+    invoke<{
+      format: string;
+      mime: string;
+      bytesBase64: string;
+      width: number;
+      height: number;
+      byteSize: number;
+    }>('render_canvas_image', { args }),
+
   /** Get selection bounds (returns full canvas if no selection). */
   getSelectionBounds: (): Promise<RectSelectArgs> => invoke('get_selection_bounds'),
 

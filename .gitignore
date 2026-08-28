@@ -66,3 +66,12 @@ src-tauri/bin/*.exe
 openpaint-codesign.pfx
 openpaint-codesign.b64.txt
 CODE_SIGNING_SETUP.md
+
+# 本地调试 / 个人脚本（不入仓）
+audit_err.txt
+audit_out.txt
+err.txt
+out.txt
+test-ps1.ps1
+test-ps5.ps1
+.openpaint-root.md

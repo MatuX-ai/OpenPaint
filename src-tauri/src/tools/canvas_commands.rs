@@ -117,6 +117,63 @@ pub async fn render_canvas_png(state: State<'_, AppState>) -> Result<String, Str
     CanvasRenderer::to_base64_png(&img).map_err(|e| format!("encode failed: {}", e))
 }
 
+/// 渲染参数：`format` 支持 png / jpg / webp；`quality` 1-100，png 忽略；
+/// `target_long_edge` 长边像素，0 表示保持原画布尺寸。
+#[derive(Debug, Clone, Deserialize)]
+pub struct RenderImageArgs {
+    pub format: String,
+    #[serde(default = "default_quality")]
+    pub quality: u8,
+    #[serde(default)]
+    pub target_long_edge: u32,
+}
+
+fn default_quality() -> u8 {
+    90
+}
+
+/// 渲染响应：bytes + base64 + format + mime + width + height
+#[derive(Debug, Clone, Serialize)]
+pub struct RenderImageResponse {
+    pub format: String,
+    pub mime: String,
+    pub bytes_base64: String,
+    pub width: u32,
+    pub height: u32,
+    pub byte_size: usize,
+}
+
+/// 把画布按指定格式渲染为字节流（Base64）。
+#[tauri::command]
+pub async fn render_canvas_image(
+    state: State<'_, AppState>,
+    args: RenderImageArgs,
+) -> Result<RenderImageResponse, String> {
+    let canvas = state.canvas.read();
+    let composed =
+        CanvasRenderer::composite(&canvas).map_err(|e| format!("composite failed: {}", e))?;
+    let resized = CanvasRenderer::resize_to_long_edge(&composed, args.target_long_edge);
+    let bytes = CanvasRenderer::render_image(&resized, &args.format, args.quality)
+        .map_err(|e| format!("encode failed: {}", e))?;
+    let format_lower = args.format.to_ascii_lowercase();
+    let mime = match format_lower.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        _ => return Err(format!("Unsupported format: {}", args.format)),
+    };
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(RenderImageResponse {
+        format: format_lower,
+        mime: mime.to_string(),
+        bytes_base64: b64,
+        width: resized.width(),
+        height: resized.height(),
+        byte_size: bytes.len(),
+    })
+}
+
 /// 应用画笔笔触
 #[tauri::command]
 pub async fn apply_brush_stroke(

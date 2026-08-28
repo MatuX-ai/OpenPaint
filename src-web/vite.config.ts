@@ -219,6 +219,6 @@ export default defineConfig(async () => ({
   test: {
     globals: true,
     environment: 'happy-dom',
-    include: ['src/**/*.{test,spec}.ts'],
+    include: ['src/**/*.{test,spec}.{ts,vue}'],
   },
 }));

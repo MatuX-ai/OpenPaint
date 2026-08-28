@@ -138,12 +138,95 @@ impl CanvasRenderer {
         Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
     }
 
+    /// 将画布渲染为指定格式的字节流。
+    ///
+    /// - `format`: "png" | "jpg" | "webp"
+    /// - `quality`: 1-100（仅对 jpg / webp 生效；png 忽略）
+    /// - `target_long_edge`: 长边目标像素；`0` 表示保持原画布尺寸（不做额外缩放，
+    ///   但 jpg 仍是 1:1 输出）
+    ///
+    /// MVP 阶段不做尺寸插值的二次缩放（`target_long_edge` 在 web 端做），这里只
+    /// 保证透明背景 → 白底的 JPG 兼容。
+    pub fn render_image(image: &RgbaImage, format: &str, quality: u8) -> Result<Vec<u8>> {
+        let q = quality.clamp(1, 100);
+        let mut buf = Vec::new();
+        match format.to_ascii_lowercase().as_str() {
+            "png" => {
+                use image::ImageEncoder;
+                let encoder = image::codecs::png::PngEncoder::new(&mut buf);
+                encoder.write_image(
+                    image.as_raw(),
+                    image.width(),
+                    image.height(),
+                    image::ExtendedColorType::Rgba8,
+                )?;
+            }
+            "jpg" | "jpeg" => {
+                // JPG 不支持 alpha：把透明背景合成到白底
+                let rgb = flatten_to_white(image);
+                use image::ImageEncoder;
+                let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, q);
+                encoder.write_image(
+                    rgb.as_raw(),
+                    rgb.width(),
+                    rgb.height(),
+                    image::ExtendedColorType::Rgb8,
+                )?;
+            }
+            "webp" => {
+                // TODO(BACKLOG / W9+) 切换为有损编码：
+                //   `image::codecs::webp::WebPEncoder::new_lossy(&mut buf, q)`
+                // 需要 Cargo.toml 中给 `image` 加 `image-webp` feature，并引入
+                // `libwebp-sys` 编译依赖（C 库 + 额外 1-2 分钟编译时间）。
+                // 当前 MVP 阶段为保持桌面端冷启动时间仅用 lossless；导出质量
+                // 通过 PNG/JPG 通道提供。
+                use image::ImageEncoder;
+                let encoder = image::codecs::webp::WebPEncoder::new_lossless(&mut buf);
+                encoder.write_image(
+                    image.as_raw(),
+                    image.width(),
+                    image.height(),
+                    image::ExtendedColorType::Rgba8,
+                )?;
+            }
+            other => {
+                return Err(anyhow::anyhow!("Unsupported image format: {}", other));
+            }
+        }
+        Ok(buf)
+    }
+
+    /// Base64 编码的 `render_image` 输出，便于前端直接走 Tauri 通道回传。
+    pub fn render_image_base64(image: &RgbaImage, format: &str, quality: u8) -> Result<String> {
+        use base64::Engine;
+        let bytes = Self::render_image(image, format, quality)?;
+        Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
+    }
+
+    /// 等比缩放到目标长边。
+    ///
+    /// - `target_long_edge`: 长边像素（<=1 表示不缩放）
+    pub fn resize_to_long_edge(image: &RgbaImage, target_long_edge: u32) -> RgbaImage {
+        if target_long_edge <= 1 {
+            return image.clone();
+        }
+        let (w, h) = image.dimensions();
+        let long = w.max(h);
+        if long == target_long_edge {
+            return image.clone();
+        }
+        let scale = target_long_edge as f32 / long as f32;
+        let nw = ((w as f32) * scale).round().max(1.0) as u32;
+        let nh = ((h as f32) * scale).round().max(1.0) as u32;
+        image::imageops::resize(image, nw, nh, image::imageops::FilterType::Lanczos3)
+    }
+
     /// 生成缩略图（WebP，256px 长边，q=80）
     pub fn thumbnail(image: &RgbaImage, max_size: u32) -> Result<Vec<u8>> {
         let thumb = image::imageops::thumbnail(image, max_size, max_size);
         let mut buf = Vec::new();
-        // image 0.25 中 save_with_encoder 由 ImageEncoder trait 提供，
-        // 需要把 ImageEncoder trait 引入作用域（crate::canvas::engine 顶部未 import 时这里手动 use）。
+        // TODO(BACKLOG / W9+) 切到 `WebPEncoder::new_lossy` 节省图库磁盘。
+        // 详见同名 `render_image` 块的注释。
         use image::ImageEncoder;
         let encoder = image::codecs::webp::WebPEncoder::new_lossless(&mut buf);
         encoder.write_image(
@@ -211,6 +294,29 @@ impl CanvasRenderer {
     }
 }
 
+/// 把 RGBA 图像 alpha-flatten 到白底，输出 RGB8（用于 JPG 等不支持 alpha 的格式）。
+fn flatten_to_white(image: &RgbaImage) -> image::RgbImage {
+    let (w, h) = image.dimensions();
+    let mut out = image::RgbImage::new(w, h);
+    for y in 0..h {
+        for x in 0..w {
+            let p = image.get_pixel(x, y);
+            let a = p[3] as u32;
+            let inv = 255 - a;
+            out.put_pixel(
+                x,
+                y,
+                image::Rgb([
+                    ((p[0] as u32 * a + 255 * inv) / 255) as u8,
+                    ((p[1] as u32 * a + 255 * inv) / 255) as u8,
+                    ((p[2] as u32 * a + 255 * inv) / 255) as u8,
+                ]),
+            );
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,5 +356,73 @@ mod tests {
         assert!(!bytes.is_empty());
         // Verify PNG signature
         assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    }
+
+    #[test]
+    fn test_render_image_png() {
+        let img: RgbaImage = RgbaImage::from_pixel(8, 8, Rgba([0, 128, 255, 255]));
+        let bytes = CanvasRenderer::render_image(&img, "png", 100).unwrap();
+        assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    }
+
+    #[test]
+    fn test_render_image_jpg_signature() {
+        let img: RgbaImage = RgbaImage::from_pixel(16, 16, Rgba([0, 0, 0, 0]));
+        let bytes = CanvasRenderer::render_image(&img, "jpg", 80).unwrap();
+        assert_eq!(&bytes[..2], &[0xFF, 0xD8]); // JPEG SOI
+        assert_eq!(&bytes[bytes.len() - 2..], &[0xFF, 0xD9]); // JPEG EOI
+    }
+
+    #[test]
+    fn test_render_image_webp_signature() {
+        let img: RgbaImage = RgbaImage::from_pixel(16, 16, Rgba([255, 0, 0, 255]));
+        let bytes = CanvasRenderer::render_image(&img, "webp", 80).unwrap();
+        // RIFF container: 'R','I','F','F' + 4 bytes size + 'W','E','B','P'
+        assert_eq!(&bytes[..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WEBP");
+    }
+
+    #[test]
+    fn test_render_image_unsupported_format_errors() {
+        let img: RgbaImage = RgbaImage::from_pixel(4, 4, Rgba([0, 0, 0, 255]));
+        let err = CanvasRenderer::render_image(&img, "gif", 80).unwrap_err();
+        assert!(format!("{}", err).contains("gif"));
+    }
+
+    #[test]
+    fn test_render_image_quality_clamped() {
+        let img: RgbaImage = RgbaImage::from_pixel(4, 4, Rgba([255, 255, 255, 255]));
+        // q=0 应被 clamp 到 1，仍可编码
+        let bytes = CanvasRenderer::render_image(&img, "jpg", 0).unwrap();
+        assert!(!bytes.is_empty());
+        // q=255 应被 clamp 到 100
+        let bytes = CanvasRenderer::render_image(&img, "jpg", 255).unwrap();
+        assert!(!bytes.is_empty());
+    }
+
+    #[test]
+    fn test_render_image_webp_lossless_roundtrip() {
+        let img: RgbaImage = RgbaImage::from_pixel(8, 8, Rgba([10, 20, 30, 40]));
+        let bytes = CanvasRenderer::render_image(&img, "webp", 90).unwrap();
+        // RIFF 容器
+        assert_eq!(&bytes[..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WEBP");
+        // 文件大小应至少包含 VP8 / VP8L 段头 + 像素
+        assert!(bytes.len() > 30);
+    }
+
+    #[test]
+    fn test_resize_to_long_edge_no_op_when_zero() {
+        let img: RgbaImage = RgbaImage::from_pixel(100, 50, Rgba([1, 2, 3, 255]));
+        let out = CanvasRenderer::resize_to_long_edge(&img, 0);
+        assert_eq!(out.dimensions(), (100, 50));
+    }
+
+    #[test]
+    fn test_resize_to_long_edge_scales() {
+        let img: RgbaImage = RgbaImage::from_pixel(100, 50, Rgba([1, 2, 3, 255]));
+        let out = CanvasRenderer::resize_to_long_edge(&img, 50);
+        assert_eq!(out.width(), 50);
+        assert_eq!(out.height(), 25);
     }
 }
