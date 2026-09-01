@@ -1,6 +1,6 @@
 {
   "name": "@openpaint/web",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "OpenPaint 前端（Vue 3 + TypeScript + Vite）",

@@ -18,6 +18,31 @@ import type {
   GallerySearchResult,
 } from '@/types/gallery';
 import type { CanvasSummary, Layer, LayerMetaWire, StrokeArgs } from '@/types/canvas';
+import type {
+  ApplyGradientArgs,
+  ApplyGradientResult,
+  ApplyGradientResultWire,
+  ApplyPaletteArgs,
+  ApplyPaletteResult,
+  ApplyPaletteResultWire,
+  AssetOnlineState,
+  AssetsConfig,
+  AssetsConfigWire,
+  BrushAsset,
+  BrushAssetWire,
+  BrushPreset,
+  BrushPresetWire,
+  CdnMirror,
+  GradientPreset,
+  GradientPresetWire,
+  GradientType,
+  Palette,
+  PaletteWire,
+  RenderIconResult,
+  RenderIconResultWire,
+  SearchIconsResult,
+  SearchIconsResultWire,
+} from '@/types/asset';
 
 // ----------------------------------------------------------------
 // Adapters
@@ -366,3 +391,249 @@ export const llmApi = {
   setApiKey: (provider: LlmProviderId, apiKey: string): Promise<void> =>
     invoke<void>('set_api_key', { provider, apiKey }),
 };
+
+// ----------------------------------------------------------------
+// Asset library — Iconify icons (W9)
+// ----------------------------------------------------------------
+
+/** Search the built-in Iconify index. */
+function searchIconsResultFromWire(wire: SearchIconsResultWire): SearchIconsResult {
+  return {
+    icons: wire.icons,
+    total: wire.total,
+    hasMore: wire.has_more,
+  };
+}
+
+function renderIconResultFromWire(wire: RenderIconResultWire): RenderIconResult {
+  return {
+    svg: wire.svg,
+    width: wire.width,
+    height: wire.height,
+    fromCache: wire.from_cache,
+  };
+}
+
+export interface ImportIconArgs extends Record<string, unknown> {
+  prefix: string;
+  name: string;
+  color?: string;
+  size?: number;
+}
+
+export const assetApi = {
+  /**
+   * Search the Iconify index by keyword + optional style + category.
+   * Keywords may be Chinese, English, or any of the tags in the index.
+   */
+  searchIcons: (args: {
+    query: string;
+    style?: string;
+    category?: string;
+    limit?: number;
+  }): Promise<SearchIconsResult> => {
+    const params = {
+      query: args.query,
+      style: args.style,
+      category: args.category,
+      limit: args.limit,
+    };
+    return invoke<SearchIconsResultWire>('search_icons', { args: params }).then(
+      searchIconsResultFromWire,
+    );
+  },
+
+  /**
+   * Render a single Iconify icon as an SVG string at the requested size / color.
+   * Returns the full `<svg>...</svg>` document.
+   */
+  renderIconSvg: (args: {
+    prefix: string;
+    name: string;
+    color?: string;
+    size?: number;
+  }): Promise<RenderIconResult> => {
+    const params = {
+      prefix: args.prefix,
+      name: args.name,
+      color: args.color,
+      size: args.size,
+    };
+    return invoke<RenderIconResultWire>('render_icon_svg', { args: params }).then(
+      renderIconResultFromWire,
+    );
+  },
+
+  /**
+   * One-shot helper: search → pick the first match → render → paste to canvas.
+   * Used by both the manual UI ("double-click icon") and the AI flow.
+   */
+  importIconToCanvas: async (args: ImportIconArgs): Promise<{ layerId: string; svg: string }> => {
+    const renderRes = await assetApi.renderIconSvg({
+      prefix: args.prefix,
+      name: args.name,
+      color: args.color,
+      size: args.size,
+    });
+    // For paste_image_to_layer we need PNG, not SVG. Render the SVG to PNG first.
+    const svgPng = await aiApi.renderSvgToPng(renderRes.svg, renderRes.width, renderRes.height);
+    const layerId = await canvasToolsApi.pasteImageToLayer(svgPng.png_data);
+    return { layerId, svg: renderRes.svg };
+  },
+
+  // -------- Brushes (W10-B2) --------
+
+  /** List all builtin brush presets (no PNG payload). */
+  listBrushes: (): Promise<BrushPreset[]> =>
+    invoke<BrushPresetWire[]>('list_brushes').then((items) =>
+      items.map((w) => ({
+        id: w.id,
+        nameZh: w.name_zh,
+        nameEn: w.name_en,
+        fileName: w.file_name,
+        category: w.category,
+        defaultRadius: w.default_radius,
+        falloff: w.falloff,
+        description: w.description,
+      })),
+    ),
+
+  /** List brushes with embedded base64 PNG stamps. */
+  listBrushAssets: (): Promise<BrushAsset[]> =>
+    invoke<BrushAssetWire[]>('list_brush_assets').then((items) =>
+      items.map((w) => ({
+        id: w.id,
+        nameZh: w.name_zh,
+        nameEn: w.name_en,
+        category: w.category,
+        defaultRadius: w.default_radius,
+        falloff: w.falloff,
+        description: w.description,
+        pngBase64: w.png_base64,
+        byteSize: w.byte_size,
+      })),
+    ),
+
+  /** Fetch a single brush asset by id. */
+  getBrushAsset: (id: string): Promise<BrushAsset> =>
+    invoke<BrushAssetWire>('get_brush_asset', { id }).then((w) => ({
+      id: w.id,
+      nameZh: w.name_zh,
+      nameEn: w.name_en,
+      category: w.category,
+      defaultRadius: w.default_radius,
+      falloff: w.falloff,
+      description: w.description,
+      pngBase64: w.png_base64,
+      byteSize: w.byte_size,
+    })),
+
+  // -------- Palettes (W10-B3) --------
+
+  /** List all builtin palettes. */
+  listPalettes: (): Promise<Palette[]> =>
+    invoke<PaletteWire[]>('list_palettes').then((items) =>
+      items.map((w) => ({
+        id: w.id,
+        nameZh: w.name_zh,
+        nameEn: w.name_en,
+        description: w.description,
+        colors: w.colors.map((c) => ({
+          hex: c.hex,
+          nameZh: c.name_zh,
+          nameEn: c.name_en,
+          role: c.role,
+        })),
+      })),
+    ),
+
+  /** Apply a palette to a layer (swatch_bar or replace_color). */
+  applyPalette: (args: ApplyPaletteArgs): Promise<ApplyPaletteResult> => {
+    const params = {
+      palette_id: args.paletteId,
+      mode: args.mode,
+      layer_id: args.layerId,
+      replace_hex: args.replaceHex,
+    };
+    return invoke<ApplyPaletteResultWire>('apply_palette', { args: params }).then((w) => ({
+      appliedColors: w.applied_colors,
+      strokeCount: w.stroke_count,
+      mode: w.mode,
+    }));
+  },
+
+  // -------- Gradients (W10-B4) --------
+
+  /** List all builtin gradient presets. */
+  listGradients: (): Promise<GradientPreset[]> =>
+    invoke<GradientPresetWire[]>('list_gradients').then((items) =>
+      items.map((w) => ({
+        id: w.id,
+        type: w.type as GradientType,
+        nameZh: w.name_zh,
+        nameEn: w.name_en,
+        angle: w.angle,
+        center: w.center,
+        stops: w.stops.map((s) => ({ offset: s.offset, hex: s.hex })),
+      })),
+    ),
+
+  /** Apply a gradient preset to a layer at the given opacity (0..1). */
+  applyGradient: (args: ApplyGradientArgs): Promise<ApplyGradientResult> => {
+    const params = {
+      gradient_id: args.gradientId,
+      layer_id: args.layerId,
+      opacity: args.opacity,
+    };
+    return invoke<ApplyGradientResultWire>('apply_gradient', { args: params }).then((w) => ({
+      gradientId: w.gradient_id,
+      gradientType: w.gradient_type,
+      stopCount: w.stop_count,
+      bytesWritten: w.bytes_written,
+    }));
+  },
+
+  // -------- Assets config (W11-B1) --------
+
+  /** 获取当前资产库配置（CDN 镜像 + 署名提示已显示）。 */
+  getAssetsConfig: (): Promise<AssetsConfig> =>
+    invoke<AssetsConfigWire>('get_assets_config').then((w) => ({
+      cdnMirror: (w.cdn_mirror as CdnMirror) ?? 'default',
+      attributionNoticeShown: !!w.attribution_notice_shown,
+    })),
+
+  /** 写入新的资产库配置并落盘。 */
+  setAssetsConfig: (cfg: AssetsConfig): Promise<void> => {
+    const params = {
+      cdn_mirror: cfg.cdnMirror,
+      attribution_notice_shown: cfg.attributionNoticeShown,
+    };
+    return invoke<void>('set_assets_config', { cfg: params });
+  },
+
+  /** 当前资产库在线状态（HEAD 探测结果，前端用来决定显示“离线模式”）。 */
+  getAssetState: (): Promise<AssetOnlineState> =>
+    invoke<AssetOnlineState>('get_asset_state'),
+};
+
+// Re-export so existing code can keep importing icons from `@/types/asset`.
+export type {
+  BrushPreset,
+  BrushAsset,
+  GradientPreset,
+  GradientType,
+  Palette,
+  PaletteColor,
+  PaletteWire,
+  ApplyPaletteArgs,
+  ApplyGradientArgs,
+  ApplyGradientResult,
+  ApplyPaletteResult,
+  IconMeta,
+  SearchIconsResult,
+  RenderIconResult,
+  AssetsConfig,
+  AssetsConfigWire,
+  AssetOnlineState,
+  CdnMirror,
+} from '@/types/asset';

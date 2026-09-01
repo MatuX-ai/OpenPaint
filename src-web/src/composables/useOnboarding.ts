@@ -7,6 +7,8 @@
  *    `markCompleted()`，24h 内不再展示。
  *  - 画布有内容（layerList.length > 0）时 `shouldShowMainCard` 也返回 false。
  *  - "帮助 → 入门引导" 调 `reset()` 强制重新显示。
+ *  - W11-B4：`shouldShowAttributionToast` + `dismissAttributionToast()`
+ *    负责首次启动的资源署名提示（与三选项卡独立）。
  *
  * 持久化：localStorage key `openpaint:onboarding`。
  *
@@ -29,24 +31,46 @@ export interface OnboardingState {
   dismissedHints: string[];
   /** 强制再次显示标记（"帮助 → 入门引导"触发） */
   forceShow: boolean;
+  /** W11-B4：是否已展示过资源署名 toast */
+  attributionNoticeShown: boolean;
 }
 
 function loadPersisted(): OnboardingState {
   if (typeof window === 'undefined' || !window.localStorage) {
-    return { completed: false, lastShownAt: null, dismissedHints: [], forceShow: false };
+    return {
+      completed: false,
+      lastShownAt: null,
+      dismissedHints: [],
+      forceShow: false,
+      attributionNoticeShown: false,
+    };
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { completed: false, lastShownAt: null, dismissedHints: [], forceShow: false };
+    if (!raw)
+      return {
+        completed: false,
+        lastShownAt: null,
+        dismissedHints: [],
+        forceShow: false,
+        attributionNoticeShown: false,
+      };
     const parsed = JSON.parse(raw) as Partial<OnboardingState>;
     return {
       completed: !!parsed.completed,
       lastShownAt: typeof parsed.lastShownAt === 'number' ? parsed.lastShownAt : null,
       dismissedHints: Array.isArray(parsed.dismissedHints) ? parsed.dismissedHints : [],
       forceShow: !!parsed.forceShow,
+      attributionNoticeShown: !!parsed.attributionNoticeShown,
     };
   } catch {
-    return { completed: false, lastShownAt: null, dismissedHints: [], forceShow: false };
+    return {
+      completed: false,
+      lastShownAt: null,
+      dismissedHints: [],
+      forceShow: false,
+      attributionNoticeShown: false,
+    };
   }
 }
 
@@ -86,7 +110,13 @@ export function useOnboarding() {
   }
 
   function reset(): void {
-    state.value = { completed: false, lastShownAt: null, dismissedHints: [], forceShow: true };
+    state.value = {
+      completed: false,
+      lastShownAt: null,
+      dismissedHints: [],
+      forceShow: true,
+      attributionNoticeShown: false,
+    };
     persistNow();
     // 强制显示后下次 onMounted 消费掉 forceShow 后再清掉
   }
@@ -96,6 +126,39 @@ export function useOnboarding() {
       state.value = { ...state.value, forceShow: false };
       persistNow();
     }
+  }
+
+  /**
+   * W11-B4：用户已看到资源署名提示（一次性 toast）。
+   * 同时写入 Rust 端 `assets.attribution_notice_shown=true`，让 IPC 也返回 true。
+   */
+  function markAttributionShown(): void {
+    if (state.value.attributionNoticeShown) return;
+    state.value = { ...state.value, attributionNoticeShown: true };
+    persistNow();
+    // 同步到 Rust 端（fire-and-forget）
+    void (async () => {
+      try {
+        const { assetApi } = await import('@/api');
+        await assetApi.setAssetsConfig({
+          cdnMirror: 'default',
+          attributionNoticeShown: true,
+        });
+      } catch (e) {
+        // 失败不影响本地提示状态
+        console.debug('[useOnboarding] sync attribution_notice_shown failed:', e);
+      }
+    })();
+  }
+
+  /** W11-B4：首次启动且未 dismiss 资源署名 toast */
+  const shouldShowAttributionToast = computed(
+    () => !state.value.attributionNoticeShown,
+  );
+
+  /** W11-B4：dismiss 资源署名 toast（与 markAttributionShown 等价，语义不同）。 */
+  function dismissAttributionToast(): void {
+    markAttributionShown();
   }
 
   const shouldShowMainCard = computed(() => {
@@ -116,5 +179,8 @@ export function useOnboarding() {
     dismissHint,
     reset,
     consumeForceShow,
+    shouldShowAttributionToast,
+    markAttributionShown,
+    dismissAttributionToast,
   };
 }

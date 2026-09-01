@@ -7,7 +7,12 @@ import { computed } from 'vue';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-vue-next';
 import type { ToolCall } from '@/types/agent';
 
-const props = defineProps<{ call: ToolCall }>();
+const props = withDefaults(
+  defineProps<{ call: ToolCall; attribution?: 'agent' | 'user' }>(),
+  { attribution: 'user' },
+);
+
+const isAgent = computed(() => props.attribution === 'agent');
 
 const icon = computed(() => {
   switch (props.call.status) {
@@ -38,8 +43,9 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="tool-call-card" :class="`tool-call-card--${call.status}`">
+  <div class="tool-call-card" :class="[`tool-call-card--${call.status}`, { 'tool-call-card--agent': isAgent }]">
     <div class="tool-call-card__header">
+      <span v-if="isAgent" class="tool-call-card__agent-tag" aria-label="AI 调用">🤖 AI</span>
       <component
         :is="icon"
         :size="12"
@@ -104,6 +110,22 @@ const statusLabel = computed(() => {
 
   &--error {
     border-color: var(--error);
+  }
+
+  &--agent {
+    border-color: var(--accent);
+    background: var(--accent-light, var(--bg-secondary));
+  }
+
+  &__agent-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 4px;
+    background: var(--accent);
+    color: var(--accent-contrast, #fff);
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 600;
   }
 }
 

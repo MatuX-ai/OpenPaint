@@ -1,13 +1,26 @@
 <!--
-  Left sidebar — tool picker.
+  Left sidebar — tool picker + resource picker (W9).
+
+  Two modes (toggled via the bottom chip):
+    - `tools`   (default): the original 6 tool buttons (V/M/B/E/H/T)
+    - `icons`   (W9)     : the IconPanel rendered into a wider sidebar
+
+  When switching to `icons` the sidebar widens from 48px to 280px so the
+  IconPanel can lay out a search input + result grid. The user can click
+  the chip again to collapse back.
+
   Wired to canvasStore.activeTool via useCanvasStore.setActiveTool.
 -->
 
 <script setup lang="ts">
-import { Brush, Eraser, MousePointer2, Hand, Crop, Square } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { Brush, Eraser, MousePointer2, Hand, Crop, Square, Shapes } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
 import type { ToolType } from '@/types/canvas';
+import ResourceTabs from '@/components/asset/ResourceTabs.vue';
+import type { IconMeta } from '@/types/asset';
+import { useToast } from '@/composables/useToast';
 
 interface ToolDef {
   id: ToolType;
@@ -26,11 +39,78 @@ const tools: ToolDef[] = [
 ];
 
 const store = useCanvasStore();
+const toast = useToast();
+
+type SidebarMode = 'tools' | 'icons';
+const mode = ref<SidebarMode>('tools');
+
+// Persist the user's last selection so the next launch feels consistent.
+try {
+  const saved = window.localStorage.getItem('openpaint:left-sidebar-mode');
+  if (saved === 'icons') mode.value = 'icons';
+} catch {
+  /* localStorage may be disabled in some environments — fall back to default */
+}
+
+watch(mode, (next) => {
+  try {
+    window.localStorage.setItem('openpaint:left-sidebar-mode', next);
+  } catch {
+    /* ignore */
+  }
+});
+
+const isIcons = computed(() => mode.value === 'icons');
+
+function toggleMode(): void {
+  mode.value = mode.value === 'tools' ? 'icons' : 'tools';
+}
+
+function onIconImported(payload: { icon: IconMeta; layerId: string }): void {
+  toast.show({
+    kind: 'success',
+    message: `已插入图标 ${payload.icon.prefix}/${payload.icon.name}`,
+    durationMs: 2000,
+  });
+}
+
+function onPaletteApplied(payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' }): void {
+  const label = payload.mode === 'swatch_bar' ? '色条' : '主色替换';
+  toast.show({
+    kind: 'success',
+    message: `已应用调色板（${label}）: ${payload.paletteId}`,
+    durationMs: 2000,
+  });
+}
+
+function onGradientApplied(payload: { gradientId: string }): void {
+  toast.show({
+    kind: 'success',
+    message: `已应用渐变: ${payload.gradientId}`,
+    durationMs: 2000,
+  });
+}
+
+function onBrushChanged(brushId: string): void {
+  toast.show({
+    kind: 'info',
+    message: `已切换画刷：${brushId}`,
+    durationMs: 1200,
+  });
+}
+
+function onImportError(message: string): void {
+  toast.show({ kind: 'error', message, durationMs: 3000 });
+}
 </script>
 
 <template>
-  <aside class="left-sidebar">
-    <nav class="left-sidebar__tools" :aria-label="'绘图工具'">
+  <aside
+    class="left-sidebar"
+    :class="{ 'left-sidebar--wide': isIcons }"
+    :aria-label="isIcons ? '资源面板' : '绘图工具'"
+  >
+    <nav v-if="! isIcons" class="left-sidebar__tools" :aria-label="'绘图工具'">
       <button
         v-for="tool in tools"
         :key="tool.id"
@@ -46,6 +126,28 @@ const store = useCanvasStore();
         <span class="left-sidebar__shortcut" aria-hidden="true">{{ tool.shortcut }}</span>
       </button>
     </nav>
+
+    <div v-else class="left-sidebar__panel">
+      <ResourceTabs
+        @icon-imported="onIconImported"
+        @palette-applied="onPaletteApplied"
+        @gradient-applied="onGradientApplied"
+        @brush-changed="onBrushChanged"
+        @error="onImportError"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="left-sidebar__mode-toggle"
+      :title="isIcons ? '切回工具栏' : '切到资源面板'"
+      :aria-label="isIcons ? '切回工具栏' : '切到资源面板'"
+      :aria-pressed="isIcons"
+      @click="toggleMode"
+    >
+      <component :is="Shapes" :size="16" />
+      <span class="left-sidebar__mode-label">{{ isIcons ? '工具' : '资源' }}</span>
+    </button>
   </aside>
 </template>
 
@@ -56,12 +158,24 @@ const store = useCanvasStore();
   width: 100%;
   height: 100%;
   padding: var(--space-2) 0;
+  transition: width var(--transition-fast);
+
+  &--wide {
+    width: 280px;
+  }
 
   &__tools {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-1);
+    flex: 1 1 auto;
+  }
+
+  &__panel {
+    flex: 1 1 auto;
+    overflow: hidden;
+    min-height: 0;
   }
 
   &__tool {
@@ -113,6 +227,46 @@ const store = useCanvasStore();
     background: var(--bg-tertiary, transparent);
     border-radius: 2px;
     letter-spacing: 0;
+  }
+
+  &__mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: var(--space-1) auto 0;
+    padding: 4px 8px;
+    background: var(--bg-tertiary, transparent);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    cursor: pointer;
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast),
+      border-color var(--transition-fast);
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
+  &__mode-label {
+    font-weight: 500;
+  }
+
+  // 当展开到 wide 模式，模式按钮放底部居左，更适合宽布局
+  &--wide &__mode-toggle {
+    align-self: flex-start;
+    margin-left: var(--space-2);
   }
 }
 </style>

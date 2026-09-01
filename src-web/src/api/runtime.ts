@@ -169,6 +169,91 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   } as unknown as { provider: string; api_key: string | null; endpoint: string; model: string }),
   set_provider: () => undefined,
   set_api_key: () => undefined,
+
+  // Asset library (W9) — Iconify icons. In the web preview we return a tiny
+  // curated stub so the IconPanel still has something to render.
+  search_icons: (args: unknown) => {
+    const a = (args as { args?: { query?: string; style?: string; category?: string; limit?: number } }).args ?? {};
+    const query = (a.query ?? '').toLowerCase();
+    const limit = Math.min(Math.max(a.limit ?? 30, 1), 50);
+    const stubIcons = [
+      { prefix: 'lucide', name: 'search', category: 'ui', tags: ['search', 'find', '查找', '搜索'] },
+      { prefix: 'lucide', name: 'settings', category: 'ui', tags: ['settings', 'gear', '设置'] },
+      { prefix: 'lucide', name: 'home', category: 'navigation', tags: ['home', 'house', '主页'] },
+      { prefix: 'lucide', name: 'user', category: 'ui', tags: ['user', 'person', '用户'] },
+      { prefix: 'lucide', name: 'heart', category: 'ui', tags: ['heart', 'favorite', '心'] },
+      { prefix: 'lucide', name: 'star', category: 'ui', tags: ['star', 'favorite', '星'] },
+      { prefix: 'lucide', name: 'plus', category: 'ui', tags: ['plus', 'add', '加号'] },
+      { prefix: 'lucide', name: 'check', category: 'ui', tags: ['check', 'tick', '确认'] },
+      { prefix: 'lucide', name: 'trash', category: 'ui', tags: ['trash', 'delete', '删除'] },
+      { prefix: 'lucide', name: 'edit', category: 'ui', tags: ['edit', 'pencil', '编辑'] },
+    ];
+    const filtered = stubIcons.filter((i) => {
+      if (a.style && i.prefix !== a.style) return false;
+      if (a.category && i.category !== a.category) return false;
+      if (!query) return true;
+      const blob = (i.name + ' ' + i.tags.join(' ')).toLowerCase();
+      return blob.includes(query);
+    });
+    return {
+      icons: filtered.slice(0, limit),
+      total: filtered.length,
+      has_more: filtered.length > limit,
+    };
+  },
+  render_icon_svg: (args: unknown) => {
+    const a = (args as { args?: { prefix?: string; name?: string; color?: string; size?: number } }).args ?? {};
+    const size = a.size ?? 64;
+    const color = a.color || 'currentColor';
+    // 返回一个合法的占位 SVG（便于预览面板渲染），不是真实 Iconify 图标。
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="${color}"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="${color}" stroke-width="2"/><text x="12" y="16" font-size="6" text-anchor="middle" fill="${color}">${(a.prefix ?? '?').slice(0, 2)}</text></svg>`;
+    return { svg, width: size, height: size, from_cache: false };
+  },
+
+  // W10 + W11 资产库
+  list_brushes: () => [],
+  list_brush_assets: () => [],
+  get_brush_asset: () => ({
+    id: 'round-hard',
+    name_zh: '硬圆',
+    name_en: 'Round Hard',
+    category: 'hard',
+    default_radius: 12,
+    falloff: 0,
+    description: '',
+    png_base64: '',
+    byte_size: 0,
+  }),
+  list_palettes: () => [],
+  apply_palette: () => ({ applied_colors: [], stroke_count: 0, mode: 'swatch_bar' }),
+  list_gradients: () => [],
+  apply_gradient: () => ({ gradient_id: '', gradient_type: 'linear', stop_count: 0, bytes_written: 0 }),
+  create_brush_from_prompt: () => ({
+    status: 'not_implemented',
+    message: 'AI brush generation available in v0.3',
+    prompt: '',
+    name: null,
+  }),
+  record_asset_event: () => undefined,
+  get_assets_telemetry: () => ({
+    search_icons_total: 0,
+    search_icons_cache_hits: 0,
+    import_icon_total: 0,
+    palette_applied_total: 0,
+    gradient_applied_total: 0,
+    brush_switch_total: 0,
+    last_updated_at: '',
+  }),
+  get_asset_state: () => ({
+    online: true,
+    last_check_at: new Date().toISOString(),
+    last_error: '',
+  }),
+  get_assets_config: () => ({
+    cdn_mirror: 'default',
+    attribution_notice_shown: false,
+  }),
+  set_assets_config: () => undefined,
 };
 
 /**

@@ -20,6 +20,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   // --- Brush parameters (for brush / eraser) ---
   const brushColor = ref('#6c5ce7');
   const brushRadius = ref(8);
+  // Active brush preset id (W10). Defaults match Rust `canvas::brush::DEFAULT_BRUSH_ID`.
+  const activeBrushId = ref('round-hard');
 
   // --- Layer state (synced from backend via useCanvas.refresh) ---
   const layerList = ref<Layer[]>([]);
@@ -60,6 +62,10 @@ export const useCanvasStore = defineStore('canvas', () => {
   function setBrushRadius(r: number) {
     brushRadius.value = Math.max(1, Math.min(200, r));
   }
+  /** W10 — switch the active brush preset (must reference an existing id). */
+  function setActiveBrush(id: string) {
+    activeBrushId.value = id;
+  }
 
   return {
     // state
@@ -69,6 +75,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     panY,
     brushColor,
     brushRadius,
+    activeBrushId,
     layerList,
     activeLayerId,
     canvasWidth,
@@ -84,5 +91,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     resetView,
     setBrushColor,
     setBrushRadius,
+    setActiveBrush,
   };
 });

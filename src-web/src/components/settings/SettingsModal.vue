@@ -16,11 +16,15 @@ import { computed, reactive, ref, watch } from 'vue';
 import { X, Save, RotateCcw, Eye, EyeOff } from 'lucide-vue-next';
 import { useUIStore } from '@stores/uiStore';
 import { useLlmConfig } from '@composables/useLlmConfig';
+import { useAssetsConfig } from '@composables/useAssetsConfig';
+import { useToast } from '@composables/useToast';
 import { llmApi } from '@api/index';
-import type { LlmProviderId, LlmProviderInfo } from '@api/index';
+import type { LlmProviderId, LlmProviderInfo, CdnMirror } from '@api/index';
 
 const uiStore = useUIStore();
 const { providerConfig, refresh: refreshLlm } = useLlmConfig();
+const { config: assetsConfig, setCdnMirror } = useAssetsConfig();
+const toast = useToast();
 
 const visible = computed(() => uiStore.settingsModalVisible);
 const llmHighlight = computed(() => uiStore.llmSettingsHighlight);
@@ -228,6 +232,105 @@ async function save() {
     saving.value = false;
   }
 }
+
+// =========================================================
+// 资源 / 第三方署名（W11-B2）
+// =========================================================
+
+interface CdnOption {
+  value: CdnMirror;
+  label: string;
+  hint: string;
+}
+
+const CDN_OPTIONS: ReadonlyArray<CdnOption> = [
+  {
+    value: 'default',
+    label: '默认（api.iconify.design）',
+    hint: '官方主镜像，国际出口质量稳定',
+  },
+  {
+    value: 'jsdelivr',
+    label: 'jsDelivr（cdn.jsdelivr.net）',
+    hint: '国内访问更快；偶发缓存延时',
+  },
+  {
+    value: 'fastly',
+    label: 'Fastly（api.fastly.iconify.design）',
+    hint: 'Fastly 边缘节点，海外加速',
+  },
+];
+
+const changingCdn = ref(false);
+async function onChangeCdn(mirror: CdnMirror) {
+  if (changingCdn.value) return;
+  changingCdn.value = true;
+  try {
+    await setCdnMirror(mirror);
+    toast.success(`CDN 镜像已切换为 ${mirror}`);
+  } catch (e) {
+    toast.error(`切换 CDN 镜像失败：${String(e)}`);
+  } finally {
+    changingCdn.value = false;
+  }
+}
+
+interface ThirdPartyAsset {
+  id: string;
+  name: string;
+  license: string;
+  requiresAttribution: boolean;
+  homepage: string;
+  note?: string;
+}
+
+const THIRD_PARTY_ASSETS: ReadonlyArray<ThirdPartyAsset> = [
+  {
+    id: 'lucide',
+    name: 'Lucide Icons',
+    license: 'ISC License',
+    requiresAttribution: false,
+    homepage: 'https://lucide.dev',
+    note: '内置 16+ 图标，遵循 ISC 开源协议，可商用',
+  },
+  {
+    id: 'heroicons',
+    name: 'Heroicons',
+    license: 'MIT License',
+    requiresAttribution: false,
+    homepage: 'https://heroicons.com',
+    note: 'Tailwind CSS 团队出品',
+  },
+  {
+    id: 'tabler',
+    name: 'Tabler Icons',
+    license: 'MIT License',
+    requiresAttribution: false,
+    homepage: 'https://tabler-icons.io',
+  },
+  {
+    id: 'material-symbols',
+    name: 'Material Symbols',
+    license: 'Apache-2.0',
+    requiresAttribution: true,
+    homepage: 'https://fonts.google.com/icons',
+    note: 'Google 设计，需保留「Google」+「Material Symbols」署名',
+  },
+  {
+    id: 'phosphor',
+    name: 'Phosphor Icons',
+    license: 'MIT License',
+    requiresAttribution: false,
+    homepage: 'https://phosphoricons.com',
+  },
+  {
+    id: 'iconoir',
+    name: 'Iconoir',
+    license: 'MIT License',
+    requiresAttribution: false,
+    homepage: 'https://iconoir.com',
+  },
+];
 </script>
 
 <template>
@@ -360,6 +463,75 @@ async function save() {
             <p v-if="successMsg" class="settings-modal__msg settings-modal__msg--success">
               {{ successMsg }}
             </p>
+          </section>
+
+          <!-- ============================================================ -->
+          <!-- 资源 / 第三方署名（W11-B2）                                   -->
+          <!-- ============================================================ -->
+          <section class="settings-modal__section" data-section="assets">
+            <h3 class="settings-modal__section-title">资源与第三方署名</h3>
+            <p class="settings-modal__section-desc">
+              资产库的 CDN 镜像、离线策略，以及所使用图标集的版权信息。
+            </p>
+
+            <div class="settings-modal__field">
+              <label class="settings-modal__label" for="settings-cdn-mirror">图标 CDN 镜像</label>
+              <div class="settings-modal__cdn-group">
+                <button
+                  v-for="opt in CDN_OPTIONS"
+                  :key="opt.value"
+                  type="button"
+                  class="settings-modal__cdn-chip"
+                  :class="{ 'is-active': assetsConfig.cdnMirror === opt.value }"
+                  :disabled="changingCdn"
+                  :data-cdn="opt.value"
+                  @click="onChangeCdn(opt.value)"
+                >
+                  <span class="settings-modal__cdn-name">{{ opt.label }}</span>
+                  <span class="settings-modal__cdn-hint">{{ opt.hint }}</span>
+                </button>
+              </div>
+              <p class="settings-modal__hint">
+                镜像仅影响远程拉取；本地缓存命中时不再发起网络请求。默认走 <code>api.iconify.design</code>，国内建议 jsDelivr。
+              </p>
+            </div>
+
+            <div class="settings-modal__field">
+              <label class="settings-modal__label">第三方资源署名</label>
+              <ul class="settings-modal__attribution">
+                <li
+                  v-for="asset in THIRD_PARTY_ASSETS"
+                  :key="asset.id"
+                  class="settings-modal__attribution-item"
+                  :data-asset-id="asset.id"
+                >
+                  <div class="settings-modal__attribution-head">
+                    <a
+                      class="settings-modal__attribution-name"
+                      :href="asset.homepage"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {{ asset.name }}
+                    </a>
+                    <span
+                      v-if="asset.requiresAttribution"
+                      class="settings-modal__attribution-badge"
+                      data-badge="required"
+                    >
+                      需署名
+                    </span>
+                  </div>
+                  <div class="settings-modal__attribution-meta">
+                    <span>{{ asset.license }}</span>
+                    <span v-if="asset.note">· {{ asset.note }}</span>
+                  </div>
+                </li>
+              </ul>
+              <p class="settings-modal__hint">
+                本应用仅用于个人创作；如需对外发布请遵循各项 License（MIT / ISC / Apache-2.0）。
+              </p>
+            </div>
           </section>
         </div>
 
@@ -774,6 +946,109 @@ async function save() {
   100% {
     opacity: 0;
     transform: scale(1.02);
+  }
+}
+
+// ============================================================
+// W11-B2：资源 CDN + 第三方署名
+// ============================================================
+
+.settings-modal {
+  &__cdn-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+  }
+
+  &__cdn-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 12px;
+    background: var(--surface-2, #fafafa);
+    border: 1px solid var(--border, #e5e5e5);
+    border-radius: var(--radius, 6px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+
+    &:hover:not(:disabled) {
+      border-color: var(--accent, #6c5ce7);
+      background: var(--surface-3, #f0f0f0);
+    }
+
+    &.is-active {
+      background: var(--accent, #6c5ce7);
+      color: #fff;
+      border-color: var(--accent, #6c5ce7);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__cdn-name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &__cdn-hint {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  &__attribution {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__attribution-item {
+    padding: 8px 12px;
+    background: var(--surface-2, #fafafa);
+    border: 1px solid var(--border, #e5e5e5);
+    border-radius: var(--radius, 6px);
+  }
+
+  &__attribution-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__attribution-name {
+    color: var(--accent, #6c5ce7);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__attribution-badge {
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.4;
+    border-radius: 999px;
+    color: #d6336c;
+    background: rgba(214, 51, 108, 0.1);
+  }
+
+  &__attribution-meta {
+    margin-top: 2px;
+    font-size: 11px;
+    opacity: 0.7;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 }
 </style>

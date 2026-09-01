@@ -106,4 +106,46 @@ describe('useOnboarding', () => {
     expect(o.shouldShowMainCard.value).toBe(true);
     nowSpy.mockRestore();
   });
+
+  // ===== W11-B4：资源署名 toast =====
+
+  it('ONB-201: first launch → shouldShowAttributionToast is true', async () => {
+    const o = await load();
+    expect(o.shouldShowAttributionToast.value).toBe(true);
+  });
+
+  it('ONB-202: dismissAttributionToast hides it and persists', async () => {
+    const o = await load();
+    o.dismissAttributionToast();
+    expect(o.shouldShowAttributionToast.value).toBe(false);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw as string);
+    expect(parsed.attributionNoticeShown).toBe(true);
+  });
+
+  it('ONB-203: markAttributionShown is idempotent (persistence wise)', async () => {
+    const o = await load();
+    o.markAttributionShown();
+    o.markAttributionShown();
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw as string);
+    expect(parsed.attributionNoticeShown).toBe(true);
+  });
+
+  it('ONB-204: reset() also resets attributionNoticeShown to false', async () => {
+    const o = await load();
+    o.dismissAttributionToast();
+    expect(o.shouldShowAttributionToast.value).toBe(false);
+    o.reset();
+    expect(o.shouldShowAttributionToast.value).toBe(true);
+  });
+
+  it('ONB-205: shouldShowAttributionToast is independent from shouldShowMainCard', async () => {
+    const o = await load();
+    // markCompleted 不影响 attribution toast
+    o.markCompleted();
+    expect(o.shouldShowMainCard.value).toBe(false);
+    expect(o.shouldShowAttributionToast.value).toBe(true);
+  });
 });

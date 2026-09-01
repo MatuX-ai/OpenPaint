@@ -12,9 +12,32 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 
-// 样式（必须在 createApp 之前导入，这样全局变量 / 字体被 Vue 的样式系统接管）
+/** 样式（必须在 createApp 之前导入，这样全局变量 / 字体被 Vue 的样式系统接管） */
 import '@/assets/styles/reset.scss';
 import '@/assets/styles/global.scss';
+
+/**
+ * WebView2 Runtime 检测。
+ * Rust 端（lib.rs::check_webview2_runtime）会在 wry 启动 webview 前拦截完全缺失的情况。
+ * 这里检查 wry 启动后内部 API 是否可用；不可用时表明 wry 退化路径生效或 WebView2 版本过低。
+ */
+function ensureWebView2Ready(): { ok: true } | { ok: false; reason: string } {
+  const w = window as unknown as {
+    chrome?: { webview?: { postMessage?: unknown } };
+    navigator?: { userAgent?: string };
+  };
+  // WebView2 在 window 上注入 `chrome.webview`；普通 Edge / Chrome 没有这个字段。
+  // Microsoft Edge 桌面版也没有（除非以 webview2 host 模式运行）。
+  if (!w.chrome || !w.chrome.webview) {
+    return {
+      ok: false,
+      reason:
+        'window.chrome.webview 未注入：当前 WebView2 Runtime 版本过低或 wry 未正常加载 webview。\n' +
+        '请升级 Microsoft Edge 至最新版（>= 109），或在「应用和功能」里修复 / 重装 WebView2 Runtime。',
+    };
+  }
+  return { ok: true };
+}
 
 /** 把错误详情渲染到 DOM，供桌面端 release 模式（无 DevTools）诊断。 */
 function renderErrorToDom(label: string, detail: unknown): void {
@@ -48,6 +71,14 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   renderErrorToDom('unhandledrejection', formatRejection(event.reason));
 });
+
+// wry 已经启动 webview 才会有此 JS 运行——Rust 端已经走过 WebView2 完整性检测。
+// 这里再查一遭走兜底：WebView2 < 109 版本或 wry 退化路径生效时，chrome.webview 会缺失。
+const wv2Ready = ensureWebView2Ready();
+if (!wv2Ready.ok) {
+  renderErrorToDom('WebView2 Runtime 异常', wv2Ready.reason);
+  throw new Error(wv2Ready.reason);
+}
 
 const app = createApp(App);
 const pinia = createPinia();
