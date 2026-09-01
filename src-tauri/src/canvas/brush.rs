@@ -199,13 +199,19 @@ mod tests {
         let mut ids: Vec<&str> = builtin_brushes().iter().map(|b| b.id.as_str()).collect();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), builtin_brushes().len(), "brush IDs must be unique");
+        assert_eq!(
+            ids.len(),
+            builtin_brushes().len(),
+            "brush IDs must be unique"
+        );
     }
 
     #[test]
     fn test_builtin_brushes_have_all_required_categories() {
-        let cats: std::collections::HashSet<_> =
-            builtin_brushes().iter().map(|b| b.category.as_str()).collect();
+        let cats: std::collections::HashSet<_> = builtin_brushes()
+            .iter()
+            .map(|b| b.category.as_str())
+            .collect();
         // 至少要覆盖 Hard + Soft + Texture + Special
         assert!(cats.contains("hard"));
         assert!(cats.contains("soft"));
@@ -216,16 +222,24 @@ mod tests {
     #[test]
     fn test_builtin_brushes_default_radius_in_range() {
         for b in builtin_brushes() {
-            assert!(b.default_radius >= 4 && b.default_radius <= 64,
-                "brush {} radius {} out of [4,64]", b.id, b.default_radius);
+            assert!(
+                b.default_radius >= 4 && b.default_radius <= 64,
+                "brush {} radius {} out of [4,64]",
+                b.id,
+                b.default_radius
+            );
         }
     }
 
     #[test]
     fn test_builtin_brushes_falloff_in_range() {
         for b in builtin_brushes() {
-            assert!(b.falloff >= 0.0 && b.falloff <= 1.0,
-                "brush {} falloff {} out of [0,1]", b.id, b.falloff);
+            assert!(
+                b.falloff >= 0.0 && b.falloff <= 1.0,
+                "brush {} falloff {} out of [0,1]",
+                b.id,
+                b.falloff
+            );
         }
     }
 
@@ -243,8 +257,10 @@ mod tests {
 
     #[test]
     fn test_default_brush_id_is_in_list() {
-        assert!(find_brush(DEFAULT_BRUSH_ID).is_some(),
-            "DEFAULT_BRUSH_ID must reference an existing brush");
+        assert!(
+            find_brush(DEFAULT_BRUSH_ID).is_some(),
+            "DEFAULT_BRUSH_ID must reference an existing brush"
+        );
     }
 
     #[test]
@@ -263,14 +279,24 @@ mod tests {
             let p = dev_path.join(&b.file_name);
             assert!(p.exists(), "brush png missing: {}", p.display());
             let metadata = std::fs::metadata(&p).expect("metadata");
-            assert!(metadata.len() > 100, "brush {} too small ({} bytes)", b.id, metadata.len());
+            assert!(
+                metadata.len() > 100,
+                "brush {} too small ({} bytes)",
+                b.id,
+                metadata.len()
+            );
         }
     }
 
     #[test]
     fn test_brush_category_as_str_round_trip() {
-        for cat in [BrushCategory::Hard, BrushCategory::Soft, BrushCategory::Texture,
-                    BrushCategory::Special, BrushCategory::Mark] {
+        for cat in [
+            BrushCategory::Hard,
+            BrushCategory::Soft,
+            BrushCategory::Texture,
+            BrushCategory::Special,
+            BrushCategory::Mark,
+        ] {
             let s = cat.as_str();
             assert!(!s.is_empty());
         }

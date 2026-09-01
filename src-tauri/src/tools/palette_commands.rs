@@ -139,7 +139,11 @@ pub async fn apply_palette_internal(
     let mut canvas = state.canvas.write();
 
     // 验证目标图层存在 + 未锁定
-    let target_id = match args.layer_id.as_deref().and_then(|s| Uuid::parse_str(s).ok()) {
+    let target_id = match args
+        .layer_id
+        .as_deref()
+        .and_then(|s| Uuid::parse_str(s).ok())
+    {
         Some(id) => id,
         None => canvas.active_layer_id,
     };
@@ -167,8 +171,7 @@ pub async fn apply_palette_internal(
             let replace_hex = args
                 .replace_hex
                 .unwrap_or_else(|| palette.colors[0].hex.clone());
-            let stroke_count =
-                replace_color_mode(&mut canvas, target_id, &palette, &replace_hex)?;
+            let stroke_count = replace_color_mode(&mut canvas, target_id, &palette, &replace_hex)?;
             Ok(ApplyPaletteResult {
                 applied_colors: vec![replace_hex],
                 stroke_count,
@@ -402,7 +405,9 @@ mod tests {
         for p in &palettes {
             assert!(!p.colors.is_empty(), "palette {} has no colors", p.id);
             assert!(
-                p.colors.iter().all(|c| c.hex.starts_with('#') && c.hex.len() == 7),
+                p.colors
+                    .iter()
+                    .all(|c| c.hex.starts_with('#') && c.hex.len() == 7),
                 "palette {} has malformed hex color",
                 p.id
             );
@@ -427,9 +432,21 @@ mod tests {
             source: "unit test".into(),
             license: "MIT".into(),
             colors: vec![
-                PaletteColor { name: "Red".into(), hex: "#FF0000".into(), role: "primary".into() },
-                PaletteColor { name: "Green".into(), hex: "#00FF00".into(), role: "success".into() },
-                PaletteColor { name: "Blue".into(), hex: "#0000FF".into(), role: "info".into() },
+                PaletteColor {
+                    name: "Red".into(),
+                    hex: "#FF0000".into(),
+                    role: "primary".into(),
+                },
+                PaletteColor {
+                    name: "Green".into(),
+                    hex: "#00FF00".into(),
+                    role: "success".into(),
+                },
+                PaletteColor {
+                    name: "Blue".into(),
+                    hex: "#0000FF".into(),
+                    role: "info".into(),
+                },
             ],
         };
         swatch_bar_mode(&mut state, layer_id, &palette).expect("swatch_bar");
@@ -437,12 +454,20 @@ mod tests {
         // 顶部行（y=0）仍应全白
         for x in 0..100 {
             let p = &layer.image_data[(x * 4)..(x * 4 + 4)];
-            assert_eq!((p[0], p[1], p[2], p[3]), (255, 255, 255, 255), "top row at x={}", x);
+            assert_eq!(
+                (p[0], p[1], p[2], p[3]),
+                (255, 255, 255, 255),
+                "top row at x={}",
+                x
+            );
         }
         // 底部行（y=99）应有非白像素
         let bottom_sample = &layer.image_data[(99 * 100 + 5) * 4..(99 * 100 + 5) * 4 + 4];
-        assert!(bottom_sample[0] < 255 || bottom_sample[1] < 255 || bottom_sample[2] < 255,
-            "bottom row must have non-white pixels, got {:?}", bottom_sample);
+        assert!(
+            bottom_sample[0] < 255 || bottom_sample[1] < 255 || bottom_sample[2] < 255,
+            "bottom row must have non-white pixels, got {:?}",
+            bottom_sample
+        );
         // 检查 32px 色条高度确实生效（y=67 应该是色条边界附近）
         let mid_bottom = &layer.image_data[(80 * 100 + 0) * 4..(80 * 100 + 0) * 4 + 4];
         assert!(mid_bottom[0] < 255 || mid_bottom[1] < 255 || mid_bottom[2] < 255);
@@ -458,10 +483,10 @@ mod tests {
             layer.width = 4;
             layer.height = 1;
             layer.image_data = vec![
-                255, 0, 0, 255,   // red
-                255, 0, 0, 255,   // red
-                0, 255, 0, 255,   // green
-                0, 255, 0, 255,   // green
+                255, 0, 0, 255, // red
+                255, 0, 0, 255, // red
+                0, 255, 0, 255, // green
+                0, 255, 0, 255, // green
             ];
         }
         let palette = Palette {
@@ -470,13 +495,20 @@ mod tests {
             name_en: "x".into(),
             source: "test".into(),
             license: "MIT".into(),
-            colors: vec![
-                PaletteColor { name: "Blue".into(), hex: "#0000FF".into(), role: "".into() },
-            ],
+            colors: vec![PaletteColor {
+                name: "Blue".into(),
+                hex: "#0000FF".into(),
+                role: "".into(),
+            }],
         };
-        let replaced = replace_color_mode(&mut state, layer_id, &palette, "#0000FF").expect("replace");
+        let replaced =
+            replace_color_mode(&mut state, layer_id, &palette, "#0000FF").expect("replace");
         // red 与 green 各 2 像素；直方图取最频繁 → 应该替换其中一组（2 像素）
-        assert!(replaced == 2, "expected 2 pixels replaced, got {}", replaced);
+        assert!(
+            replaced == 2,
+            "expected 2 pixels replaced, got {}",
+            replaced
+        );
     }
 
     #[test]
@@ -495,7 +527,12 @@ mod tests {
             assert!(!palette.name_en.is_empty());
             assert!(!palette.source.is_empty());
             assert!(!palette.license.is_empty());
-            assert_eq!(palette.colors.len(), 10, "palette {} should have 10 colors", id);
+            assert_eq!(
+                palette.colors.len(),
+                10,
+                "palette {} should have 10 colors",
+                id
+            );
         }
     }
 }

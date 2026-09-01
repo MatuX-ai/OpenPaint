@@ -33,11 +33,10 @@ fn brush_dir() -> PathBuf {
 
 /// 加载单个笔刷 PNG → base64
 pub fn load_brush_png_b64(id: &str) -> AnyhowResult<String> {
-    let brush = crate::canvas::find_brush(id)
-        .ok_or_else(|| anyhow!("unknown brush id: {}", id))?;
+    let brush = crate::canvas::find_brush(id).ok_or_else(|| anyhow!("unknown brush id: {}", id))?;
     let path = brush_dir().join(&brush.file_name);
-    let bytes = std::fs::read(&path)
-        .with_context(|| format!("read brush png {}", path.display()))?;
+    let bytes =
+        std::fs::read(&path).with_context(|| format!("read brush png {}", path.display()))?;
     Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
 }
 
@@ -100,8 +99,8 @@ pub async fn list_brush_assets() -> Result<Vec<BrushAsset>, String> {
 /// `get_brush_asset` — 单个笔刷的资源（按需加载）
 #[tauri::command]
 pub async fn get_brush_asset(id: String) -> Result<BrushAsset, String> {
-    let brush = crate::canvas::find_brush(&id)
-        .ok_or_else(|| format!("unknown brush id: {}", id))?;
+    let brush =
+        crate::canvas::find_brush(&id).ok_or_else(|| format!("unknown brush id: {}", id))?;
     let b64 = load_brush_png_b64(&id).map_err(|e| format!("load png: {}", e))?;
     Ok(BrushAsset {
         id: brush.id.clone(),
@@ -143,10 +142,14 @@ mod tests {
         let b64 = load_brush_png_b64(DEFAULT_BRUSH_ID).expect("load must succeed");
         assert!(!b64.is_empty());
         // 验证是合法的 base64 字符
-        assert!(b64.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
+        assert!(b64
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
         // 解码后应该是 PNG 签名
         use base64::Engine;
-        let raw = base64::engine::general_purpose::STANDARD.decode(&b64).expect("decode");
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(&b64)
+            .expect("decode");
         assert_eq!(&raw[..8], b"\x89PNG\r\n\x1a\n", "must be PNG file");
     }
 
@@ -164,10 +167,19 @@ mod tests {
         assert_eq!(list.len(), 8);
         // ID 顺序与 BUILTIN_BRUSHES 一致
         let ids: Vec<&str> = list.iter().map(|b| b.id.as_str()).collect();
-        assert_eq!(ids, vec![
-            "round-hard", "round-soft", "chalk", "spray",
-            "watercolor", "oil-paint", "marker", "blur",
-        ]);
+        assert_eq!(
+            ids,
+            vec![
+                "round-hard",
+                "round-soft",
+                "chalk",
+                "spray",
+                "watercolor",
+                "oil-paint",
+                "marker",
+                "blur",
+            ]
+        );
     }
 
     #[tokio::test]
@@ -177,7 +189,9 @@ mod tests {
             eprintln!("skipping: dev assets dir missing");
             return;
         }
-        let asset = get_brush_asset("round-hard".to_string()).await.expect("get");
+        let asset = get_brush_asset("round-hard".to_string())
+            .await
+            .expect("get");
         assert_eq!(asset.id, "round-hard");
         assert_eq!(asset.category, "hard");
         assert_eq!(asset.default_radius, 12);

@@ -158,10 +158,10 @@ fn index_path() -> PathBuf {
     // 开发模式：`src-tauri/Cargo.toml` 的 manifest_dir + ../assets/iconify/index.json
     // 生产模式：Tauri 资源目录 `assets/iconify/index.json`
     let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-    .join("..")
-    .join("assets")
-    .join("iconify")
-    .join("index.json");
+        .join("..")
+        .join("assets")
+        .join("iconify")
+        .join("index.json");
     if dev_path.exists() {
         dev_path
     } else {
@@ -210,11 +210,7 @@ pub async fn search_icons_internal(args: SearchIconsArgs) -> AnyhowResult<Search
     }
 
     let total = matches.len() as u32;
-    let icons: Vec<IconifyEntry> = matches
-        .into_iter()
-        .take(limit as usize)
-        .cloned()
-        .collect();
+    let icons: Vec<IconifyEntry> = matches.into_iter().take(limit as usize).cloned().collect();
     let has_more = total > icons.len() as u32;
 
     Ok(SearchIconsResult {
@@ -303,8 +299,8 @@ fn read_cached_body(prefix: &str, name: &str) -> AnyhowResult<Option<IconifyIcon
     if !path.exists() {
         return Ok(None);
     }
-    let content = std::fs::read_to_string(&path)
-        .with_context(|| format!("read cache {}", path.display()))?;
+    let content =
+        std::fs::read_to_string(&path).with_context(|| format!("read cache {}", path.display()))?;
     let parsed: IconifyIconBody = serde_json::from_str(&content)
         .with_context(|| format!("parse cache {}", path.display()))?;
     Ok(Some(parsed))
@@ -339,11 +335,13 @@ const ICONIFY_FASTLY_CDN: &str = "https://api.fastly.iconify.design";
 /// 取值：`default`（默认）/ `jsdelivr` / `fastly`；其他值静默回落到 default。
 fn cdn_base_url() -> &'static str {
     static MIRROR: OnceLock<&'static str> = OnceLock::new();
-    MIRROR.get_or_init(|| match AppConfig::load().ok().map(|c| c.assets.cdn_mirror) {
-        Some(m) if m == "jsdelivr" => ICONIFY_JSDELIVR_CDN,
-        Some(m) if m == "fastly" => ICONIFY_FASTLY_CDN,
-        _ => ICONIFY_DEFAULT_CDN,
-    })
+    MIRROR.get_or_init(
+        || match AppConfig::load().ok().map(|c| c.assets.cdn_mirror) {
+            Some(m) if m == "jsdelivr" => ICONIFY_JSDELIVR_CDN,
+            Some(m) if m == "fastly" => ICONIFY_FASTLY_CDN,
+            _ => ICONIFY_DEFAULT_CDN,
+        },
+    )
 }
 
 /// W11-A2 离线检测状态
@@ -400,7 +398,9 @@ pub fn get_asset_state() -> AssetOnlineState {
 /// IPC：获取当前资产库配置（W11-B1）
 #[tauri::command]
 pub fn get_assets_config() -> Result<crate::config::AssetsConfig, String> {
-    AppConfig::load().map(|c| c.assets).map_err(|e| e.to_string())
+    AppConfig::load()
+        .map(|c| c.assets)
+        .map_err(|e| e.to_string())
 }
 
 /// IPC：写入新的资产库配置并落盘（W11-B1）
@@ -604,8 +604,8 @@ mod tests {
     async fn test_search_icons_empty_query_returns_all() {
         // 直接调用内部函数；不读真实文件
         let _ = fixture_index(); // 验证 fixture 可解析
-        // 注：search_icons_internal 会读真实 index.json，这里用 tokio 不阻塞
-        // 真实测试我们用 rust 单元 + 集成测试覆盖
+                                 // 注：search_icons_internal 会读真实 index.json，这里用 tokio 不阻塞
+                                 // 真实测试我们用 rust 单元 + 集成测试覆盖
     }
 
     #[test]
@@ -671,7 +671,14 @@ mod tests {
         // 6 个 prefix 都应存在
         let prefixes: std::collections::HashSet<_> =
             index.icons.iter().map(|e| e.prefix.clone()).collect();
-        for expected in ["lucide", "heroicons", "tabler", "material-symbols", "phosphor", "iconoir"] {
+        for expected in [
+            "lucide",
+            "heroicons",
+            "tabler",
+            "material-symbols",
+            "phosphor",
+            "iconoir",
+        ] {
             assert!(prefixes.contains(expected), "missing prefix {}", expected);
         }
     }
@@ -713,7 +720,10 @@ mod tests {
 
         update_asset_state(false, "HTTP 503".to_string());
         let snap_false = asset_state_cell().lock().clone();
-        assert!(!snap_false.online, "online should be false after update(false)");
+        assert!(
+            !snap_false.online,
+            "online should be false after update(false)"
+        );
         assert_eq!(snap_false.last_error, "HTTP 503");
         assert!(!snap_false.last_check_at.is_empty());
     }

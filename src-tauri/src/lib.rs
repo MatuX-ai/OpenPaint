@@ -237,8 +237,10 @@ fn show_fatal_dialog(prefix: &str, detail: &str) {
     let _ = Command::new("powershell")
         .args([
             "-NoProfile",
-            "-ExecutionPolicy", "Bypass",
-            "-Command", &script,
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
         ])
         .status();
 }

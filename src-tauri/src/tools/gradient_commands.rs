@@ -97,7 +97,9 @@ fn gradient_path() -> PathBuf {
     if dev.exists() {
         dev
     } else {
-        PathBuf::from("assets").join("gradients").join("presets.json")
+        PathBuf::from("assets")
+            .join("gradients")
+            .join("presets.json")
     }
 }
 
@@ -107,10 +109,10 @@ pub fn load_gradients() -> AnyhowResult<Vec<GradientPreset>> {
     if !path.exists() {
         return Err(anyhow!("gradient presets not found: {}", path.display()));
     }
-    let content = std::fs::read_to_string(&path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let parsed: GradientFile = serde_json::from_str(&content)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let content =
+        std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+    let parsed: GradientFile =
+        serde_json::from_str(&content).with_context(|| format!("parse {}", path.display()))?;
     Ok(parsed.gradients)
 }
 
@@ -144,7 +146,11 @@ pub async fn apply_gradient_internal(
         .ok_or_else(|| anyhow!("渐变不存在: {}", args.gradient_id))?;
 
     let mut canvas = state.canvas.write();
-    let target_id = match args.layer_id.as_deref().and_then(|s| Uuid::parse_str(s).ok()) {
+    let target_id = match args
+        .layer_id
+        .as_deref()
+        .and_then(|s| Uuid::parse_str(s).ok())
+    {
         Some(id) => id,
         None => canvas.active_layer_id,
     };
@@ -214,7 +220,11 @@ pub fn build_gradient_svg(
             let y2 = (cy + dy).clamp(0.0, 1.0);
             format!(
                 r#"<linearGradient id="g" x1="{x1:.4}" y1="{y1:.4}" x2="{x2:.4}" y2="{y2:.4}">{stops}</linearGradient>"#,
-                x1 = x1, y1 = y1, x2 = x2, y2 = y2, stops = stops_xml
+                x1 = x1,
+                y1 = y1,
+                x2 = x2,
+                y2 = y2,
+                stops = stops_xml
             )
         }
         GradientType::Radial => {
@@ -222,7 +232,9 @@ pub fn build_gradient_svg(
             // radius 0.5：覆盖整张画布
             format!(
                 r#"<radialGradient id="g" cx="{cx:.4}" cy="{cy:.4}" r="0.7" fx="{cx:.4}" fy="{cy:.4}">{stops}</radialGradient>"#,
-                cx = c[0], cy = c[1], stops = stops_xml
+                cx = c[0],
+                cy = c[1],
+                stops = stops_xml
             )
         }
         GradientType::Conic => {
@@ -230,7 +242,9 @@ pub fn build_gradient_svg(
             let c = preset.center.unwrap_or([0.5, 0.5]);
             format!(
                 r#"<radialGradient id="g" cx="{cx:.4}" cy="{cy:.4}" r="0.5" fx="{cx:.4}" fy="{cy:.4}" gradientUnits="objectBoundingBox" spreadMethod="repeat" gradientTransform="rotate(0)">{stops}</radialGradient>"#,
-                cx = c[0], cy = c[1], stops = stops_xml
+                cx = c[0],
+                cy = c[1],
+                stops = stops_xml
             )
         }
     };
@@ -257,8 +271,7 @@ fn normalize_hex(hex: &str) -> String {
 fn render_svg_to_png_b64(svg: &str, width: u32, height: u32) -> AnyhowResult<String> {
     use resvg::tiny_skia;
     use usvg::{Options, Tree};
-    let tree = Tree::from_str(svg, &Options::default())
-        .map_err(|e| anyhow!("SVG parse: {}", e))?;
+    let tree = Tree::from_str(svg, &Options::default()).map_err(|e| anyhow!("SVG parse: {}", e))?;
     let src_size = tree.size();
     let mut pixmap = tiny_skia::Pixmap::new(width, height)
         .ok_or_else(|| anyhow!("Pixmap alloc {}x{}", width, height))?;
@@ -288,8 +301,14 @@ mod tests {
             angle: Some(135.0),
             center: None,
             stops: vec![
-                GradientStop { offset: 0.0, hex: "#FF0000".into() },
-                GradientStop { offset: 1.0, hex: "#0000FF".into() },
+                GradientStop {
+                    offset: 0.0,
+                    hex: "#FF0000".into(),
+                },
+                GradientStop {
+                    offset: 1.0,
+                    hex: "#0000FF".into(),
+                },
             ],
         }
     }
@@ -364,13 +383,13 @@ mod tests {
         let presets = load_gradients().expect("load");
         assert_eq!(presets.len(), 16, "spec §3.3 requires 16 presets");
 
-        let counts = presets.iter().fold((0u32, 0u32, 0u32), |acc, p| {
-            match p.kind {
+        let counts = presets
+            .iter()
+            .fold((0u32, 0u32, 0u32), |acc, p| match p.kind {
                 GradientType::Linear => (acc.0 + 1, acc.1, acc.2),
                 GradientType::Radial => (acc.0, acc.1 + 1, acc.2),
                 GradientType::Conic => (acc.0, acc.1, acc.2 + 1),
-            }
-        });
+            });
         assert_eq!(counts, (8, 5, 3), "spec §3.3 requires 8L + 5R + 3C");
 
         for p in &presets {
