@@ -6,12 +6,14 @@
 //! - 维护 Undo/Redo 历史记录（HistoryStack）
 //! - 响应原子工具的调用（截图选区、粘贴图片）
 
+pub mod brush;
 pub mod engine;
 pub mod history;
 pub mod layer;
 pub mod selection;
 pub mod tools;
 
+pub use brush::{builtin_brushes, find_brush, BrushCategory, BrushPreset, DEFAULT_BRUSH_ID};
 pub use engine::CanvasRenderer;
 pub use history::{HistorySnapshot, HistoryStack};
 pub use layer::{BlendMode, Layer};

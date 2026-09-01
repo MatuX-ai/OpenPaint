@@ -30,6 +30,32 @@ pub struct AppConfig {
     pub presets: PresetConfig,
     pub gallery: GalleryConfig,
     pub mcp: McpConfig,
+    #[serde(default)]
+    pub assets: AssetsConfig,
+}
+
+/// 资产库配置（W11 引入）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssetsConfig {
+    /// CDN 镜像：`default` / `jsdelivr` / `fastly`
+    #[serde(default = "default_cdn_mirror")]
+    pub cdn_mirror: String,
+    /// 是否已展示过资源署名 toast（防止重复弹）
+    #[serde(default)]
+    pub attribution_notice_shown: bool,
+}
+
+impl Default for AssetsConfig {
+    fn default() -> Self {
+        Self {
+            cdn_mirror: default_cdn_mirror(),
+            attribution_notice_shown: false,
+        }
+    }
+}
+
+fn default_cdn_mirror() -> String {
+    "default".to_string()
 }
 
 /// 大模型配置
@@ -109,6 +135,17 @@ impl AppConfig {
         std::fs::write(&path, content).map_err(|e| format!("write config: {}", e))?;
         info!("Config saved to {:?}", path);
         Ok(())
+    }
+
+    /// W11 — 获取当前 assets 配置（不存在则返回默认）。
+    pub fn assets_config(&self) -> AssetsConfig {
+        self.assets.clone()
+    }
+
+    /// W11 — 写入新的 assets 配置并落盘。
+    pub fn set_assets_config(&mut self, cfg: AssetsConfig) -> Result<(), String> {
+        self.assets = cfg;
+        self.save()
     }
 
     /// 生成默认配置文件

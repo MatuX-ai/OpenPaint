@@ -32,3 +32,30 @@ pub fn echo(payload: EchoPayload) -> EchoResponse {
         timestamp: chrono::Utc::now().timestamp_millis(),
     }
 }
+
+/// W11 占位：`create_brush_from_prompt` stub
+///
+/// v0.2 仅在 MCP 注册表中声明，实际 AI 画刷合成在 v0.3 实施。
+/// 这里返回一个固定结构，供前端 ToolCallCard 展示“未实现”状态。
+#[derive(Debug, Serialize)]
+pub struct CreateBrushStubResult {
+    pub status: &'static str,
+    pub message: &'static str,
+    pub prompt: String,
+    pub name: Option<String>,
+}
+
+#[tauri::command]
+pub fn create_brush_from_prompt(prompt: String, name: Option<String>) -> CreateBrushStubResult {
+    tracing::info!(
+        "create_brush_from_prompt stub called (prompt={}, name={:?})",
+        prompt,
+        name
+    );
+    CreateBrushStubResult {
+        status: "not_implemented",
+        message: "AI brush generation available in v0.3",
+        prompt,
+        name,
+    }
+}
