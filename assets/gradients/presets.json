@@ -1,0 +1,195 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-01T00:00:00Z",
+  "gradients": [
+    {
+      "id": "linear-sunset",
+      "type": "linear",
+      "name_zh": "日落",
+      "name_en": "Sunset",
+      "angle": 135,
+      "stops": [
+        { "offset": 0.0, "hex": "#FF6B6B" },
+        { "offset": 1.0, "hex": "#FFE66D" }
+      ]
+    },
+    {
+      "id": "linear-ocean",
+      "type": "linear",
+      "name_zh": "海洋",
+      "name_en": "Ocean",
+      "angle": 180,
+      "stops": [
+        { "offset": 0.0, "hex": "#2193B0" },
+        { "offset": 1.0, "hex": "#6DD5ED" }
+      ]
+    },
+    {
+      "id": "linear-aurora",
+      "type": "linear",
+      "name_zh": "极光",
+      "name_en": "Aurora",
+      "angle": 90,
+      "stops": [
+        { "offset": 0.0, "hex": "#00C9FF" },
+        { "offset": 0.5, "hex": "#92FE9D" },
+        { "offset": 1.0, "hex": "#FEC837" }
+      ]
+    },
+    {
+      "id": "linear-violet",
+      "type": "linear",
+      "name_zh": "紫罗兰",
+      "name_en": "Violet",
+      "angle": 45,
+      "stops": [
+        { "offset": 0.0, "hex": "#7028E4" },
+        { "offset": 1.0, "hex": "#E5B2CA" }
+      ]
+    },
+    {
+      "id": "linear-rose",
+      "type": "linear",
+      "name_zh": "玫瑰金",
+      "name_en": "Rose Gold",
+      "angle": 120,
+      "stops": [
+        { "offset": 0.0, "hex": "#F4A4C0" },
+        { "offset": 1.0, "hex": "#F9D976" }
+      ]
+    },
+    {
+      "id": "linear-forest",
+      "type": "linear",
+      "name_zh": "森林",
+      "name_en": "Forest",
+      "angle": 180,
+      "stops": [
+        { "offset": 0.0, "hex": "#134E5E" },
+        { "offset": 1.0, "hex": "#71B280" }
+      ]
+    },
+    {
+      "id": "linear-midnight",
+      "type": "linear",
+      "name_zh": "午夜",
+      "name_en": "Midnight",
+      "angle": 180,
+      "stops": [
+        { "offset": 0.0, "hex": "#0F2027" },
+        { "offset": 0.5, "hex": "#203A43" },
+        { "offset": 1.0, "hex": "#2C5364" }
+      ]
+    },
+    {
+      "id": "linear-fresh",
+      "type": "linear",
+      "name_zh": "清新",
+      "name_en": "Fresh Mint",
+      "angle": 135,
+      "stops": [
+        { "offset": 0.0, "hex": "#A1FFCE" },
+        { "offset": 1.0, "hex": "#FAFFD1" }
+      ]
+    },
+    {
+      "id": "radial-glow",
+      "type": "radial",
+      "name_zh": "辐射光晕",
+      "name_en": "Radial Glow",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.0, "hex": "#FFFFFF" },
+        { "offset": 1.0, "hex": "#00000000" }
+      ]
+    },
+    {
+      "id": "radial-spotlight",
+      "type": "radial",
+      "name_zh": "聚光",
+      "name_en": "Spotlight",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.0, "hex": "#FFE259" },
+        { "offset": 1.0, "hex": "#FFA751" }
+      ]
+    },
+    {
+      "id": "radial-aqua",
+      "type": "radial",
+      "name_zh": "水波",
+      "name_en": "Aqua Pulse",
+      "center": [0.3, 0.3],
+      "stops": [
+        { "offset": 0.0, "hex": "#43CEA2" },
+        { "offset": 1.0, "hex": "#185A9D" }
+      ]
+    },
+    {
+      "id": "radial-soft-light",
+      "type": "radial",
+      "name_zh": "柔光",
+      "name_en": "Soft Light",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.0, "hex": "#FFFFFF" },
+        { "offset": 0.7, "hex": "#FFFFFF00" },
+        { "offset": 1.0, "hex": "#00000080" }
+      ]
+    },
+    {
+      "id": "radial-vignette",
+      "type": "radial",
+      "name_zh": "暗角",
+      "name_en": "Vignette",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.0, "hex": "#00000000" },
+        { "offset": 1.0, "hex": "#000000CC" }
+      ]
+    },
+    {
+      "id": "conic-rainbow",
+      "type": "conic",
+      "name_zh": "彩虹",
+      "name_en": "Rainbow",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.00, "hex": "#FF0000" },
+        { "offset": 0.17, "hex": "#FFFF00" },
+        { "offset": 0.33, "hex": "#00FF00" },
+        { "offset": 0.50, "hex": "#00FFFF" },
+        { "offset": 0.67, "hex": "#0000FF" },
+        { "offset": 0.83, "hex": "#FF00FF" },
+        { "offset": 1.00, "hex": "#FF0000" }
+      ]
+    },
+    {
+      "id": "conic-prism",
+      "type": "conic",
+      "name_zh": "棱镜",
+      "name_en": "Prism",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.00, "hex": "#FF6B6B" },
+        { "offset": 0.25, "hex": "#4ECDC4" },
+        { "offset": 0.50, "hex": "#45B7D1" },
+        { "offset": 0.75, "hex": "#FFA07A" },
+        { "offset": 1.00, "hex": "#FF6B6B" }
+      ]
+    },
+    {
+      "id": "conic-warmth",
+      "type": "conic",
+      "name_zh": "暖意",
+      "name_en": "Warmth",
+      "center": [0.5, 0.5],
+      "stops": [
+        { "offset": 0.00, "hex": "#FFD26F" },
+        { "offset": 0.33, "hex": "#FF7A6B" },
+        { "offset": 0.66, "hex": "#9C6ADE" },
+        { "offset": 1.00, "hex": "#FFD26F" }
+      ]
+    }
+  ]
+}
