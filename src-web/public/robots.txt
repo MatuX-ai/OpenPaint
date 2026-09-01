@@ -1,0 +1,99 @@
+# OpenPaint robots.txt
+# 站点：https://openpaint.dev/
+
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /api/
+
+# 搜索引擎主爬虫（允许全文索引与摘要）
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# AI / 生成式引擎爬虫（明确允许 GEO 友好的索引）
+# 这些爬虫抓取公开内容用于驱动 ChatGPT / Perplexity / Claude / Gemini / Copilot
+# 等生成式回答；OpenPaint 选择开放以提升 AI 引擎的引用准确度。
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+User-agent: ImagesiftBot
+Allow: /
+
+User-agent: TimpiBot
+Allow: /
+
+# 不希望被索引的资源
+User-agent: *
+Disallow: /*.json$
+Disallow: /*.map$
+Disallow: /*.wasm$
+
+# Sitemap
+Sitemap: https://openpaint.dev/sitemap.xml
+Sitemap: https://openpaint.dev/llms.txt
+
+# Host
+Host: https://openpaint.dev
+
+# Crawl-delay（毫秒）
+Crawl-delay: 1

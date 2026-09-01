@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="OpenPaint — 开源 AI 原生设计工作台">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0d10" />
+      <stop offset="1" stop-color="#1a1d22" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d6336c" />
+      <stop offset="1" stop-color="#8b5cf6" />
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#grid)" />
+
+  <!-- 装饰圆环 -->
+  <circle cx="1100" cy="80" r="160" fill="none" stroke="url(#accent)" stroke-width="1.5" opacity="0.35" />
+  <circle cx="1100" cy="80" r="110" fill="none" stroke="url(#accent)" stroke-width="1" opacity="0.5" />
+  <circle cx="80" cy="560" r="120" fill="none" stroke="url(#accent)" stroke-width="1" opacity="0.25" />
+
+  <!-- 画布图标 -->
+  <g transform="translate(100,150)">
+    <rect x="0" y="0" width="120" height="120" rx="20" fill="#1f242a" stroke="rgba(255,255,255,0.12)" />
+    <circle cx="40" cy="40" r="14" fill="url(#accent)" />
+    <rect x="64" y="30" width="36" height="20" rx="4" fill="#d6336c" opacity="0.7" />
+    <rect x="30" y="68" width="60" height="8" rx="4" fill="#8b5cf6" opacity="0.7" />
+    <rect x="30" y="82" width="40" height="8" rx="4" fill="rgba(255,255,255,0.25)" />
+  </g>
+
+  <!-- 主标题 -->
+  <text x="100" y="350" font-family="-apple-system, Segoe UI, sans-serif" font-size="92" font-weight="800" fill="#ffffff" letter-spacing="-3">OpenPaint</text>
+  <text x="100" y="410" font-family="-apple-system, Segoe UI, sans-serif" font-size="34" font-weight="500" fill="rgba(255,255,255,0.85)">开源 · AI 原生 · 轻量级设计工作台</text>
+
+  <!-- 关键特性 chip -->
+  <g transform="translate(100,450)">
+    <g>
+      <rect x="0" y="0" width="130" height="36" rx="18" fill="rgba(214,51,108,0.15)" stroke="rgba(214,51,108,0.5)" />
+      <text x="65" y="23" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#f9a8d4" text-anchor="middle">9 家 LLM Provider</text>
+    </g>
+    <g transform="translate(140,0)">
+      <rect x="0" y="0" width="140" height="36" rx="18" fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.5)" />
+      <text x="70" y="23" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#c4b5fd" text-anchor="middle">OpenPencil SDK</text>
+    </g>
+    <g transform="translate(290,0)">
+      <rect x="0" y="0" width="120" height="36" rx="18" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.5)" />
+      <text x="60" y="23" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#93c5fd" text-anchor="middle">MCP 协议</text>
+    </g>
+    <g transform="translate(420,0)">
+      <rect x="0" y="0" width="120" height="36" rx="18" fill="rgba(16,185,129,0.15)" stroke="rgba(16,185,129,0.5)" />
+      <text x="60" y="23" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#6ee7b7" text-anchor="middle">本地优先</text>
+    </g>
+    <g transform="translate(550,0)">
+      <rect x="0" y="0" width="80" height="36" rx="18" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)" />
+      <text x="40" y="23" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#fcd34d" text-anchor="middle">MIT</text>
+    </g>
+  </g>
+
+  <!-- 底部信息 -->
+  <text x="100" y="560" font-family="-apple-system, Segoe UI, sans-serif" font-size="18" fill="rgba(255,255,255,0.5)">平替 Photoshop / Figma / Paint.NET · Tauri v2 + Rust + Vue 3 · openpaint.dev</text>
+
+  <!-- 版本徽章 -->
+  <g transform="translate(1020,540)">
+    <rect x="0" y="0" width="100" height="32" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" />
+    <text x="50" y="21" font-family="ui-monospace, SF Mono, monospace" font-size="14" font-weight="600" fill="rgba(255,255,255,0.7)" text-anchor="middle">v0.1.0</text>
+  </g>
+</svg>
