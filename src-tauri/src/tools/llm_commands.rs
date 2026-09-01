@@ -128,17 +128,22 @@ pub struct ProviderInfo {
 /// 1. 列出可用 Provider
 #[tauri::command]
 pub async fn list_providers() -> Result<Vec<ProviderInfo>, String> {
-    // 顺序就是用户在设置下拉里看到的顺序；需要优先曝光哪些提供商，
-    // 直接调整这里即可，不用再手动同步 ProviderInfo 字段。
+    // 顺序就是用户在设置面板里看到的顺序；以国内大模型优先曝光
+    // （DeepSeek / Qwen / Zhipu / Kimi / Doubao / MiniMax），海外大模型
+    // （OpenAI / Anthropic）排在其后，本地离线（Ollama）压轴。这样国内用户
+    // 开箱就能看到自己熟悉的服务，海外/本地选项放在后面也不脱离金径。
     Ok(vec![
-        LlmProvider::Openai.as_info(),
-        LlmProvider::Anthropic.as_info(),
+        // 国内优先（OpenAI 兼容接口 / 主流云平台）
         LlmProvider::Deepseek.as_info(),
         LlmProvider::Qwen.as_info(),
         LlmProvider::Zhipu.as_info(),
         LlmProvider::Moonshot.as_info(),
         LlmProvider::Doubao.as_info(),
         LlmProvider::Minimax.as_info(),
+        // 海外主流
+        LlmProvider::Openai.as_info(),
+        LlmProvider::Anthropic.as_info(),
+        // 本地离线压轴
         LlmProvider::Ollama.as_info(),
     ])
 }

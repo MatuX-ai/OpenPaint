@@ -27,7 +27,10 @@ const llmHighlight = computed(() => uiStore.llmSettingsHighlight);
 
 const providers = ref<LlmProviderInfo[]>([]);
 const loadingProviders = ref(false);
-const currentProvider = ref<LlmProviderId>('openai');
+// 默认选中 DeepSeek：与后端 list_providers 的“国内优先”顺序保持一致，
+// 减少国内用户首次打开设置面板时的额外点击。用户在弹窗加载完成后会被实际
+// 保存在配置文件中的设置覆盖。
+const currentProvider = ref<LlmProviderId>('deepseek');
 const showKey = ref(false);
 const saving = ref(false);
 const errorMsg = ref('');
@@ -41,7 +44,7 @@ interface DraftForm {
 }
 
 const form = reactive<DraftForm>({
-  provider: 'openai',
+  provider: 'deepseek',
   apiKey: '',
   endpoint: '',
   model: '',
@@ -66,6 +69,54 @@ const DOMESTIC_PROVIDERS: ReadonlySet<LlmProviderId> = new Set<LlmProviderId>([
 function isDomestic(id: LlmProviderId): boolean {
   return DOMESTIC_PROVIDERS.has(id);
 }
+
+// 按分组组织 providers：分组后仍保持后端返回顺序（国内优先/海外次之/本地压轴），
+// 并为每组附上说明文案，以区分浏览边界与特点。
+interface ProviderGroup {
+  key: 'cn' | 'foreign' | 'local';
+  title: string;
+  hint: string;
+  items: LlmProviderInfo[];
+}
+
+const groupedProviders = computed<ProviderGroup[]>(() => {
+  const list = providers.value;
+  if (!list.length) return [];
+  const cn: LlmProviderInfo[] = [];
+  const foreign: LlmProviderInfo[] = [];
+  const local: LlmProviderInfo[] = [];
+  for (const p of list) {
+    if (!p.requires_api_key && p.id === 'ollama') local.push(p);
+    else if (DOMESTIC_PROVIDERS.has(p.id as LlmProviderId)) cn.push(p);
+    else foreign.push(p);
+  }
+  const groups: ProviderGroup[] = [];
+  if (cn.length) {
+    groups.push({
+      key: 'cn',
+      title: '国内大模型',
+      hint: '默认推荐 · 开箱可用 · 覆盖中文创作 / 视觉生成主流场景',
+      items: cn,
+    });
+  }
+  if (foreign.length) {
+    groups.push({
+      key: 'foreign',
+      title: '海外大模型',
+      hint: '需要跨境网络，推理在境外数据中心',
+      items: foreign,
+    });
+  }
+  if (local.length) {
+    groups.push({
+      key: 'local',
+      title: '本地离线',
+      hint: '使用本地 Ollama / llama.cpp 推理，完全离线',
+      items: local,
+    });
+  }
+  return groups;
+});
 
 watch(visible, async (open) => {
   if (!open) return;
@@ -209,30 +260,48 @@ async function save() {
             <div class="settings-modal__field">
               <label class="settings-modal__label">Provider</label>
               <div class="settings-modal__providers" :aria-busy="loadingProviders">
-                <button
-                  v-for="p in providers"
-                  :key="p.id"
-                  type="button"
-                  class="settings-modal__provider-chip"
-                  :class="{ 'is-active': form.provider === p.id }"
-                  :disabled="loadingProviders"
-                  @click="pickProvider(p.id)"
+                <div
+                  v-for="group in groupedProviders"
+                  :key="group.key"
+                  class="settings-modal__provider-group"
+                  :data-region="group.key"
                 >
-                  <span class="settings-modal__provider-name">{{ p.label }}</span>
-                  <span
-                    v-if="!p.requires_api_key"
-                    class="settings-modal__provider-badge settings-modal__provider-badge--local"
-                  >
-                    本地
-                  </span>
-                  <span
-                    v-else-if="isDomestic(p.id)"
-                    class="settings-modal__provider-badge settings-modal__provider-badge--cn"
-                  >
-                    国内
-                  </span>
-                  <span class="settings-modal__provider-model">{{ p.default_model }}</span>
-                </button>
+                  <div class="settings-modal__provider-group-head">
+                    <span class="settings-modal__provider-group-title">{{ group.title }}</span>
+                    <span class="settings-modal__provider-group-hint">{{ group.hint }}</span>
+                  </div>
+                  <div class="settings-modal__provider-grid">
+                    <button
+                      v-for="p in group.items"
+                      :key="p.id"
+                      type="button"
+                      class="settings-modal__provider-chip"
+                      :class="{
+                        'is-active': form.provider === p.id,
+                        'is-recommended': group.key === 'cn',
+                      }"
+                      :disabled="loadingProviders"
+                      :data-provider-id="p.id"
+                      :data-region="group.key"
+                      @click="pickProvider(p.id)"
+                    >
+                      <span class="settings-modal__provider-name">{{ p.label }}</span>
+                      <span
+                        v-if="!p.requires_api_key"
+                        class="settings-modal__provider-badge settings-modal__provider-badge--local"
+                      >
+                        本地
+                      </span>
+                      <span
+                        v-else-if="isDomestic(p.id)"
+                        class="settings-modal__provider-badge settings-modal__provider-badge--cn"
+                      >
+                        国内
+                      </span>
+                      <span class="settings-modal__provider-model">{{ p.default_model }}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -413,8 +482,58 @@ async function save() {
   }
 
   &__providers {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__provider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &[data-region='cn'] {
+      // 国内大模型取默认配色加上一道细圈提升优先感，但不靠饱和色压眼。
+      padding: 10px;
+      border: 1px dashed rgba(214, 51, 108, 0.35);
+      border-radius: var(--radius);
+      background: rgba(214, 51, 108, 0.04);
+    }
+  }
+
+  &__provider-group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__provider-group-title {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.4px;
+
+    [data-region='cn'] & {
+      color: #d6336c;
+    }
+
+    [data-region='foreign'] &,
+    [data-region='local'] & {
+      color: var(--text-secondary);
+    }
+  }
+
+  &__provider-group-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  &__provider-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 8px;
   }
 
@@ -434,11 +553,18 @@ async function save() {
     transition:
       background var(--transition-fast),
       color var(--transition-fast),
-      border-color var(--transition-fast);
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
 
     &:hover:not(:disabled) {
       color: var(--text-primary);
       border-color: var(--accent);
+    }
+
+    &.is-recommended:not(.is-active) {
+      // 国内默认推荐的 chip 用一道极淡的色边提醒，但不抢点击事件位置。
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 0 0 1px rgba(214, 51, 108, 0.15);
     }
 
     &.is-active {

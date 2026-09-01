@@ -12,10 +12,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
+import type * as ApiIndex from '@api/index';
+import type * as Runtime from '@api/runtime';
 
 // stub canvasApi / galleryApi
 vi.mock('@api/index', async () => {
-  const actual = await vi.importActual<typeof import('@api/index')>('@api/index');
+  const actual = await vi.importActual('@api/index') as typeof ApiIndex;
   return {
     ...actual,
     canvasApi: {
@@ -51,7 +53,7 @@ vi.mock('@api/index', async () => {
 
 // stub runtime isTauri: 默认 desktop
 vi.mock('@api/runtime', async () => {
-  const actual = await vi.importActual<typeof import('@api/runtime')>('@api/runtime');
+  const actual = await vi.importActual('@api/runtime') as typeof Runtime;
   return {
     ...actual,
     isTauri: () => true,

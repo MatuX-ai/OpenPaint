@@ -143,6 +143,32 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   list_gallery: () => [],
   search_gallery: () => ({ items: [], total: 0 }),
   get_gallery_image: () => ({ item: null, png_base64: undefined }),
+
+  // LLM / provider (UI-only stubs in web preview)
+  // 顺序以国内优先，与后端 list_providers 保持一致：
+  // 国内 OpenAI 兼容：DeepSeek / Qwen / Zhipu / Kimi / Doubao / MiniMax
+  // 海外：OpenAI / Anthropic；本地压轴：Ollama。
+  list_providers: () => [
+    { id: 'deepseek', label: 'DeepSeek', default_endpoint: 'https://api.deepseek.com/v1', default_model: 'deepseek-chat', requires_api_key: true },
+    { id: 'qwen', label: '通义千问 (Qwen / 阿里云)', default_endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1', default_model: 'qwen-plus', requires_api_key: true },
+    { id: 'zhipu', label: '智谱 GLM', default_endpoint: 'https://open.bigmodel.cn/api/paas/v4', default_model: 'glm-4-plus', requires_api_key: true },
+    { id: 'moonshot', label: '月之暗面 (Kimi)', default_endpoint: 'https://api.moonshot.cn/v1', default_model: 'moonshot-v1-8k', requires_api_key: true },
+    { id: 'doubao', label: '豆包 (火山引擎 / 字节)', default_endpoint: 'https://ark.cn-beijing.volces.com/api/v3', default_model: 'doubao-pro-32k', requires_api_key: true },
+    { id: 'minimax', label: 'MiniMax (MiniMax)', default_endpoint: 'https://api.minimaxi.chat/v1', default_model: 'MiniMax-Text-01', requires_api_key: true },
+    { id: 'openai', label: 'OpenAI', default_endpoint: 'https://api.openai.com/v1', default_model: 'gpt-4o', requires_api_key: true },
+    { id: 'anthropic', label: 'Anthropic Claude', default_endpoint: 'https://api.anthropic.com/v1', default_model: 'claude-3-5-sonnet-20241022', requires_api_key: true },
+    { id: 'ollama', label: 'Ollama (本地)', default_endpoint: 'http://localhost:11434', default_model: 'llama3.1', requires_api_key: false },
+  ],
+  get_provider_config: () => ({
+    // web preview mock 与国内优先顺序对齐：默认未配置时显示 DeepSeek
+    // （后端 list_providers 的第一项），方便首次打开就能看到推荐选项。
+    provider: 'deepseek',
+    api_key: null,
+    endpoint: 'https://api.deepseek.com/v1',
+    model: 'deepseek-chat',
+  } as unknown as { provider: string; api_key: string | null; endpoint: string; model: string }),
+  set_provider: () => undefined,
+  set_api_key: () => undefined,
 };
 
 /**

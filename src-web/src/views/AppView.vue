@@ -293,7 +293,7 @@ onBeforeUnmount(() => {
   <div class="app-view">
     <MainLayout />
     <OnboardingCard
-      v-if="onboarding.shouldShowMainCard.value"
+      v-show="onboarding.shouldShowMainCard.value"
       @new="onOnboardingNew"
       @open="onOnboardingOpen"
       @ai="onOnboardingAi"
@@ -304,19 +304,21 @@ onBeforeUnmount(() => {
   <SettingsModal />
   <ToastContainer />
 
-  <NewCanvasDialog :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
-  <ExportDialog :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
+  <NewCanvasDialog v-show="newCanvasOpen" :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
+  <ExportDialog v-show="exportOpen" :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
   <BatchExportDialog
+    v-show="batchExportOpen"
     :open="batchExportOpen"
     @update:open="batchExportOpen = $event"
     @confirm="onBatchExportConfirm"
   />
   <UnsavedConfirmDialog
+    v-show="unsavedOpen"
     :open="unsavedOpen"
     @update:open="unsavedOpen = $event"
     @decide="onUnsavedDecide"
   />
-  <KeyboardCheatsheet :open="cheatsheetOpen" @update:open="cheatsheetOpen = $event" />
+  <KeyboardCheatsheet v-show="cheatsheetOpen" :open="cheatsheetOpen" @update:open="cheatsheetOpen = $event" />
 </template>
 
 <style lang="scss">
