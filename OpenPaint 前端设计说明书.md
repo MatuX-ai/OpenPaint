@@ -374,6 +374,74 @@ export const useOpenPencil = () => {
 - **虚拟滚动**：使用 `vue-virtual-scroller` 库，只渲染可视区域缩略图。
 - **缩略图缓存**：浏览器缓存缩略图图片（设置 `Cache-Control`）。
 
+### 6.5 ResourceTabs.vue（资源二级 Tab，W10）
+
+**职责**：
+
+- 在 `LeftSidebar` 折叠 / 展开状态下统一渲染「图标 / 画刷 / 调色板」三类资源的二级 tab。
+- 持久化当前选中的 tab 到 `localStorage` key `openpaint:resource-tab-mode`。
+- 在离线模式下显示「⚠️ 离线模式：仅显示已缓存的图标」顶部提示。
+
+**组件契约**：
+
+```ts
+// 接收 + 发出
+const mode = ref<'icons' | 'brushes' | 'palette'>('icons');
+// 内部状态（持久化）
+const persistedMode = useLocalStorage('openpaint:resource-tab-mode', 'icons');
+```
+
+### 6.6 BrushPanel.vue（画刷宫格，W10）
+
+**职责**：
+
+- 显示 8 个画刷缩略图网格（4×2），从 `assetApi.listBrushAssets()` 加载 PNG base64。
+- 点击画刷 → 调 `useAssets.setActiveBrush(id)` + `canvasStore.setActiveBrush(id)` + `recordAssetEvent('brush_switch')`。
+- 顶部「AI 生成画刷」按钮调 `create_brush_from_prompt`（v0.2 返回 stub 提示）。
+
+**组件契约**：
+
+```ts
+const assets = useAssets().brushAssets;
+const activeId = useAssets().activeBrushId;
+function onPickBrush(id: string): void;
+```
+
+### 6.7 PalettePanel.vue（调色板 + 渐变 chip，W10）
+
+**职责**：
+
+- 顶部 chip 切换「调色板 / 渐变」两种视图。
+- 调色板视图：4 套横排（每套 10 个色块），点击色块 → 调 `applyPalette(id, 'swatch_bar')` 或 `applyPalette(id, 'replace_color')`。
+- 渐变视图：16 个缩略图（用 CSS `linear-gradient` / `radial-gradient` / `conic-gradient` 渲染预览），点击 → 调 `applyGradient(id, 1.0)`。
+
+### 6.8 ToolCallCard.vue（AI 工具调用卡片，W10）
+
+**职责**：
+
+- 在 AI 助理浮窗内显示一次工具调用（attribution 区分 agent / user）。
+- `attribution="agent"` 时显示 `🤖 AI` tag + `tool-call-card--agent` 强调样式。
+- 接收 `toolName: string` + `args: Record<string, unknown>` + `result: string`。
+
+### 6.9 SettingsModal.vue（设置面板，W11）
+
+**职责**：
+
+- 两个 section：「大模型接入」 + 「资源与第三方署名」。
+- 资源 section 包含：
+  - **CDN 镜像下拉**：3 个 chip（default / jsdelivr / fastly），调 `useAssetsConfig.setCdnMirror()`。
+  - **第三方资源署名列表**：6 套图标集 + License + 是否需署名 + 官网链接。
+- toast 反馈：CDN 切换成功 / 失败。
+
+### 6.10 useAssetsConfig composable（W11）
+
+**职责**：
+
+- 封装 `get_assets_config` / `set_assets_config` IPC。
+- 暴露 `config: Ref<AssetsConfig>` / `setCdnMirror(mirror)` / `markAttributionShown()` / `refresh()`。
+- `setCdnMirror` 失败时回滚 UI 状态 + 抛错给 toast。
+- 并发 refresh 共享同一 inflight promise（避免重复 IPC）。
+
 ---
 
 ## 7. 状态管理（Pinia）

@@ -279,6 +279,54 @@ OpenPencil 的 MCP 服务器已支持 `export_png` 等工具，可直接复用�
 | `save_to_gallery`      | 保存图片到图库                  | `image_data: string, tags: string[], group_id?: string` | `{ record_id }`                   |
 | `search_gallery`       | 按标签/关键词搜索图库           | `query: string, limit?: int`                            | `GalleryItem[]`                   |
 | `get_gallery_image`    | 按 ID 获取图库原图              | `record_id: string`                                     | `{ image_data: string }`          |
+| `search_icons`         | 按关键词搜索图标（Iconify 集成）  | `query: string, style?: string, category?: string, limit?: int` | `{ icons: IconMeta[], total, has_more }` |
+| `render_icon_svg`      | 把图标 ID 渲染为指定尺寸/颜色 SVG（带本地缓存） | `prefix: string, name: string, color?: string, size?: int` | `{ svg, width, height, from_cache }` |
+| `apply_palette`        | 应用调色板到图层（swatch_bar / replace_color） | `palette_id: string, mode?: string, layer_id?: string, replace_hex?: string` | `{ applied_colors, stroke_count, mode }` |
+| `apply_gradient`       | 应用渐变预设到图层（16 个 SVG 渐变） | `gradient_id: string, layer_id?: string, opacity?: number` | `{ gradient_id, gradient_type, stop_count, bytes_written }` |
+| `create_brush_from_prompt` | AI 生成画刷（v0.2 stub；v0.3 真实实现） | `prompt: string, name?: string` | `{ status: "not_implemented", message: "AI brush generation available in v0.3" }` |
+
+#### 3.4.4 资产库子模块（W9 + W10 + W11）
+
+**图标（Iconify）**
+
+- 索引：`assets/iconify/index.json` 内置精简版（~ 12 KB / 83 图标，覆盖 6 套 prefix）。
+- 缓存：完整 SVG body 在用户首次访问时按需下载，写到 `~/.openpaint/icon-cache/{prefix}/{name}.json`。
+- CDN 镜像：`AssetsConfig.cdn_mirror` 控制 base URL，取值 `default` (api.iconify.design) / `jsdelivr` (cdn.jsdelivr.net/npm/@iconify) / `fastly` (api.fastly.iconify.design)。
+
+**画刷**
+
+- 8 个内置 PNG（256×256 RGBA），路径 `assets/brushes/*.png`。
+- `BrushPreset` 结构体：`{ id, name_zh, name_en, file_name, category, default_radius, falloff }`。
+- 通过 `builtin_brushes()` 函数（`OnceLock<Box<[BrushPreset]>>` 缓存）返回静态切片，避免 `const fn` 限制。
+
+**调色板**
+
+- 4 套 JSON（Material / Tailwind / Pastel / Mono），每套 10 色。
+- 应用模式 `swatch_bar`：在图层底部追加 32px 色条（不破坏现有像素）；`replace_color`：HSV 距离替换图层主色像素。
+
+**渐变**
+
+- 16 个预设（8 linear + 5 radial + 3 conic）写在 `assets/gradients/presets.json`。
+- 用 resvg 0.48 把 SVG `<linearGradient>` / `<radialGradient>` / `<conicGradient>` 渲染到图层尺寸，写回 `paste_image_to_layer` 路径。
+
+**离线检测 + 状态持久化**
+
+- `icon_commands::probe_online_now()` 每次缓存未命中远程拉取后异步触发（30s 节流 + 10s 超时）。
+- 结果写到 `~/.openpaint/asset-state.json`（`{ online, last_check_at, last_error }`）。
+- IPC `get_asset_state` 返回该状态；前端 `useAssets.isOnline` 暴露。
+
+**本地遥测**
+
+- `~/.openpaint/telemetry/assets.json` 累计 6 个事件：`search_icons` / `search_icons_cache_hit` / `import_icon` / `apply_palette` / `apply_gradient` / `brush_switch`。
+- IPC `record_asset_event(event)` 增量；`get_assets_telemetry` 读取快照。
+- **仅本地追加，不外发**。
+
+**资源配置 + 第三方署名**
+
+- `AssetsConfig` 结构：`{ cdn_mirror: String, attribution_notice_shown: bool }`。
+- IPC `get_assets_config` / `set_assets_config` 双向同步 Rust 配置 + 前端 `useAssetsConfig` 缓存。
+- 设置 → 资源：CDN 镜像 3 选 1（default / jsdelivr / fastly）；设置 → 关于：第三方资源署名页（6 套图标集 + License + 是否需署名）。
+- 首次启动 toast：`useOnboarding.shouldShowAttributionToast`，dismiss 后写 `attribution_notice_shown=true`（localStorage + Rust config 双向同步）。
 
 #### 3.4.3 工具实现示例 (Rust)
 

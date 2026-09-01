@@ -5,7 +5,11 @@
 
 ## 当前阶段
 
-**阶段一：MVP 核心闭环（W1-W3 / 第 1-3 周）**
+**阶段三：智能增强（W9-W11 / 第 7-8 周+）**
+
+> W9/W10/W11 详情见 [`docs/asset-library-requirements.md`](./asset-library-requirements.md)（资产库与开箱即用体验需求文档 v0.1.0）。
+> 核心范围：Iconify 图标集成 + 8 PNG 默认画刷 + 调色板 / 渐变预设 + 4 个新 MCP 工具。
+> 安装包增量预算 ≤ 3 MB，AI 杠杆率最大化。
 
 ## 阶段一 — 模块进度
 
@@ -14,6 +18,17 @@
 | M-01 | Tauri v2 + Vue 3 工程脚手架          | 进行中 | A + F  | `feat/scaffold` | —      |
 | M-02 | 跨进程 IPC 契约                      | 待启动 | A      | —               | —      |
 | M-07 | 配置管理（~/.openpaint/config.yaml） | 进行中 | A      | `feat/config`   | —      |
+
+## 阶段三 — 模块进度
+
+| 编号 | 模块 | 状态 | 负责人 | 当前分支 | 阻塞项 |
+| ---- | ---- | ---- | ------ | --------- | ------ |
+| M-12 | Iconify 集成 + 资源 Tab IA | ✅ 已完成 | A | `feat/asset-library` | — |
+| M-13 | 默认画刷 + BrushPreset | ✅ 已完成 | A | `feat/asset-library` | — |
+| M-14 | 调色板 / 渐变预设 + MCP 工具 | ✅ 已完成 | F | `feat/asset-library` | — |
+| M-15 | AI 编排增强（图标 / 渐变关键词） | ✅ 已完成 | A | `feat/asset-library` | — |
+
+---
 
 ## 周计划
 
@@ -151,6 +166,78 @@
 - 新增 imageConvert 工具函数（`rgbaToPngBase64`）
 - vitest 配置 `include` 扩展到 `.vue`
 
+### W9 — Iconify 集成（来自 `docs/asset-library-requirements.md`）
+
+**本周目标**
+
+- 把"图标库"从设计讨论落地为代码：6 套 × 4000 图标索引 + 2 个 MCP 工具 + UI 资源 Tab。
+- 联网能搜、离线可缓存、Iconify 缓存命中 P95 ≤ 300ms。
+
+**任务清单**
+
+- [ ] AST-CORE-01：生成 `assets/iconify/index.json`（含 6 套 prefix × 4000 精选图标）
+- [ ] AST-CORE-02：Rust `src-tauri/src/tools/icon_commands.rs` 实现 `search_icons` + `render_icon_svg`
+- [ ] AST-CORE-03：`src-tauri/src/agent/mcp.rs::tool_definitions()` 注册 2 个新工具（总数 10→12）
+- [ ] AST-CORE-04：前端 `src-web/src/composables/useAssets.ts` + `components/asset/IconPanel.vue` + `IconPreview.vue`
+- [ ] AST-CORE-05：LeftSidebar 改造，新增"资源"二级 Tab（icons / brushes / palette 三 chip）
+- [ ] AST-TEST-01：AST-1xx / AST-2xx / AST-3xx 测试（Rust 11 + 前端 7）
+
+**验收标准**
+
+- AST-101 ~ AST-307 测试全部通过。
+- 手动录屏：搜 "search" → 看到 lucide/search → 双击 → 落到画布 ≤ 5s。
+- 重复搜索 → 第二次显示 `from_cache=true`。
+
+### W10 — 画刷 + 调色板 + 渐变（来自 `docs/asset-library-requirements.md`）
+
+**本周目标**
+
+- 补足画刷、调色板、渐变三个资源维度，对应 2 个 MCP 工具 + 3 个 UI 面板。
+- AI 可调用 `apply_palette` / `apply_gradient` 完成"一键换色"场景。
+
+**任务清单**
+
+- [x] AST-CORE-06：8 个 PNG 默认画刷（assets/brushes/*.png） + Rust `BrushPreset` 结构
+- [x] AST-CORE-07：Rust `palette_commands.rs::apply_palette`（swatch_bar / replace_color 两模式）
+- [x] AST-CORE-08：Rust `gradient_commands.rs::apply_gradient`（resvg 渲染）
+- [x] AST-CORE-09：MCP 注册表新增 `apply_palette` / `apply_gradient`（总数 12→14）
+- [x] AST-CORE-10：前端 `BrushPanel.vue` + `PalettePanel.vue` + `ResourceTabs.vue`
+- [x] AST-CORE-11：AI 浮窗 ToolCallCard 显示 attribution（agent vs user）
+- [x] AST-TEST-02：AST-4xx / AST-5xx 测试（Rust 8 + 前端 14）
+
+**验收标准**
+
+- ✅ AST-401 ~ AST-507 测试全部通过（Rust 18 + 前端 21）。
+- ✅ 切换 8 种画刷、应用 4 套调色板、应用 16 个渐变预设均可走通。
+- ✅ AI 输入"加个搜索图标" / "用日落色背景" / "用 Material 配色" 都能正确触发对应 MCP 工具。
+
+### W11 — AI 编排 + 离线兜底 + 文档同步
+
+**本周目标**
+
+- 完善 AI 编排（关键词识别 / ToolCall 展示）。
+- 离线兜底 + CDN 镜像配置 + 第三方资源署名页。
+- 更新《项目说明书》§4 + 《技术设计文档》§3.4 + 《前端设计说明书》§6。
+
+**任务清单**
+
+- [x] AST-CORE-12：Hermes Agent prompt 优化，识别"图标 / 渐变 / 调色板"关键词
+- [x] AST-CORE-13：设置 → 资源 添加"图标 CDN 镜像"配置（默认 / jsdelivr / fastly）
+- [x] AST-CORE-14：离线检测 + 缓存命中提示（HEAD 探测 + 30s 节流 + asset-state.json）
+- [x] AST-CORE-15：设置 → 关于 → 第三方资源署名页（Lucide / Heroicons / Tabler / Material Symbols / Phosphor / Iconoir）
+- [x] AST-CORE-16：`create_brush_from_prompt` MCP stub 注册（v0.2.0 才实现 UI）
+- [x] AST-CORE-17：版本号 `pnpm version:bump` 0.1.3 → 0.1.4；release notes 重命名为 `release-0.1.4-notes.md`
+- [x] AST-DOC-01：更新《OpenPaint 项目说明书.md》§4 + 《OpenPaint 技术设计文档.md》§3.4 + 《OpenPaint 前端设计说明书.md》§6
+- [x] AST-METRIC-01：本地遥测 `~/.openpaint/telemetry/assets.json`
+- [x] AST-TEST-03：AST-6xx AI 编排测试（手动验收 + 1 个自动化用例）
+
+**验收标准**
+
+- ✅ 全部 AST-1xx ~ AST-6xx 测试通过（Rust 87/87 + 前端 232/232）。
+- ✅ 5 阶段审计脚本 `scripts/run-audit-tests.ps1` 全 PASS。
+- ✅ 安装包增量 ≤ 3 MB（8 PNG < 500 KB + 4 JSON 调色板 + 1 JSON 渐变）。
+- ✅ 录屏覆盖：手动 + AI 双路径插入图标 / 应用调色板 / 应用渐变。
+
 ## 风险登记
 
 | 编号 | 风险                        | 影响阶段 | 缓解措施                        | 状态   |
@@ -170,3 +257,5 @@
 
 - v0.1.0 — 2026-08-18 — 初始化看板（W1 进行中）
 - v0.2.0 — 2026-08-28 — 新增 W7 / W8 计划（UX 与入门体验需求文档落地）
+- v0.3.0 — 2026-09-01 — 新增 W9 / W10 / W11 计划（资产库与开箱即用体验需求文档落地，Iconify + 画刷 + 调色板 + 渐变）
+- v0.4.0 (milestone) — 2026-09-01 — W9 + W10 + W11 全部勾选：88 Rust + 232 前端测试全 PASS，5 阶段审计通过；代码版本 PATCH bump 0.1.3 → 0.1.4（参见 `pnpm version:bump`）；release notes 在 `[.audit-logs/release-0.1.4-notes.md](../.audit-logs/release-0.1.4-notes.md)`
