@@ -547,10 +547,7 @@ pub fn mock_chat_reply(message: &str) -> String {
     }
 
     // 2) 快捷键
-    if raw.contains("快捷键")
-        || lower.contains("shortcut")
-        || raw.contains("速查")
-        || raw == "?"
+    if raw.contains("快捷键") || lower.contains("shortcut") || raw.contains("速查") || raw == "?"
     {
         return "**OpenPaint 常用快捷键**\n\n\
 | 操作 | Win/Linux | macOS |\n| --- | --- | --- |\n\
@@ -560,7 +557,8 @@ pub fn mock_chat_reply(message: &str) -> String {
 | 撤销 | Ctrl + Z | ⌘ + Z |\n\
 | 重做 | Ctrl + Shift + Z | ⇧⌘ + Z |\n\
 | 速查面板 | ? | ? |\n\n\
-随时按 ? 唤起完整速查。".into();
+随时按 ? 唤起完整速查。"
+            .into();
     }
 
     // 3) 画布
@@ -570,7 +568,8 @@ pub fn mock_chat_reply(message: &str) -> String {
 • **选区**：矩形 / 椭圆 / 套索 / 魔棒\n\
 • **工具**：画笔 / 橡皮 / 填充 / 渐变 / 文字\n\
 • **历史**：无限撤销，所有操作可还原\n\n\
-试试左侧工具栏画一笔，或按 B 切换画笔。".into();
+试试左侧工具栏画一笔，或按 B 切换画笔。"
+            .into();
     }
 
     // 4) 画笔 / 笔刷
@@ -579,7 +578,8 @@ pub fn mock_chat_reply(message: &str) -> String {
 • 9 种内置笔刷：圆头 / 铅笔 / 水彩 / 马克笔 / 喷枪 / 蜡笔 / 钢笔 / 毛笔 / 像素\n\
 • 尺寸、硬度、不透明度、流量可调\n\
 • 笔刷预设保存到 assets/brushes/\n\n\
-AI 笔刷生成（描述一句话自动创建笔刷）将在 v0.3 上线。".into();
+AI 笔刷生成（描述一句话自动创建笔刷）将在 v0.3 上线。"
+            .into();
     }
 
     // 5) 图标 / 色板 / 渐变
@@ -588,19 +588,22 @@ AI 笔刷生成（描述一句话自动创建笔刷）将在 v0.3 上线。".int
 • 内置 200+ 图标（基于 Iconify 聚合，按 lucide / material / tabler 等集分类）\n\
 • 右侧「图标」面板可直接拖入画布\n\
 • 模拟模式下无法调用 search_icons 工具；配置真实大模型后可以\"按描述搜图标\"\n\n\
-资产路径：`src-web/src/components/iconify/`。".into();
+资产路径：`src-web/src/components/iconify/`。"
+            .into();
     }
     if raw.contains("色板") || raw.contains("调色板") || lower.contains("palette") {
         return "**色板资产库**\n\n\
 • 4 套内置：Material / Tailwind / Pastel / Mono\n\
 • 右侧「色板」面板可一键应用到选区或整个图层\n\
-• 自定义色板：JSON 放在 assets/palettes/ 即可被自动加载".into();
+• 自定义色板：JSON 放在 assets/palettes/ 即可被自动加载"
+            .into();
     }
     if raw.contains("渐变") || lower.contains("gradient") {
         return "**渐变资产库**\n\n\
 • 内置 6 种：linear-sunset / radial-glow / conic-rainbow / linear-ocean / radial-mint / mono-step\n\
 • 右侧「渐变」面板可填充到形状或文字\n\
-• 自定义渐变：YAML 放在 assets/gradients/ 即可".into();
+• 自定义渐变：YAML 放在 assets/gradients/ 即可"
+            .into();
     }
 
     // 6) 模型 / 配置
@@ -610,7 +613,8 @@ AI 笔刷生成（描述一句话自动创建笔刷）将在 v0.3 上线。".int
 • 国内：DeepSeek / 通义千问 / 智谱 GLM / 月之暗面 Kimi / 豆包 / MiniMax\n\
 • 海外：OpenAI / Anthropic Claude\n\
 • 本地：Ollama（完全离线）\n\n\
-切换：右下角**偏好 → AI 模型**，自配 API Key 即可。".into();
+切换：右下角**偏好 → AI 模型**，自配 API Key 即可。"
+            .into();
     }
 
     // 兜底
