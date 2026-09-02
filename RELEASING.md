@@ -181,7 +181,7 @@ git push origin v0.2.0
 pnpm tauri build --bundles deb,appimage
 
 # Windows（在 Windows 上）
-pnpm tauri build --bundles msi,nsis
+pnpm tauri build --bundles msi --bundles nsis
 
 # macOS（在 macOS 上）
 pnpm tauri build --bundles dmg,app

@@ -2,18 +2,19 @@
 # OpenPaint 发布脚本（Windows PowerShell）
 # ============================================================
 # 用法：
+#   .\release.ps1 build     # 本地构建 Windows MSI 与 NSIS 安装包
 #   .\release.ps1 verify   # 发布前检查：版本一致性 + 关键文件
 #   .\release.ps1 commit   # 按逻辑拆分执行 7 个提交（幂等，无变更自动跳过）
 #   .\release.ps1 publish  # 打 tag 并推送，触发 GitHub Release workflow
 #   .\release.ps1          # 等价于 verify + commit + publish 全流程
 #
-# 依赖：git、node（Windows 原生 PowerShell）
+# 依赖：git、node、pnpm（Windows 原生 PowerShell）
 # 提交规范：见 .commitlintrc.yml（type/scope/长度均受限）
 # ============================================================
 
 [CmdletBinding()]
 param(
-    [string]$Command = 'all'   # verify | commit | publish | all
+    [string]$Command = 'all'   # verify | build | commit | publish | all
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,6 +64,26 @@ function Check-Preconditions {
     if ($LASTEXITCODE -ne 0) {
         Write-Warn "未配置 origin remote，请先: git remote add origin $REPO.git"
     }
+}
+
+# ------------------------------------------------------------
+# 构建 Windows 安装包
+# ------------------------------------------------------------
+function Invoke-WindowsBuild {
+    Write-Host "==> 构建 Windows MSI 与 NSIS 安装包..."
+
+    if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+        Write-Fail "未找到 pnpm"
+    }
+
+    pnpm build:web
+    if ($LASTEXITCODE -ne 0) { Write-Fail "前端构建失败" }
+
+    # pnpm 在 Windows 上会把逗号分隔的参数合并为一个参数；使用独立选项保留两个值。
+    pnpm tauri build --bundles msi --bundles nsis
+    if ($LASTEXITCODE -ne 0) { Write-Fail "Windows 安装包构建失败" }
+
+    Write-Info "安装包已生成于 src-tauri/target/release/bundle/"
 }
 
 # ------------------------------------------------------------
@@ -184,6 +205,7 @@ function Invoke-Publish {
 # ------------------------------------------------------------
 switch ($Command) {
     'verify'  { Check-Preconditions }
+    'build'   { Invoke-WindowsBuild }
     'commit'  { Invoke-CommitSteps }
     'publish' { Invoke-Publish }
     'all' {
@@ -191,7 +213,7 @@ switch ($Command) {
         Invoke-CommitSteps
         Invoke-Publish
     }
-    default { Write-Fail "用法: .\release.ps1 {verify|commit|publish}" }
+    default { Write-Fail "用法: .\release.ps1 {verify|build|commit|publish}" }
 }
 
 Write-Host "[✓] 完成" -ForegroundColor Green

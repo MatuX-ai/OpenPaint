@@ -203,7 +203,8 @@ jobs:
 
       - name: Build Tauri (Windows)
         shell: bash
-        run: pnpm tauri build --bundles=msi,nsis
+        # Use separate flags because pnpm's Windows shim normalizes comma-separated values.
+        run: pnpm tauri build --bundles msi --bundles nsis
 
       - name: Sign Windows binaries (Authenticode)
         if: ${{ env.OPENPAINT_CERT_PFX != '' && env.OPENPAINT_CERT_PASSWORD != '' }}
