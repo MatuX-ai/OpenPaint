@@ -14,9 +14,14 @@ use crate::state::AppState;
 /// 涵盖 OpenAI / Anthropic 以及国内主流 OpenAI 兼容服务（DeepSeek、
 /// 通义千问 DashScope、智谱 BigModel、月之暗面、火山引擎豆包、MiniMax）。
 /// 自定义协议厂商（文心、讯飞、腾讯混元等）暂不接入，需要独立 SDK。
+///
+/// W12 VDP-MOCK-01：Mock 是 W12 引入的零配置占位 Provider，无需 API Key、
+/// 无外网请求，本地规则模板即可应答，主要用于首启引导流和 Web 预览。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum LlmProvider {
+    /// W12 VDP-MOCK-01：本地规则模板占位。零配置、零费用、零外发。
+    Mock,
     Openai,
     Anthropic,
     Deepseek,
@@ -36,6 +41,7 @@ pub enum LlmProvider {
 impl LlmProvider {
     pub fn id(&self) -> &'static str {
         match self {
+            LlmProvider::Mock => "mock",
             LlmProvider::Openai => "openai",
             LlmProvider::Anthropic => "anthropic",
             LlmProvider::Deepseek => "deepseek",
@@ -50,6 +56,7 @@ impl LlmProvider {
 
     pub fn label(&self) -> &'static str {
         match self {
+            LlmProvider::Mock => "模拟模式（零配置演示）",
             LlmProvider::Openai => "OpenAI",
             LlmProvider::Anthropic => "Anthropic Claude",
             LlmProvider::Deepseek => "DeepSeek",
@@ -64,6 +71,7 @@ impl LlmProvider {
 
     pub fn default_endpoint(&self) -> &'static str {
         match self {
+            LlmProvider::Mock => "(本地模板，不发起网络请求)",
             LlmProvider::Openai => "https://api.openai.com/v1",
             LlmProvider::Anthropic => "https://api.anthropic.com/v1",
             LlmProvider::Deepseek => "https://api.deepseek.com/v1",
@@ -81,6 +89,7 @@ impl LlmProvider {
 
     pub fn default_model(&self) -> &'static str {
         match self {
+            LlmProvider::Mock => "mock-v1",
             LlmProvider::Openai => "gpt-4o",
             LlmProvider::Anthropic => "claude-3-5-sonnet-20241022",
             LlmProvider::Deepseek => "deepseek-chat",
@@ -94,14 +103,14 @@ impl LlmProvider {
     }
 
     /// 汇总该 Provider 对前端展示所需的全部元数据。
-    /// Ollama 本地部署无需 API Key，其他云端服务都需要。
+    /// Ollama 本地部署无需 API Key，W12 VDP-MOCK-01 Mock 占位亦然。
     pub fn as_info(&self) -> ProviderInfo {
         ProviderInfo {
             id: self.id().into(),
             label: self.label().into(),
             default_endpoint: self.default_endpoint().into(),
             default_model: self.default_model().into(),
-            requires_api_key: !matches!(self, LlmProvider::Ollama),
+            requires_api_key: !matches!(self, LlmProvider::Ollama | LlmProvider::Mock),
         }
     }
 }
@@ -133,6 +142,8 @@ pub async fn list_providers() -> Result<Vec<ProviderInfo>, String> {
     // （OpenAI / Anthropic）排在其后，本地离线（Ollama）压轴。这样国内用户
     // 开箱就能看到自己熟悉的服务，海外/本地选项放在后面也不脱离金径。
     Ok(vec![
+        // W12 VDP-MOCK-01：模拟模式置顶——零配置即可进入创作。
+        LlmProvider::Mock.as_info(),
         // 国内优先（OpenAI 兼容接口 / 主流云平台）
         LlmProvider::Deepseek.as_info(),
         LlmProvider::Qwen.as_info(),
@@ -163,6 +174,7 @@ pub async fn set_provider(state: State<'_, AppState>, provider: LlmProvider) -> 
 pub async fn get_provider_config(state: State<'_, AppState>) -> Result<ProviderConfig, String> {
     let config = state.config.read();
     let provider = match config.llm.provider.as_str() {
+        "mock" => LlmProvider::Mock,
         "anthropic" => LlmProvider::Anthropic,
         "deepseek" => LlmProvider::Deepseek,
         "ollama" => LlmProvider::Ollama,
