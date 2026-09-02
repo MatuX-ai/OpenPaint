@@ -1,14 +1,16 @@
 /**
- * Onboarding state — 首次启动引导卡 / 已读 hint 记录。
+ * Onboarding state — 首启动引导卡 / 已读 hint 记录。
  *
  * 用法：
  *  - `useOnboarding().shouldShowMainCard` 控制 `OnboardingCard` 是否显示。
- *  - 三选项卡（新建 / 打开 / AI 帮忙画）任何一个被点选后调
- *    `markCompleted()`，24h 内不再展示。
+ *  - 四选项卡（新建 / 打开 / AI 帮忙画 / 先用模拟模式）任何一个被点选后调
+ *    `markCompleted()`，进入隐藏态。
  *  - 画布有内容（layerList.length > 0）时 `shouldShowMainCard` 也返回 false。
  *  - "帮助 → 入门引导" 调 `reset()` 强制重新显示。
  *  - W11-B4：`shouldShowAttributionToast` + `dismissAttributionToast()`
- *    负责首次启动的资源署名提示（与三选项卡独立）。
+ *    负责首启动的资源署名提示（与四选项卡独立）。
+ *
+ * W12 VDP-UI-04：首启（completed=false）无视 lastShownAt 立即显示。
  *
  * 持久化：localStorage key `openpaint:onboarding`。
  *
@@ -19,8 +21,6 @@ import { ref, computed } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
 
 const STORAGE_KEY = 'openpaint:onboarding';
-const SUPPRESS_HOURS = 24;
-const SUPPRESS_MS = SUPPRESS_HOURS * 60 * 60 * 1000;
 
 export interface OnboardingState {
   /** 全部完成过三选项之一 */
@@ -161,14 +161,14 @@ export function useOnboarding() {
     markAttributionShown();
   }
 
+  // W12 VDP-UI-04：首启（completed=false）无视 lastShownAt 立即显示。
+  // 避免“用户启动后不选任何选项 · 下次启动 24h 内不弹”造成重复错误引导。
   const shouldShowMainCard = computed(() => {
     if (state.value.forceShow) return true;
     if (state.value.completed) return false;
     const canvasStore = useCanvasStore();
     if (canvasStore.layerList.length > 0) return false;
-    const last = state.value.lastShownAt;
-    if (last === null) return true;
-    return Date.now() - last > SUPPRESS_MS;
+    return true;
   });
 
   return {

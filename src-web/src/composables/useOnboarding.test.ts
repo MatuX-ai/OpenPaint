@@ -33,7 +33,7 @@ describe('useOnboarding', () => {
     expect(o.shouldShowMainCard.value).toBe(true);
   });
 
-  it('after markCompleted, card hides for 24h', async () => {
+  it('after markCompleted, card hides permanently until reset', async () => {
     const o = await load();
     o.markCompleted();
     expect(o.shouldShowMainCard.value).toBe(false);
@@ -85,19 +85,20 @@ describe('useOnboarding', () => {
     expect(parsed.completed).toBe(true);
   });
 
-  it('within 24h throttle window, re-show is suppressed', async () => {
+  // W12 VDP-UI-04：completed=false 无视 lastShownAt 立即显示。
+  // 避免“用户启动后不选任何选项 · 下次启动 24h 内不弹”造成重复错误引导。
+  it('completed=false ignores lastShownAt (first-launch priority)', async () => {
     const o = await load();
-    // 先冻结到 t0，记录 shownAt = t0
     const t0 = 1_000_000;
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(t0);
     o.recordShown();
-    // 现在推进到 t0 + 1h（不到 24h）
+    // 推进 1 小时：旧逻辑会隐藏，新逻辑仍显示。
     nowSpy.mockReturnValue(t0 + 60 * 60 * 1000);
-    expect(o.shouldShowMainCard.value).toBe(false);
+    expect(o.shouldShowMainCard.value).toBe(true);
     nowSpy.mockRestore();
   });
 
-  it('past 24h window, card shows again', async () => {
+  it('completed=false 且超过 24h 仍立即显示（VDP-UI-04）', async () => {
     const o = await load();
     const t0 = 1_000_000;
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(t0);
