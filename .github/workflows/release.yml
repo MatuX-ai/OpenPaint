@@ -365,7 +365,9 @@ jobs:
       - name: List collected assets
         run: |
           echo "=== Collected assets ==="
-          find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.app" -o -name "*.deb" \) -printf "%p  %s bytes\n" | sort
+          find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" \) -printf "%p  %s bytes\n" | sort
+          echo "=== ARTIFACTS DIR TREE ==="
+          ls -laR artifacts/ || true
 
       - name: Publish draft release
         uses: softprops/action-gh-release@v2
@@ -373,10 +375,12 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: true
           generate_release_notes: false
+          # 用具体路径（避免 globstar 在不同 Node glob lib 行为不一致）。
+          # artifacts/<name>/<original-path> 是 actions/download-artifact@v4 的解压结构。
           files: |
-            artifacts/**/*.msi
-            artifacts/**/*.exe
-            artifacts/**/*.dmg
-            artifacts/**/*.deb
-          # .app 是目录，不能直接 attach；用 zip 包装
-          fail_on_unmatched_files: false
+            artifacts/openpaint-windows/*.msi
+            artifacts/openpaint-windows/*.exe
+            artifacts/openpaint-macos/*.dmg
+            artifacts/openpaint-macos/*.deb
+          # .app 是目录，不能直接 attach；用 zip 包装（先忽略）
+          fail_on_unmatched_files: true
