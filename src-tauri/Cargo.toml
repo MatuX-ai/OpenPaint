@@ -4,7 +4,7 @@
 
 [package]
 name = "openpaint"
-version = "0.1.4"
+version = "0.2.0"
 description = "OpenPaint — 开源 AI 原生设计工作台"
 authors = ["OpenPaint Contributors"]
 edition = "2021"
