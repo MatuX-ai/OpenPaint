@@ -72,8 +72,9 @@ pub fn run() {
                 warn!("Failed to initialize config: {}", e);
             }
 
-            // Phase 1 placeholder: log that three-column layout is ready
-            info!("OpenPaint scaffold ready. Three-column layout pending.");
+            // W12 VDP-UI-05：三栏布局已真正落地（LeftSidebar + Canvas + RightSidebar
+            // + AI Assistant 默认展开，详见 src-web/src/views/AppView.vue）。
+            info!("OpenPaint scaffold ready. Three-column layout active.");
 
             Ok(())
         })
