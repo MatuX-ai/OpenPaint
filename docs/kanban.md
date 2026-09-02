@@ -11,6 +11,15 @@
 > 核心范围：Iconify 图标集成 + 8 PNG 默认画刷 + 调色板 / 渐变预设 + 4 个新 MCP 工具。
 > 安装包增量预算 ≤ 3 MB，AI 杠杆率最大化。
 
+**阶段三 收尾 + 阶段四 启动（W12）**
+
+> W12 详情见下方 [W12 — 首屏价值密度前置](#w12--首屏价值密度前置)。
+> 核心动机：当前桌面端首屏呈现更像"设置器"而非"AI 设计工作台"，违反
+> [`docs/ux-onboarding-requirements.md`](./ux-onboarding-requirements.md) §3.1
+> 与"非技术用户首屏体验优化原则"（memory 522f67a9）。需要在不动 Tauri 架构
+> （前端 webview 已经内置）的前提下，通过 UI 拆分 + 引导流升级 + 零配置 Mock
+> 把"首次启动→画一笔 + AI 闭环"路径压到 ≤30 秒。
+
 ## 阶段一 — 模块进度
 
 | 编号 | 模块                                 | 状态   | 负责人 | 当前分支        | 阻塞项 |
@@ -27,6 +36,7 @@
 | M-13 | 默认画刷 + BrushPreset | ✅ 已完成 | A | `feat/asset-library` | — |
 | M-14 | 调色板 / 渐变预设 + MCP 工具 | ✅ 已完成 | F | `feat/asset-library` | — |
 | M-15 | AI 编排增强（图标 / 渐变关键词） | ✅ 已完成 | A | `feat/asset-library` | — |
+| M-16 | 首屏价值密度前置（QuickPreferences + 引导流 + Mock 模式） | 待启动 | A + F | `feat/value-density` | — |
 
 ---
 
@@ -238,6 +248,60 @@
 - ✅ 安装包增量 ≤ 3 MB（8 PNG < 500 KB + 4 JSON 调色板 + 1 JSON 渐变）。
 - ✅ 录屏覆盖：手动 + AI 双路径插入图标 / 应用调色板 / 应用渐变。
 
+### W12 — 首屏价值密度前置
+
+**本周目标**
+
+- 解决首屏“设置器感”问题：在不动 Tauri 架构（前端 webview 已内置）的前提下，重排首屏价值密度。
+- 拆分 [`src-web/src/components/settings/SettingsModal.vue`](../../src-web/src/components/settings/SettingsModal.vue)（1054 行）→ QuickPreferences（齿轮入口 · 3 项） + AdvancedSettings（菜单深处 · 完整 LLM Provider）。
+- 升级 [`src-web/src/components/onboarding/OnboardingCard.vue`](../../src-web/src/components/onboarding/OnboardingCard.vue) 为首启引导流，新增“🪄 先用模拟模式体验”入口（零配置 Mock）。
+- 三栏布局正式落地：清除 [`src-tauri/src/lib.rs#L76`](../../src-tauri/src/lib.rs) “Three-column layout pending” 占位 log。
+- 形态边界清晰化：桌面端跳过 Landing 走引导流；Web 端 Landing 以“下载桌面端”为主 CTA，“在线试用”为次。
+
+**与现有规范对齐**
+
+- 遵守 memory 522f67a9（非技术用户首屏体验优化原则）：首屏呈现核心价值、首次启动走引导流、零配置 Mock 模式。
+- 遵守 memory 5fb0af13（桌面端程序 UX 验收规范）：5 阶段自动化审计 + Browser Agent 截图视觉验证。
+- 遵守 memory 73f660f2（渐进式开发与占位策略）：Mock 模式作为 LLM Provider 的“本地规则模板占位”，与 OpenPencil 现状同类。
+
+**任务清单**
+
+- [ ] VDP-UI-01：新增 [`QuickPreferences.vue`](../../src-web/src/components/settings/QuickPreferences.vue)（齿轮入口，仅 3 项：主题 / 当前 AI 模型只读 + 更换跳转 / 数据存储位置）。
+- [ ] VDP-UI-02：将现有 `SettingsModal.vue` 重命名为 [`AdvancedSettings.vue`](../../src-web/src/components/settings/AdvancedSettings.vue)；保留 `useLlmConfig` / `useAssetsConfig` 接口签名不变。
+- [ ] VDP-UI-03：升级 `OnboardingCard.vue`：保留原三选项（新建 / 打开 / 让 AI 来画），新增第四项“🪄 先用模拟模式体验完整功能”；新增事件 `ai-free`。
+- [ ] VDP-UI-04：调整 [`useOnboarding.ts`](../../src-web/src/composables/useOnboarding.ts) `shouldShowMainCard`：首启 优先于 画布为空（不依赖 24h 节流）。
+- [ ] VDP-UI-05：三栏布局真正落地：LeftSidebar + Canvas + RightSidebar + AI Assistant 默认展开；移除 `src-tauri/src/lib.rs#L76` 的 pending log。
+- [ ] VDP-MOCK-01：Rust [`tools::llm_commands`](../../src-tauri/src/tools/llm_commands.rs) 新增 `'mock'` provider：`list_providers()` 返回项 `requires_api_key=false, is_builtin=true`；`agent_chat` 在 provider='mock' 时走本地规则模板（返回固定 JSON：调色板 / 形状 / 文案），不发起外部 HTTP。
+- [ ] VDP-MOCK-02：[`useLlmConfig.ts`](../../src-web/src/composables/useLlmConfig.ts) 增加 `effectiveProvider`：未配置时回落到 `'mock'`；[`AIAssistant.vue`](../../src-web/src/components/assistant/AIAssistant.vue) 顶部加 banner “当前为模拟模式，结果是预设模板 · [切换真实模型]”（仅在 effective 为 mock 时显示）。
+- [ ] VDP-MOCK-03：OnboardingCard 的 `ai-free` 事件：`setProvider('mock')` → `markCompleted()` → 自动发送欢迎消息 “嗨，我是模拟 AI，试试让我画个 logo” 到 AI 助理面板。
+- [ ] VDP-DOC-01：[`README.md`](../../README.md) 重排：把首屏“⚙️ 配置大模型”挪到“→ 高级”；新增“30 秒上手”段。
+- [ ] VDP-DOC-02：[`OpenPaint 前端设计说明书.md`](../../OpenPaint%20前端设计说明书.md) 新增 §X “桌面 vs Web 双形态”：明确桌面端 webview 已内置，区别仅在首屏路径。
+- [ ] VDP-WEB-01：[`LandingView.vue`](../../src-web/src/views/LandingView.vue) CTA 重排：主按钮“下载桌面端（推荐）”、次按钮“在线试用（功能受限）”。
+- [ ] VDP-WEB-02：Web 端 `/app` 顶部横幅 “Web 预览模式 · 部分功能仅桌面端可用”（通过 `isTauri()` 反向判断）。
+- [ ] VDP-TEST-01：QuickPreferences 组件渲染测试（≤3 项断言）。
+- [ ] VDP-TEST-02：OnboardingCard 第四按钮 + ai-free 事件测试。
+- [ ] VDP-TEST-03：Mock provider 行为测试（Rust：list_providers 含 mock、agent_chat 不发起 HTTP；前端：useLlmConfig.effectiveProvider 回退）。
+- [ ] VDP-TEST-04：5 阶段审计脚本全 PASS（工具自检 / Rust 单测 / Vitest / type-check / ESLint）。
+- [ ] VDP-TEST-05：Browser Agent 视觉验证（首屏截图：三栏可见 / 无 Provider 列表 / 引导卡四点 / QuickPreferences 入口正确）。
+
+**验收标准**
+
+- 全新安装 → 启动 → 30 秒内看到 “画布 + AI 闭环”，全程不强制配 Key（零配置路径打通）。
+- 桌面端首屏不再出现任何 LLM Provider / API Key / “配置” 字样（VDP-TEST-05 截图核对）。
+- QuickPreferences 入口仅 3 项（主题 / AI 模型 / 数据位置）；“更换模型” → AdvancedSettings。
+- AdvancedSettings 仅从 `文件 → 偏好 → 高级…` 进入，普通用户路径不会触达。
+- Mock 模式下断网可用；代码路径验证无外部 HTTP 调用（VDP-TEST-03）。
+- VDP-1xx ~ VDP-3xx 测试全部通过（预计新增 12 前端 + 6 Rust）。
+- ESLint 警告不上升；`pnpm type-check` 与 `cargo test` 全部 ✅。
+- Browser Agent 视觉验证三组截图覆盖：① 首启引导卡四点 · ② 进入画布后三栏 + 右侧 AI banner · ③ QuickPreferences 仅 3 项。
+
+**风险 / 注意点**
+
+- SettingsModal 拆分需保留 `useLlmConfig` / `useAssetsConfig` 的对外接口；仅换 UI 包装层，避免主流程重构。
+- OnboardingCard 触发频率调高可能干扰老用户 → 保留 `useOnboarding.forceShow` 显式触发作为闸门。
+- Mock 输出太机械可能让用户误以为是 bug → AI 输出加 “⚠ 这是模拟结果” 水印；banner 明确告知当前为模拟模式。
+- 三栏布局在 <1024px 窗口下拥挤 → 复用 [`useResize.ts`](../../src-web/src/composables/useResize.ts) 现有折叠逻辑。
+
 ## 风险登记
 
 | 编号 | 风险                        | 影响阶段 | 缓解措施                        | 状态   |
@@ -246,6 +310,7 @@
 | R-02 | OpenPencil Vue SDK 未提供   | 阶段一   | 评估后降级 iframe + postMessage | 待评估 |
 | R-03 | 4K 画布 60fps 难达成        | 阶段一   | W2 做性能基线，必要时升级 Skia  | 待观察 |
 | R-04 | UX 入门体验缺失导致弃用     | W7-W8    | 落地 [`docs/ux-onboarding-requirements.md`](./ux-onboarding-requirements.md) | 已规划 |
+| R-05 | 首屏呈现更像“设置器”而非“AI 设计工作台”，违反非技术用户友好性要求（memory 69dff43a） | W12 | 拆分 SettingsModal · 引导流升级 · 三栏布局落地 · 零配置 Mock 模式（详见 W12） | 待跟进 |
 
 ## 会议节奏
 
@@ -259,3 +324,4 @@
 - v0.2.0 — 2026-08-28 — 新增 W7 / W8 计划（UX 与入门体验需求文档落地）
 - v0.3.0 — 2026-09-01 — 新增 W9 / W10 / W11 计划（资产库与开箱即用体验需求文档落地，Iconify + 画刷 + 调色板 + 渐变）
 - v0.4.0 (milestone) — 2026-09-01 — W9 + W10 + W11 全部勾选：88 Rust + 232 前端测试全 PASS，5 阶段审计通过；代码版本 PATCH bump 0.1.3 → 0.1.4（参见 `pnpm version:bump`）；release notes 在 `[.audit-logs/release-0.1.4-notes.md](../.audit-logs/release-0.1.4-notes.md)`
+- v0.5.0 — 2026-09-02 — 新增 W12 计划（首屏价值密度前置）：拆分 SettingsModal · OnboardingCard 引导流升级 · 三栏布局落地 · 零配置 Mock 模式 · 桌面/Web 形态差异化；同步新增模块 M-16 与风险 R-05。本提交只变更 `docs/kanban.md`，不涉及代码与发版。
