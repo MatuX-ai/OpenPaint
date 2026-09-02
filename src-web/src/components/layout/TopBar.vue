@@ -142,9 +142,10 @@ async function onSave() {
       <button
         class="top-bar__btn"
         type="button"
-        title="设置"
-        aria-label="设置"
-        @click="uiStore.toggleSettings"
+        title="偏好（Quick Preferences）"
+        aria-label="偏好"
+        data-testid="top-bar-quick-preferences"
+        @click="uiStore.openQuickPreferences"
       >
         <Settings :size="16" />
       </button>
