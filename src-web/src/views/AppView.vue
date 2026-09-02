@@ -10,7 +10,12 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import MainLayout from '@/components/layout/MainLayout.vue';
 import AIAssistant from '@/components/assistant/AIAssistant.vue';
-import SettingsModal from '@/components/settings/SettingsModal.vue';
+// W12 VDP-WEB-01：Web 端顶部横幅（推荐桌面版）。组件内部用 isTauri() 自决渲染，
+// 这里无需 v-if 包裹。
+// W12 VDP-UI-01/02：拆分 SettingsModal → QuickPreferences（齿轮入口）
+// + AdvancedSettings（菜单深处）。两种面板都通过 uiStore 控制显示。
+import QuickPreferences from '@/components/settings/QuickPreferences.vue';
+import AdvancedSettings from '@/components/settings/AdvancedSettings.vue';
 import OnboardingCard from '@/components/onboarding/OnboardingCard.vue';
 import ToastContainer from '@/components/common/ToastContainer.vue';
 import NewCanvasDialog from '@/components/canvas/NewCanvasDialog.vue';
@@ -25,10 +30,14 @@ import { useFileActions } from '@composables/useFileActions';
 import { useDocumentState } from '@composables/useDocumentState';
 import { useUIStore } from '@stores/uiStore';
 import { useCanvasStore } from '@stores/canvasStore';
+import { useChatStore } from '@stores/chatStore';
 import { useShortcuts } from '@composables/useShortcuts';
 import { useToast } from '@composables/useToast';
 import { rgbaToPngBase64 } from '@utils/imageConvert';
-import { canvasApi } from '@api/index';
+import { llmApi, canvasApi } from '@api/index';
+import { mockChatReply } from '@composables/mockChatReply';
+import { uuid } from '@utils/helpers';
+import WebPreviewBanner from '@/components/web/WebPreviewBanner.vue';
 
 const runningInTauri = isTauri();
 const onboarding = useOnboarding();
@@ -37,6 +46,7 @@ const files = useFileActions();
 const doc = useDocumentState();
 const uiStore = useUIStore();
 const canvasStore = useCanvasStore();
+const chatStore = useChatStore();
 const shortcuts = useShortcuts();
 const toast = useToast();
 
@@ -47,7 +57,7 @@ const batchExportOpen = ref(false);
 const unsavedOpen = ref(false);
 const cheatsheetOpen = ref(false);
 
-// Onboarding 引导：3 选项触发后调哪个 action
+// Onboarding 引导：4 选项触发后调哪个 action
 function onOnboardingNew() {
   newCanvasOpen.value = true;
 }
@@ -57,6 +67,35 @@ function onOnboardingOpen() {
 function onOnboardingAi() {
   uiStore.assistantVisible = true;
   toast.info('在右下角 AI 助理中描述你想要的设计');
+}
+
+// W12 VDP-MOCK-04：先用模拟模式按钮 handler。
+// 真正切换 Provider 到 mock，刷新 useLlmConfig，并在 AI 助理面板
+// 推送一条欢迎消息，让首启用户立即感受到对话体验。
+async function onOnboardingAiFree() {
+  uiStore.assistantVisible = true;
+  try {
+    await llmApi.setProvider('mock');
+    toast.success('已切换到模拟模式');
+  } catch (e) {
+    console.warn('[onOnboardingAiFree] setProvider failed:', e);
+    toast.error('切换模拟模式失败：' + String(e));
+    return;
+  }
+  // 刷新 useLlmConfig，让 isMock / isReady 重新计算。
+  try {
+    const { useLlmConfig } = await import('@composables/useLlmConfig');
+    await useLlmConfig().refresh();
+  } catch (e) {
+    console.warn('[onOnboardingAiFree] refresh llm config failed:', e);
+  }
+  // 推送欢迎消息到对话区。
+  chatStore.appendMessage({
+    id: uuid(),
+    timestamp: Date.now(),
+    role: 'assistant',
+    content: mockChatReply('你好'),
+  });
 }
 
 // ---- Menu actions registration ----
@@ -283,12 +322,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="!runningInTauri" class="web-preview-banner" role="status">
-    OpenPaint Web Preview · interactive demo of the desktop app ·
-    <a href="https://github.com/MatuX-ai/OpenPaint/releases" target="_blank" rel="noopener">
-      Download desktop
-    </a>
-  </div>
+  <!--
+    W12 VDP-WEB-01：Web 端顶部横幅（推荐桌面版）。组件内部检测 isTauri()，
+    Tauri 桌面环境下自动不显示，普通浏览器 SPA / Vercel 预览会显示。
+  -->
+  <WebPreviewBanner />
 
   <div class="app-view">
     <MainLayout />
@@ -297,11 +335,13 @@ onBeforeUnmount(() => {
       @new="onOnboardingNew"
       @open="onOnboardingOpen"
       @ai="onOnboardingAi"
+      @ai-free="onOnboardingAiFree"
     />
   </div>
 
   <AIAssistant />
-  <SettingsModal />
+  <QuickPreferences v-show="uiStore.quickPreferencesVisible" />
+  <AdvancedSettings v-show="uiStore.advancedSettingsVisible" />
   <ToastContainer />
 
   <NewCanvasDialog v-show="newCanvasOpen" :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
@@ -328,29 +368,11 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-.web-preview-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-  padding: 6px 12px;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #1f2937;
-  background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
-  border-bottom: 1px solid #f59e0b;
-
-  a {
-    color: #92400e;
-    font-weight: 600;
-    text-decoration: underline;
-    margin-left: 4px;
-  }
-}
-
+/*
+ * W12 VDP-WEB-01：Web 端为横幅预留高度（横幅自身高度 + 8px 缓冲）。
+ * 桌面端不需此 padding。
+ */
 :root[data-runtime='web-preview'] #app {
-  padding-top: 28px;
+  padding-top: 56px;
 }
 </style>
