@@ -11,6 +11,7 @@ import { createPinia } from 'pinia';
 
 import App from './App.vue';
 import router from './router';
+import { isTauri } from '@api/runtime';
 
 /** 样式（必须在 createApp 之前导入，这样全局变量 / 字体被 Vue 的样式系统接管） */
 import '@/assets/styles/reset.scss';
@@ -74,10 +75,21 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // wry 已经启动 webview 才会有此 JS 运行——Rust 端已经走过 WebView2 完整性检测。
 // 这里再查一遭走兜底：WebView2 < 109 版本或 wry 退化路径生效时，chrome.webview 会缺失。
+//
+// W12 VDP-WEB-01 fix：在纯浏览器（Web Preview / Vercel）模式下，window.chrome.webview
+// 必然不存在，必须软失败（仅 console.warn）而不是 throw / render fatal——否则整个 SPA
+// 会白屏，web 端“30 秒上手”的入口直接坏掉。WebView2 完整性检查仅在 Tauri 环境下生效。
 const wv2Ready = ensureWebView2Ready();
 if (!wv2Ready.ok) {
-  renderErrorToDom('WebView2 Runtime 异常', wv2Ready.reason);
-  throw new Error(wv2Ready.reason);
+  if (isTauri()) {
+    renderErrorToDom('WebView2 Runtime 异常', wv2Ready.reason);
+    throw new Error(wv2Ready.reason);
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[OpenPaint] Web Preview 模式：window.chrome.webview 未注入是预期行为，跳过 WebView2 检测。',
+    );
+  }
 }
 
 const app = createApp(App);
