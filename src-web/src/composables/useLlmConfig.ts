@@ -4,9 +4,13 @@
  * Exposes a reactive `isReady` flag plus a `refresh()` action so the
  * AI assistant panel can show a friendly "not configured" empty state
  * until the user wires up a provider + API key in Settings.
+ *
+ * W12 VDP-MOCK-03：新增 `isMock` getter，让 useAgent 与 AIAssistant
+ * 知道当前 Provider 是零配置占位，进而绕过 IPC 走本地规则模板
+ * （或直接告诉用户「这是模拟模式」）。
  */
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { llmApi, isLlmConfigured } from '@api/index';
 import type { LlmProviderConfig } from '@api/index';
 
@@ -43,5 +47,12 @@ export function useLlmConfig() {
   if (!loaded.value && !inflight) {
     void refresh();
   }
-  return { providerConfig, isReady, loaded, refresh };
+  return {
+    providerConfig,
+    isReady,
+    loaded,
+    refresh,
+    /** W12 VDP-MOCK-03：当前 Provider 是否为模拟模式。 */
+    isMock: computed(() => providerConfig.value?.provider === 'mock'),
+  };
 }

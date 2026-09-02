@@ -349,6 +349,8 @@ export const aiApi = {
 // ----------------------------------------------------------------
 
 export type LlmProviderId =
+  // W12 VDP-MOCK-01：模拟模式置顶。零配置、零费用、零外发。
+  | 'mock'
   | 'openai'
   | 'anthropic'
   | 'deepseek'
@@ -377,8 +379,8 @@ export interface LlmProviderConfig {
 /** True when the current provider is configured and ready to use. */
 export function isLlmConfigured(cfg: LlmProviderConfig | null): boolean {
   if (!cfg) return false;
-  // Ollama is the only provider that doesn't need an API key.
-  if (cfg.provider === 'ollama') return true;
+  // Ollama 本地部署 + W12 VDP-MOCK-01 模拟模式均无需 API Key。
+  if (cfg.provider === 'ollama' || cfg.provider === 'mock') return true;
   return !!cfg.api_key && cfg.api_key.trim().length > 0;
 }
 

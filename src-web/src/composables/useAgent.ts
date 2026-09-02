@@ -4,10 +4,16 @@
  * Wraps `agentApi.chat` and keeps `chatStore` in sync. When the agent
  * returns an image payload (via `ai-generation-complete` event or an
  * embedded preview), it surfaces it through the UI store's preview modal.
+ *
+ * W12 VDP-MOCK-03：当 useLlmConfig.isMock 为 true 时，send/sendWithSelection
+ * 不发 IPC，直接调用前端 mockChatReply 返回规则模板。确保 Web 预览 / 未配
+ * Key 时也能拿到确定性的回复。
  */
 
 import { useChatStore } from '@stores/chatStore';
 import { useUIStore } from '@stores/uiStore';
+import { useLlmConfig } from '@composables/useLlmConfig';
+import { mockChatReply } from '@composables/mockChatReply';
 import { agentApi, canvasToolsApi } from '@api/index';
 import { uuid } from '@utils/helpers';
 import type { ChatMessage, ToolCall } from '@/types/agent';
@@ -22,6 +28,7 @@ export interface UseAgentReturn {
 export function useAgent(): UseAgentReturn {
   const store = useChatStore();
   const uiStore = useUIStore();
+  const { isMock } = useLlmConfig();
 
   function pushMessage(msg: Omit<ChatMessage, 'id' | 'timestamp'>) {
     store.appendMessage({
@@ -36,6 +43,11 @@ export function useAgent(): UseAgentReturn {
     pushMessage({ role: 'user', content: text });
     store.setProcessing(true);
     try {
+      // W12 VDP-MOCK-03：模拟模式短路返回本地规则模板。
+      if (isMock.value) {
+        pushMessage({ role: 'assistant', content: mockChatReply(text) });
+        return;
+      }
       const response = await agentApi.chat(text);
       const toolCalls: ToolCall[] | undefined = response.toolCalls?.map((tc) => ({
         ...tc,

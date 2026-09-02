@@ -12,6 +12,8 @@ import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
 import ThinkingIndicator from './ThinkingIndicator.vue';
 import PreviewModal from './PreviewModal.vue';
+// W12 VDP-MOCK-03：模拟模式横幅，仅在当前 Provider 为 mock 时显示。
+import MockModeBanner from './MockModeBanner.vue';
 
 const uiStore = useUIStore();
 const { store, sendWithSelection } = useAgent();
@@ -60,10 +62,10 @@ async function onSend(text: string) {
   scrollToBottom();
 }
 
-// "打开设置"：UX-A07 — 打开设置对话框，并让 LLM provider 区在 8s 内高亮指引。
-function openSettings() {
-  uiStore.openSettings();
-  uiStore.highlightLlmSettings();
+// W12 VDP-UI-01：未配置 LLM 时点 CTA 进入 QuickPreferences（齿轮入口）。
+// QuickPreferences 仅 3 项快速偏好；如需切换模型可从内部“更换 AI 模型…” 跳转 AdvancedSettings。
+function openQuickPreferences() {
+  uiStore.openQuickPreferences();
 }
 </script>
 
@@ -84,6 +86,9 @@ function openSettings() {
       </div>
     </header>
 
+    <!-- W12 VDP-MOCK-03：模拟模式横幅（条件渲染）。 -->
+    <MockModeBanner />
+
     <div ref="scrollRef" class="ai-assistant__messages">
       <!-- 还在加载后端配置时不闪烁：留空容器让用户感知到加载中。 -->
       <div v-if="!llmLoaded" class="ai-assistant__empty">
@@ -100,16 +105,16 @@ function openSettings() {
           嗨，老板，还没有接入 {{ llmLabel }}，我还无法工作
         </p>
         <p class="ai-assistant__empty-hint">
-          需要先配置 OpenAI / Anthropic / DeepSeek / Ollama 之一，点击下方按钮直达 LLM 接入面板。
+          需要先配置 OpenAI / Anthropic / DeepSeek / Ollama 之一，点击下方按钮直达偏好面板。
         </p>
         <button
           type="button"
           class="ai-assistant__settings-link"
-          aria-label="打开 LLM 设置"
-          @click="openSettings"
+          aria-label="打开偏好"
+          @click="openQuickPreferences"
         >
           <SettingsIcon :size="13" />
-          <span>打开设置</span>
+          <span>打开偏好</span>
         </button>
       </div>
 
