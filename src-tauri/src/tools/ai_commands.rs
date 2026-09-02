@@ -121,8 +121,17 @@ pub async fn render_svg_to_png(
 }
 
 /// 3. 与 Hermes Agent 对话
+///
+/// W12 VDP-MOCK-02：当活跃 Provider 为 mock 时，跳过 Agent / LLM HTTP，
+/// 直接返回本地规则模板。这样首启用户和 Web 预览用户即使没配 Key
+/// 也能体验完整对话流程，不会被 404 / 401 错误劝退。
 #[tauri::command]
 pub async fn agent_chat(state: State<'_, AppState>, message: String) -> Result<String, String> {
+    let llm = state.config.read().llm.clone();
+    if parse_provider(&llm.provider) == LlmProvider::Mock {
+        info!("agent_chat: short-circuit to mock template");
+        return Ok(mock_chat_reply(&message));
+    }
     let agent = AgentManager::global();
     agent
         .chat(&state.app_handle, &message)
@@ -245,6 +254,12 @@ async fn call_llm(llm: &LlmConfig, image_data: &str, prompt: &str) -> Result<Str
         llm.local_model
             .clone()
             .unwrap_or_else(|| "llama3.1".to_string())
+    } else if provider == LlmProvider::Mock {
+        // W12 VDP-MOCK-01：mock 不需要真实 model，但仍走 local_model 字段
+        // 兼容老的 local_model 配置，避免编译器 exhaustive 警告。
+        llm.local_model
+            .clone()
+            .unwrap_or_else(|| "mock-v1".to_string())
     } else {
         llm.model.clone()
     };
@@ -255,6 +270,8 @@ async fn call_llm(llm: &LlmConfig, image_data: &str, prompt: &str) -> Result<Str
         .map_err(|e| anyhow!("http client: {}", e))?;
 
     match provider {
+        // W12 VDP-MOCK-01：模拟模式不发起任何网络请求。
+        LlmProvider::Mock => Ok(mock_svg_for(prompt)),
         LlmProvider::Anthropic => {
             call_anthropic(
                 &client,
@@ -483,14 +500,7 @@ pub fn extract_svg_from_markdown(content: &str) -> Option<String> {
 
 /// Mock 降级响应
 fn mock_response(prompt: &str) -> AiEngineResponse {
-    let mock_svg = format!(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#4a90e2"/>
-  <circle cx="256" cy="256" r="120" fill="#fff" opacity="0.8"/>
-  <text x="256" y="270" font-size="32" text-anchor="middle" fill="#333">{}</text>
-</svg>"##,
-        prompt.chars().take(8).collect::<String>()
-    );
+    let mock_svg = mock_svg_for(prompt);
     let png = render_svg_to_png_internal(&mock_svg, 512, 512).unwrap_or_default();
     AiEngineResponse {
         svg: mock_svg,
@@ -500,8 +510,124 @@ fn mock_response(prompt: &str) -> AiEngineResponse {
     }
 }
 
+/// W12 VDP-MOCK-01：提取 mock SVG 字符串供 call_llm / send_to_ai_engine 共用。
+fn mock_svg_for(prompt: &str) -> String {
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#4a90e2"/>
+  <circle cx="256" cy="256" r="120" fill="#fff" opacity="0.8"/>
+  <text x="256" y="270" font-size="32" text-anchor="middle" fill="#333">{}</text>
+</svg>"##,
+        prompt.chars().take(8).collect::<String>()
+    )
+}
+
+/// W12 VDP-MOCK-02：模拟模式聊天规则模板。
+///
+/// 按关键词匹配返回有教育价值的真实信息，不假装是真人 AI。
+/// 兜底回复引导用户了解快捷键 / 画布 / 图标等可演示主题，
+/// 或在偏好面板里切换真实大模型。
+pub fn mock_chat_reply(message: &str) -> String {
+    let raw = message.trim();
+    let lower = raw.to_lowercase();
+
+    // 1) 问候
+    if lower.starts_with("hi")
+        || lower.starts_with("hello")
+        || lower.starts_with("hey")
+        || raw.contains("你好")
+        || raw.contains("您好")
+    {
+        return "你好！我是 OpenPaint 的 **模拟 AI 助手**。\n\n\
+• 不联网、不计费，0 延迟回复\n\
+• 可演示：快捷键、画布工具、图标/色板/渐变资产库入口\n\
+• 不支持：复杂生成、图像理解、多轮工具调用\n\n\
+试试问我「介绍一下快捷键」或「画笔有几种」。要更强能力？在右下角打开**偏好 → AI 模型**切换即可。"
+            .into();
+    }
+
+    // 2) 快捷键
+    if raw.contains("快捷键")
+        || lower.contains("shortcut")
+        || raw.contains("速查")
+        || raw == "?"
+    {
+        return "**OpenPaint 常用快捷键**\n\n\
+| 操作 | Win/Linux | macOS |\n| --- | --- | --- |\n\
+| 新建 | Ctrl + N | ⌘ + N |\n\
+| 打开 | Ctrl + O | ⌘ + O |\n\
+| 保存 | Ctrl + S | ⌘ + S |\n\
+| 撤销 | Ctrl + Z | ⌘ + Z |\n\
+| 重做 | Ctrl + Shift + Z | ⇧⌘ + Z |\n\
+| 速查面板 | ? | ? |\n\n\
+随时按 ? 唤起完整速查。".into();
+    }
+
+    // 3) 画布
+    if raw.contains("画布") || lower.contains("canvas") {
+        return "中央画布支持：\n\n\
+• **图层**：添加 / 删除 / 重排 / 锁定 / 可见性切换\n\
+• **选区**：矩形 / 椭圆 / 套索 / 魔棒\n\
+• **工具**：画笔 / 橡皮 / 填充 / 渐变 / 文字\n\
+• **历史**：无限撤销，所有操作可还原\n\n\
+试试左侧工具栏画一笔，或按 B 切换画笔。".into();
+    }
+
+    // 4) 画笔 / 笔刷
+    if raw.contains("画笔") || raw.contains("笔刷") || lower.contains("brush") {
+        return "**画笔系统（v0.2）**\n\n\
+• 9 种内置笔刷：圆头 / 铅笔 / 水彩 / 马克笔 / 喷枪 / 蜡笔 / 钢笔 / 毛笔 / 像素\n\
+• 尺寸、硬度、不透明度、流量可调\n\
+• 笔刷预设保存到 assets/brushes/\n\n\
+AI 笔刷生成（描述一句话自动创建笔刷）将在 v0.3 上线。".into();
+    }
+
+    // 5) 图标 / 色板 / 渐变
+    if raw.contains("图标") || lower.contains("icon") {
+        return "**图标资产库**\n\n\
+• 内置 200+ 图标（基于 Iconify 聚合，按 lucide / material / tabler 等集分类）\n\
+• 右侧「图标」面板可直接拖入画布\n\
+• 模拟模式下无法调用 search_icons 工具；配置真实大模型后可以\"按描述搜图标\"\n\n\
+资产路径：`src-web/src/components/iconify/`。".into();
+    }
+    if raw.contains("色板") || raw.contains("调色板") || lower.contains("palette") {
+        return "**色板资产库**\n\n\
+• 4 套内置：Material / Tailwind / Pastel / Mono\n\
+• 右侧「色板」面板可一键应用到选区或整个图层\n\
+• 自定义色板：JSON 放在 assets/palettes/ 即可被自动加载".into();
+    }
+    if raw.contains("渐变") || lower.contains("gradient") {
+        return "**渐变资产库**\n\n\
+• 内置 6 种：linear-sunset / radial-glow / conic-rainbow / linear-ocean / radial-mint / mono-step\n\
+• 右侧「渐变」面板可填充到形状或文字\n\
+• 自定义渐变：YAML 放在 assets/gradients/ 即可".into();
+    }
+
+    // 6) 模型 / 配置
+    if raw.contains("大模型") || raw.contains("LLM") || raw.contains("AI 模型") {
+        return "**支持的 LLM Provider**（共 10 家，模拟模式置顶）\n\n\
+• 模拟模式（本对话正在用，零配置）\n\
+• 国内：DeepSeek / 通义千问 / 智谱 GLM / 月之暗面 Kimi / 豆包 / MiniMax\n\
+• 海外：OpenAI / Anthropic Claude\n\
+• 本地：Ollama（完全离线）\n\n\
+切换：右下角**偏好 → AI 模型**，自配 API Key 即可。".into();
+    }
+
+    // 兜底
+    format!(
+        "我理解你想了解「{}」。当前是**模拟模式**，我能演示有限的快捷键 / 画布 / 资产库内容。试试：\n\n\
+• 「快捷键」 查看速查\n\
+• 「画布」 了解工具\n\
+• 「图标 / 色板 / 渐变」 看资产库\n\
+• 「大模型」 看支持的 Provider\n\n\
+要处理更复杂任务，在右下角**偏好 → AI 模型**切到 DeepSeek / 通义千问 / OpenAI 等真实 Provider。",
+        raw.chars().take(40).collect::<String>()
+    )
+}
+
 fn parse_provider(s: &str) -> LlmProvider {
     match s {
+        "mock" => LlmProvider::Mock,
         "anthropic" => LlmProvider::Anthropic,
         "deepseek" => LlmProvider::Deepseek,
         "ollama" => LlmProvider::Ollama,
@@ -554,11 +680,38 @@ mod tests {
 
     #[test]
     fn test_parse_provider() {
+        assert_eq!(parse_provider("mock"), LlmProvider::Mock);
         assert_eq!(parse_provider("openai"), LlmProvider::Openai);
         assert_eq!(parse_provider("deepseek"), LlmProvider::Deepseek);
         assert_eq!(parse_provider("ollama"), LlmProvider::Ollama);
         assert_eq!(parse_provider("anthropic"), LlmProvider::Anthropic);
         assert_eq!(parse_provider("unknown"), LlmProvider::Openai);
+    }
+
+    #[test]
+    fn test_mock_svg_for_contains_input() {
+        let svg = mock_svg_for("hello world");
+        assert!(svg.contains("<svg"));
+        assert!(svg.contains("hello wo"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_keywords() {
+        // 问候
+        assert!(mock_chat_reply("你好").contains("模拟"));
+        // 快捷键
+        assert!(mock_chat_reply("快捷键").contains("Ctrl"));
+        // 画布
+        assert!(mock_chat_reply("画布").contains("图层"));
+        // 画笔
+        assert!(mock_chat_reply("画笔").contains("笔刷"));
+        // 图标
+        assert!(mock_chat_reply("图标").contains("Iconify"));
+        // 大模型
+        assert!(mock_chat_reply("大模型").contains("Provider"));
+        // 兜底
+        let fallback = mock_chat_reply("???");
+        assert!(fallback.contains("模拟模式"));
     }
 
     #[test]
