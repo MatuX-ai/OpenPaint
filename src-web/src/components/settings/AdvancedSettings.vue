@@ -1,14 +1,7 @@
 <!--
-  设置对话框（覆盖在主界面之上）。
-
-  MVP 仅暴露 LLM Provider 配置：
-    - 选择 Provider（OpenAI / Anthropic / DeepSeek / Ollama）
-    - 填入 API Key（Ollama 不需要）
-    - 选择默认 Model（按 provider 给出建议）
-    - 调整 Endpoint（可选，使用默认端点时留空）
-
-  保存后调用后端 llmApi.setProvider + setApiKey，
-  并通过 useLlmConfig.refresh() 通知 AI 助理面板重新检查 ready 状态。
+  高级设置面板（W12 VDP-UI-02 重命名自 SettingsModal）。
+  从 “文件 → 偏好 → 高级…” 进入，普通用户默认路径不会触达。
+  完整 Provider / CDN 镜像 / 资源库 / 第三方署名都在这里。
 -->
 
 <script setup lang="ts">
@@ -26,7 +19,8 @@ const { providerConfig, refresh: refreshLlm } = useLlmConfig();
 const { config: assetsConfig, setCdnMirror } = useAssetsConfig();
 const toast = useToast();
 
-const visible = computed(() => uiStore.settingsModalVisible);
+// W12 VDP-UI-02：受 uiStore.advancedSettingsVisible 控制。
+const visible = computed(() => uiStore.advancedSettingsVisible);
 const llmHighlight = computed(() => uiStore.llmSettingsHighlight);
 
 const providers = ref<LlmProviderInfo[]>([]);
@@ -224,7 +218,7 @@ async function save() {
     successMsg.value = '已保存';
     // 1.2s 后自动关闭
     setTimeout(() => {
-      if (visible.value) uiStore.closeSettings();
+      if (visible.value) uiStore.closeAdvancedSettings();
     }, 1200);
   } catch (e) {
     errorMsg.value = `保存失败:${String(e)}`;
@@ -335,15 +329,15 @@ const THIRD_PARTY_ASSETS: ReadonlyArray<ThirdPartyAsset> = [
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="settings-modal" @click.self="uiStore.closeSettings">
+    <div v-if="visible" class="settings-modal" @click.self="uiStore.closeAdvancedSettings">
       <div class="settings-modal__panel">
         <header class="settings-modal__header">
-          <span class="settings-modal__title">设置</span>
+          <span class="settings-modal__title">AI 模型与高级偏好</span>
           <button
             class="settings-modal__close"
             type="button"
             title="关闭"
-            @click="uiStore.closeSettings"
+            @click="uiStore.closeAdvancedSettings"
           >
             <X :size="16" />
           </button>
