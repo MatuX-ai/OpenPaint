@@ -1,9 +1,11 @@
 <!--
-  OnboardingCard — 首次启动引导卡（US-1）。
-  三选项：新建 / 打开本地 / 让 AI 帮忙画。
+  OnboardingCard — 首启动引导卡（US-1 + W12 VDP-UI-03）。
+  四选项：新建 / 打开本地 / 让 AI 帮忙画 / 先用模拟模式体验。
   显示条件由 useOnboarding().shouldShowMainCard 控制。
 
   关联需求：docs/ux-onboarding-requirements.md US-1、§5.1。
+  W12 VDP-UI-03：第四选项 “先用模拟模式” 占位但不指向真实功能
+  （Mock 模式将在 VDP-MOCK-01/02/03 落地后启用）。
 -->
 
 <script setup lang="ts">
@@ -14,15 +16,17 @@ const emit = defineEmits<{
   (e: 'new'): void;
   (e: 'open'): void;
   (e: 'ai'): void;
+  (e: 'ai-free'): void;
 }>();
 
 const onboarding = useOnboarding();
 
-function pick(action: 'new' | 'open' | 'ai'): void {
+function pick(action: 'new' | 'open' | 'ai' | 'ai-free'): void {
   onboarding.markCompleted();
   if (action === 'new') emit('new');
   else if (action === 'open') emit('open');
-  else emit('ai');
+  else if (action === 'ai') emit('ai');
+  else emit('ai-free');
 }
 </script>
 
@@ -67,6 +71,18 @@ function pick(action: 'new' | 'open' | 'ai'): void {
           <Sparkles :size="20" />
           <div class="onboarding__action-title">让 AI 来画</div>
           <div class="onboarding__action-desc">描述你想要的设计</div>
+        </button>
+
+        <!-- W12 VDP-UI-03：第四选项——先用模拟模式体验（占位，Mock 待 VDP-MOCK 落地） -->
+        <button
+          type="button"
+          class="onboarding__action onboarding__action--accent onboarding__action--highlight"
+          aria-label="先用模拟模式体验完整功能"
+          @click="pick('ai-free')"
+        >
+          <Sparkles :size="20" />
+          <div class="onboarding__action-title">先用模拟模式</div>
+          <div class="onboarding__action-desc">不配 Key · 30 秒体验完整闭环</div>
         </button>
       </div>
     </div>
@@ -119,8 +135,14 @@ function pick(action: 'new' | 'open' | 'ai'): void {
 
   &__actions {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
+  }
+
+  &__action--highlight {
+    border-color: var(--accent);
+    background: var(--bg-tertiary);
+    color: var(--accent);
   }
 
   &__action {

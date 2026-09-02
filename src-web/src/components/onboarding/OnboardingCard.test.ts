@@ -1,5 +1,5 @@
 /**
- * OnboardingCard 组件测试 — 覆盖 US-1 / ONB-101 ~ ONB-105。
+ * OnboardingCard 组件测试 — 覆盖 US-1 / ONB-101 ~ ONB-105 / W12 VDP-UI-03。
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,24 +11,29 @@ import { setupComponentTest } from '@/test/setup';
 setupComponentTest();
 
 describe('OnboardingCard', () => {
-  it('renders title and three actions', () => {
+  it('renders title and four actions', () => {
     const w = mount(OnboardingCard);
     expect(w.text()).toContain('从一张画布开始');
     expect(w.text()).toContain('新建');
     expect(w.text()).toContain('打开');
     expect(w.text()).toContain('让 AI 来画');
+    // W12 VDP-UI-03：第四选项——先用模拟模式
+    expect(w.text()).toContain('先用模拟模式');
   });
 
-  it('emits new / open / ai events', async () => {
+  it('emits new / open / ai / ai-free events', async () => {
     const w = mount(OnboardingCard);
     const buttons = w.findAll('.onboarding__action');
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(4);
     await buttons[0].trigger('click');
     expect(w.emitted('new')).toHaveLength(1);
     await buttons[1].trigger('click');
     expect(w.emitted('open')).toHaveLength(1);
     await buttons[2].trigger('click');
     expect(w.emitted('ai')).toHaveLength(1);
+    // W12 VDP-UI-03：第四选项触发 ai-free
+    await buttons[3].trigger('click');
+    expect(w.emitted('ai-free')).toHaveLength(1);
   });
 
   it('markCompleted is called after any pick (persists)', async () => {
@@ -45,5 +50,6 @@ describe('OnboardingCard', () => {
     expect(w.findAll('[aria-label="新建画布"]')).toHaveLength(1);
     expect(w.findAll('[aria-label="打开本地图片"]')).toHaveLength(1);
     expect(w.findAll('[aria-label="让 AI 帮我画"]')).toHaveLength(1);
+    expect(w.findAll('[aria-label="先用模拟模式体验完整功能"]')).toHaveLength(1);
   });
 });
