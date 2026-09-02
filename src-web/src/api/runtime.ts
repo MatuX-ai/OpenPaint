@@ -98,6 +98,21 @@ function logStubbedCall(command: string, args?: unknown): void {
 
 type StubFactory = (args: unknown) => unknown;
 
+// ----------------------------------------------------------------
+// W12 VDP-MOCK-03 fix：web preview 默认 provider 为 mock，让前端默认
+// 走本地规则模板（不发起网络调用），与“30 秒上手”路径一致；
+// set_provider / set_api_key 在内存中更新，下次 get_provider_config 返回新值。
+// 这些 state 必须在 MOCK_COMMANDS 外面定义，否则对象字面量不能包含 let/const。
+// ----------------------------------------------------------------
+type WebProviderConfig = { provider: string; api_key: string | null; endpoint: string; model: string };
+const DEFAULT_WEB_PROVIDER_CONFIG: WebProviderConfig = {
+  provider: 'mock',
+  api_key: null,
+  endpoint: '(本地模板，不发起网络请求)',
+  model: 'mock-v1',
+};
+let webProviderConfig: WebProviderConfig = { ...DEFAULT_WEB_PROVIDER_CONFIG };
+
 /**
  * Commands that are safe to mock with empty/zero defaults so the UI
  * can still render an "empty state" instead of crashing.
@@ -147,8 +162,9 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   // LLM / provider (UI-only stubs in web preview)
   // 顺序以国内优先，与后端 list_providers 保持一致：
   // 国内 OpenAI 兼容：DeepSeek / Qwen / Zhipu / Kimi / Doubao / MiniMax
-  // 海外：OpenAI / Anthropic；本地压轴：Ollama。
+  // 海外：OpenAI / Anthropic；本地压轴：Ollama + mock。
   list_providers: () => [
+    { id: 'mock', label: '模拟模式（零配置演示）', default_endpoint: '(本地模板，不发起网络请求)', default_model: 'mock-v1', requires_api_key: false },
     { id: 'deepseek', label: 'DeepSeek', default_endpoint: 'https://api.deepseek.com/v1', default_model: 'deepseek-chat', requires_api_key: true },
     { id: 'qwen', label: '通义千问 (Qwen / 阿里云)', default_endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1', default_model: 'qwen-plus', requires_api_key: true },
     { id: 'zhipu', label: '智谱 GLM', default_endpoint: 'https://open.bigmodel.cn/api/paas/v4', default_model: 'glm-4-plus', requires_api_key: true },
@@ -159,16 +175,24 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
     { id: 'anthropic', label: 'Anthropic Claude', default_endpoint: 'https://api.anthropic.com/v1', default_model: 'claude-3-5-sonnet-20241022', requires_api_key: true },
     { id: 'ollama', label: 'Ollama (本地)', default_endpoint: 'http://localhost:11434', default_model: 'llama3.1', requires_api_key: false },
   ],
-  get_provider_config: () => ({
-    // web preview mock 与国内优先顺序对齐：默认未配置时显示 DeepSeek
-    // （后端 list_providers 的第一项），方便首次打开就能看到推荐选项。
-    provider: 'deepseek',
-    api_key: null,
-    endpoint: 'https://api.deepseek.com/v1',
-    model: 'deepseek-chat',
-  } as unknown as { provider: string; api_key: string | null; endpoint: string; model: string }),
-  set_provider: () => undefined,
-  set_api_key: () => undefined,
+  get_provider_config: () => ({ ...webProviderConfig }),
+  // 注意：前端 api/index.ts 调用 set_provider 时传的是 `{ provider }`（不是嵌套 args）。
+  set_provider: (args: unknown) => {
+    const a = (args ?? {}) as { provider?: string };
+    if (typeof a.provider === 'string' && a.provider.length > 0) {
+      webProviderConfig = { ...webProviderConfig, provider: a.provider };
+    }
+    return undefined;
+  },
+  // set_api_key 调用传的是 `{ provider, apiKey }`。
+  set_api_key: (args: unknown) => {
+    const a = (args ?? {}) as { provider?: string; apiKey?: string | null };
+    if (typeof a.provider === 'string' && a.provider.length > 0) {
+      webProviderConfig = { ...webProviderConfig, provider: a.provider };
+    }
+    webProviderConfig = { ...webProviderConfig, api_key: a.apiKey ?? null };
+    return undefined;
+  },
 
   // Asset library (W9) — Iconify icons. In the web preview we return a tiny
   // curated stub so the IconPanel still has something to render.
