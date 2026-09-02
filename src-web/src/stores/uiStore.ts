@@ -49,7 +49,12 @@ export const useUIStore = defineStore('ui', () => {
   const assistantVisible = ref(true);
   const previewModalVisible = ref(false);
   const previewPayload = ref<{ svg?: string; png?: string; title?: string } | null>(null);
+  // W12 VDP-UI-02：拆分 SettingsModal → QuickPreferences（齿轮入口 · 3 项）
+  // + AdvancedSettings（菜单深处 · 完整 Provider / CDN / 资源库 / 署名）。
+  // 保留 settingsModalVisible 作为过渡期转发，后面会逐步被替代。
   const settingsModalVisible = ref(false);
+  const quickPreferencesVisible = ref(false);
+  const advancedSettingsVisible = ref(false);
   const llmSettingsHighlight = ref(false);
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -92,20 +97,46 @@ export const useUIStore = defineStore('ui', () => {
     assistantVisible.value = !assistantVisible.value;
   }
 
+  /**
+   * W12 VDP-UI-02 · 过渡期：openSettings 仍保持可用，内部转发到 AdvancedSettings，
+   * 避免外部引用 一次性破坏。后续 commit 会清理。
+   */
   function openSettings() {
-    settingsModalVisible.value = true;
+    openAdvancedSettings();
   }
 
   function closeSettings() {
-    settingsModalVisible.value = false;
+    closeAdvancedSettings();
   }
 
   function toggleSettings() {
-    settingsModalVisible.value = !settingsModalVisible.value;
+    advancedSettingsVisible.value = !advancedSettingsVisible.value;
   }
 
   /**
-   * UX-A07：让 SettingsModal 在 8 秒内视觉高亮 LLM provider 区。
+   * W12 VDP-UI-01：QuickPreferences 齿轮入口（仅 3 项快速偏好）。
+   */
+  function openQuickPreferences() {
+    quickPreferencesVisible.value = true;
+  }
+
+  function closeQuickPreferences() {
+    quickPreferencesVisible.value = false;
+  }
+
+  /**
+   * W12 VDP-UI-02：AdvancedSettings 完整设置面板（从菜单“文件 → 偏好 → 高级…”进入）。
+   */
+  function openAdvancedSettings() {
+    advancedSettingsVisible.value = true;
+  }
+
+  function closeAdvancedSettings() {
+    advancedSettingsVisible.value = false;
+  }
+
+  /**
+   * UX-A07：让 AdvancedSettings 在 8 秒内视觉高亮 LLM provider 区。
    * 当 AI 助理未配置时，用户在浮窗点 CTA 会调到这里。
    */
   function highlightLlmSettings() {
@@ -125,6 +156,8 @@ export const useUIStore = defineStore('ui', () => {
     previewModalVisible,
     previewPayload,
     settingsModalVisible,
+    quickPreferencesVisible,
+    advancedSettingsVisible,
     llmSettingsHighlight,
     toggleTheme,
     switchRightPanel,
@@ -135,6 +168,10 @@ export const useUIStore = defineStore('ui', () => {
     openSettings,
     closeSettings,
     toggleSettings,
+    openQuickPreferences,
+    closeQuickPreferences,
+    openAdvancedSettings,
+    closeAdvancedSettings,
     highlightLlmSettings,
   };
 });
