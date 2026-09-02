@@ -139,18 +139,13 @@ jobs:
           name: openpaint-linux
           path: |
             src-tauri/target/release/bundle/deb/*.deb
-
-      - name: Attach to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          generate_release_notes: true
-          files: |
-            src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: warn
 
   # ----------------------------------------------------------
   # Windows：msi / nsis (.exe)
+  # 移除原"Attach to Release"步骤（race condition fix）→ 移到
+  # 独立的 publish-release job（依赖 windows + macos），避免并行
+  # softprops/action-gh-release@v2 互相冲突。
   # ----------------------------------------------------------
   windows:
     name: Windows (.msi / .exe)
@@ -283,20 +278,13 @@ jobs:
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
-
-      - name: Attach to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          generate_release_notes: true
-          files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: warn
 
   # ----------------------------------------------------------
   # macOS：dmg / app
   # 注意：不签名 / 不公证。详见 DEVELOPMENT.md
+  # 移除原"Attach to Release"步骤（race condition fix）→ 移到
+  # 独立的 publish-release job。
   # ----------------------------------------------------------
   macos:
     name: macOS (.dmg / .app)
@@ -345,13 +333,50 @@ jobs:
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/macos/*.app
+          if-no-files-found: warn
 
-      - name: Attach to Release
+  # ----------------------------------------------------------
+  # publish-release：所有 build job 完成后再串行 attach
+  # 修复 softprops/action-gh-release@v2 并行 race condition
+  # （多个 job 同时创建/更新 release 时其中一个 409 silent fail）。
+  # 此 job 依赖 [linux, windows, macos]，确保 build 全部完成、
+  # artifacts 已上传后，再统一 collect + publish。
+  # ----------------------------------------------------------
+  publish-release:
+    name: Publish release (collect artifacts → GitHub Release)
+    runs-on: ubuntu-latest
+    needs: [linux, windows, macos]
+    if: |
+      always() &&
+      (needs.linux.result == 'success' || needs.linux.result == 'skipped') &&
+      needs.windows.result == 'success' &&
+      needs.macos.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List collected assets
+        run: |
+          echo "=== Collected assets ==="
+          find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.app" -o -name "*.deb" \) -printf "%p  %s bytes\n" | sort
+
+      - name: Publish draft release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
-          generate_release_notes: true
+          generate_release_notes: false
           files: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.deb
+          # .app 是目录，不能直接 attach；用 zip 包装
+          fail_on_unmatched_files: false
