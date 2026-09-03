@@ -138,6 +138,14 @@ interface WebLayer {
 const webLayers: WebLayer[] = [];
 
 /**
+ * 仅供测试隔离使用：在每个测试用例的 beforeEach 阶段调用，确保上个用例留下的图层不会污染下个用例。
+ * 形如 __resetWebLayers()，使用 __ 前缀标记为 internal API，类型上不强制收敛（测试侧类型断言为 any）。
+ */
+export function __resetWebLayers(): void {
+  webLayers.length = 0;
+}
+
+/**
  * Commands that are safe to mock with empty/zero defaults so the UI
  * can still render an "empty state" instead of crashing.
  */
@@ -157,14 +165,32 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   },
 
   // Canvas (read-only)
-  get_canvas_summary: () => ({
-    width: 1280,
-    height: 720,
-    layers: [],
-    active_layer_id: null,
-    can_undo: false,
-    can_redo: false,
-  }),
+  // W15 G3：反映 webLayers 当前状态；字段名与 CanvasSummary 类型保持一致
+  // （前端消费用 camelCase，Rust 序列化是 snake_case，但 web mock 不走 Rust）。
+  get_canvas_summary: () => {
+    const active = webLayers.find((l) => l.isActive);
+    return {
+      width: 1280,
+      height: 720,
+      activeLayerId: active?.id ?? '',
+      hasSelection: false,
+      canUndo: false,
+      canRedo: false,
+      layers: webLayers.map((l) => ({
+        id: l.id,
+        name: l.name,
+        opacity: l.opacity,
+        blend_mode: l.blendMode,
+        visible: l.visible,
+        locked: l.locked,
+        width: l.width,
+        height: l.height,
+        offset_x: l.offsetX,
+        offset_y: l.offsetY,
+        is_active: !!l.isActive,
+      })),
+    };
+  },
   get_selection_bounds: () => ({ x: 0, y: 0, width: 0, height: 0 }),
   render_canvas_png: () => '',
   render_canvas_image: () => ({
@@ -207,6 +233,46 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
     const a = (args as { args?: { layer_id?: string; mode?: string } }).args ?? {};
     const layer = webLayers.find((l) => l.id === a.layer_id);
     if (layer && typeof a.mode === 'string') layer.blendMode = a.mode;
+    return undefined;
+  },
+
+  // W15 G3：图层栈 CRUD 在 web preview 下走内存模拟
+  add_layer: (args: unknown) => {
+    const a = (args as { name?: string }) ?? {};
+    const id = `web-layer-${Math.random().toString(36).slice(2, 10)}`;
+    webLayers.push({
+      id,
+      name: a.name ?? `Layer ${webLayers.length + 1}`,
+      opacity: 1,
+      blendMode: 'normal',
+      visible: true,
+      locked: false,
+      width: 1280,
+      height: 720,
+      offsetX: 0,
+      offsetY: 0,
+      isActive: true,
+    });
+    for (let i = 0; i < webLayers.length; i++) {
+      webLayers[i].isActive = i === webLayers.length - 1;
+    }
+    return id;
+  },
+  remove_active_layer: () => {
+    const idx = webLayers.findIndex((l) => l.isActive);
+    if (idx < 0 || webLayers.length <= 1) return false;
+    webLayers.splice(idx, 1);
+    if (webLayers.length > 0) {
+      webLayers[webLayers.length - 1].isActive = true;
+    }
+    return true;
+  },
+  set_active_layer: (args: unknown) => {
+    const a = (args as { layerId?: string }) ?? {};
+    const target = a.layerId;
+    for (const layer of webLayers) {
+      layer.isActive = layer.id === target;
+    }
     return undefined;
   },
 
@@ -430,9 +496,6 @@ const REJECTED_COMMANDS = new Set<string>([
   'fill_layer',
   'undo_canvas',
   'redo_canvas',
-  'add_layer',
-  'remove_active_layer',
-  'set_active_layer',
   'resize_canvas',
 
   // Gallery (write)
