@@ -67,7 +67,7 @@ function resetLayerState() {
 }
 
 vi.mock('@api/index', async () => {
-  const actual = await vi.importActual('@api/index') as typeof ApiIndex;
+  const actual = (await vi.importActual('@api/index')) as typeof ApiIndex;
   return {
     ...actual,
     canvasApi: {
@@ -79,19 +79,21 @@ vi.mock('@api/index', async () => {
         }
       }),
       renderCanvasPng: vi.fn(async () => renderPngBase64),
-      renderCanvasImage: vi.fn(async (args: { format: string; quality?: number; targetLongEdge?: number }) => ({
-        format: args.format,
-        mime:
-          args.format === 'jpg' || args.format === 'jpeg'
-            ? 'image/jpeg'
-            : args.format === 'webp'
-              ? 'image/webp'
-              : 'image/png',
-        bytesBase64: 'AAAA',
-        width: args.targetLongEdge || 520,
-        height: args.targetLongEdge || 520,
-        byteSize: 4,
-      })),
+      renderCanvasImage: vi.fn(
+        async (args: { format: string; quality?: number; targetLongEdge?: number }) => ({
+          format: args.format,
+          mime:
+            args.format === 'jpg' || args.format === 'jpeg'
+              ? 'image/jpeg'
+              : args.format === 'webp'
+                ? 'image/webp'
+                : 'image/png',
+          bytesBase64: 'AAAA',
+          width: args.targetLongEdge || 520,
+          height: args.targetLongEdge || 520,
+          byteSize: 4,
+        }),
+      ),
       getCanvasSummary: vi.fn(async () => ({
         width: summaryLayers[0]?.width ?? 520,
         height: summaryLayers[0]?.height ?? 520,
@@ -135,13 +137,20 @@ vi.mock('@api/index', async () => {
         summaryLayers.pop();
         return true;
       }),
-      applyBrushStroke: vi.fn(async (args: { layer_id: string; points: Array<[number, number]>; radius: number; color: string }) => {
-        // 验证输入格式
-        expect(args.layer_id).toMatch(/^layer-\d+$/);
-        expect(Array.isArray(args.points)).toBe(true);
-        expect(args.radius).toBeGreaterThanOrEqual(1);
-        expect(args.color).toMatch(/^#[0-9a-f]{6}$/i);
-      }),
+      applyBrushStroke: vi.fn(
+        async (args: {
+          layer_id: string;
+          points: Array<[number, number]>;
+          radius: number;
+          color: string;
+        }) => {
+          // 验证输入格式
+          expect(args.layer_id).toMatch(/^layer-\d+$/);
+          expect(Array.isArray(args.points)).toBe(true);
+          expect(args.radius).toBeGreaterThanOrEqual(1);
+          expect(args.color).toMatch(/^#[0-9a-f]{6}$/i);
+        },
+      ),
       applyEraserStroke: vi.fn(async () => undefined),
       fillLayer: vi.fn(async (args: { layer_id: string; color: string }) => {
         const layer = summaryLayers.find((l) => l.id === args.layer_id);
@@ -205,7 +214,7 @@ vi.mock('@api/index', async () => {
 });
 
 vi.mock('@api/runtime', async () => {
-  const actual = await vi.importActual('@api/runtime') as typeof Runtime;
+  const actual = (await vi.importActual('@api/runtime')) as typeof Runtime;
   return {
     ...actual,
     isTauri: () => true,
@@ -341,9 +350,7 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
     }
 
     expect(canvasApi.fillLayer).toHaveBeenCalledTimes(3);
-    const colors = (canvasApi.fillLayer as ReturnType<typeof vi.fn>).mock.calls.map(
-      (c) => c[1],
-    );
+    const colors = (canvasApi.fillLayer as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[1]);
     expect(new Set(colors).size).toBe(3);
   });
 
@@ -600,7 +607,10 @@ function circlePoints(
   const pts: Array<[number, number]> = [];
   for (let i = 0; i <= segments; i++) {
     const theta = (i / segments) * Math.PI * 2;
-    pts.push([Math.round(cx + Math.cos(theta) * radius), Math.round(cy + Math.sin(theta) * radius)]);
+    pts.push([
+      Math.round(cx + Math.cos(theta) * radius),
+      Math.round(cy + Math.sin(theta) * radius),
+    ]);
   }
   return pts;
 }

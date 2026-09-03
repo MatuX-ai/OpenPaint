@@ -407,7 +407,10 @@ describe('useShortcuts', () => {
 
   it('Ctrl+A 调用 getSelectionBounds（不抛错）', async () => {
     vi.mocked(ApiIndex.canvasApi.getSelectionBounds).mockResolvedValueOnce({
-      x: 0, y: 0, width: 100, height: 100,
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
     });
     let captured: ReturnType<typeof useShortcuts> | null = null;
     const Comp = defineComponent({

@@ -104,7 +104,12 @@ type StubFactory = (args: unknown) => unknown;
 // set_provider / set_api_key 在内存中更新，下次 get_provider_config 返回新值。
 // 这些 state 必须在 MOCK_COMMANDS 外面定义，否则对象字面量不能包含 let/const。
 // ----------------------------------------------------------------
-type WebProviderConfig = { provider: string; api_key: string | null; endpoint: string; model: string };
+type WebProviderConfig = {
+  provider: string;
+  api_key: string | null;
+  endpoint: string;
+  model: string;
+};
 const DEFAULT_WEB_PROVIDER_CONFIG: WebProviderConfig = {
   provider: 'mock',
   api_key: null,
@@ -175,8 +180,10 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
 
   // W13 VDP-WEB-MOCK-01：图层属性变更在 web preview 下走内存模拟
   set_layer_visibility: (args: unknown) => {
-    const a = (args as { layerId?: string; visible?: boolean }).layerId
-      ?? ((args as { args?: { layer_id?: string } }).args?.layer_id ?? '');
+    const a =
+      (args as { layerId?: string; visible?: boolean }).layerId ??
+      (args as { args?: { layer_id?: string } }).args?.layer_id ??
+      '';
     const visible = (args as { visible?: boolean }).visible ?? true;
     const layer = webLayers.find((l) => l.id === a);
     if (layer) layer.visible = visible;
@@ -213,16 +220,76 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   // 国内 OpenAI 兼容：DeepSeek / Qwen / Zhipu / Kimi / Doubao / MiniMax
   // 海外：OpenAI / Anthropic；本地压轴：Ollama + mock。
   list_providers: () => [
-    { id: 'mock', label: '模拟模式（零配置演示）', default_endpoint: '(本地模板，不发起网络请求)', default_model: 'mock-v1', requires_api_key: false },
-    { id: 'deepseek', label: 'DeepSeek', default_endpoint: 'https://api.deepseek.com/v1', default_model: 'deepseek-chat', requires_api_key: true },
-    { id: 'qwen', label: '通义千问 (Qwen / 阿里云)', default_endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1', default_model: 'qwen-plus', requires_api_key: true },
-    { id: 'zhipu', label: '智谱 GLM', default_endpoint: 'https://open.bigmodel.cn/api/paas/v4', default_model: 'glm-4-plus', requires_api_key: true },
-    { id: 'moonshot', label: '月之暗面 (Kimi)', default_endpoint: 'https://api.moonshot.cn/v1', default_model: 'moonshot-v1-8k', requires_api_key: true },
-    { id: 'doubao', label: '豆包 (火山引擎 / 字节)', default_endpoint: 'https://ark.cn-beijing.volces.com/api/v3', default_model: 'doubao-pro-32k', requires_api_key: true },
-    { id: 'minimax', label: 'MiniMax (MiniMax)', default_endpoint: 'https://api.minimaxi.chat/v1', default_model: 'MiniMax-Text-01', requires_api_key: true },
-    { id: 'openai', label: 'OpenAI', default_endpoint: 'https://api.openai.com/v1', default_model: 'gpt-4o', requires_api_key: true },
-    { id: 'anthropic', label: 'Anthropic Claude', default_endpoint: 'https://api.anthropic.com/v1', default_model: 'claude-3-5-sonnet-20241022', requires_api_key: true },
-    { id: 'ollama', label: 'Ollama (本地)', default_endpoint: 'http://localhost:11434', default_model: 'llama3.1', requires_api_key: false },
+    {
+      id: 'mock',
+      label: '模拟模式（零配置演示）',
+      default_endpoint: '(本地模板，不发起网络请求)',
+      default_model: 'mock-v1',
+      requires_api_key: false,
+    },
+    {
+      id: 'deepseek',
+      label: 'DeepSeek',
+      default_endpoint: 'https://api.deepseek.com/v1',
+      default_model: 'deepseek-chat',
+      requires_api_key: true,
+    },
+    {
+      id: 'qwen',
+      label: '通义千问 (Qwen / 阿里云)',
+      default_endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      default_model: 'qwen-plus',
+      requires_api_key: true,
+    },
+    {
+      id: 'zhipu',
+      label: '智谱 GLM',
+      default_endpoint: 'https://open.bigmodel.cn/api/paas/v4',
+      default_model: 'glm-4-plus',
+      requires_api_key: true,
+    },
+    {
+      id: 'moonshot',
+      label: '月之暗面 (Kimi)',
+      default_endpoint: 'https://api.moonshot.cn/v1',
+      default_model: 'moonshot-v1-8k',
+      requires_api_key: true,
+    },
+    {
+      id: 'doubao',
+      label: '豆包 (火山引擎 / 字节)',
+      default_endpoint: 'https://ark.cn-beijing.volces.com/api/v3',
+      default_model: 'doubao-pro-32k',
+      requires_api_key: true,
+    },
+    {
+      id: 'minimax',
+      label: 'MiniMax (MiniMax)',
+      default_endpoint: 'https://api.minimaxi.chat/v1',
+      default_model: 'MiniMax-Text-01',
+      requires_api_key: true,
+    },
+    {
+      id: 'openai',
+      label: 'OpenAI',
+      default_endpoint: 'https://api.openai.com/v1',
+      default_model: 'gpt-4o',
+      requires_api_key: true,
+    },
+    {
+      id: 'anthropic',
+      label: 'Anthropic Claude',
+      default_endpoint: 'https://api.anthropic.com/v1',
+      default_model: 'claude-3-5-sonnet-20241022',
+      requires_api_key: true,
+    },
+    {
+      id: 'ollama',
+      label: 'Ollama (本地)',
+      default_endpoint: 'http://localhost:11434',
+      default_model: 'llama3.1',
+      requires_api_key: false,
+    },
   ],
   get_provider_config: () => ({ ...webProviderConfig }),
   // 注意：前端 api/index.ts 调用 set_provider 时传的是 `{ provider }`（不是嵌套 args）。
@@ -246,11 +313,18 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   // Asset library (W9) — Iconify icons. In the web preview we return a tiny
   // curated stub so the IconPanel still has something to render.
   search_icons: (args: unknown) => {
-    const a = (args as { args?: { query?: string; style?: string; category?: string; limit?: number } }).args ?? {};
+    const a =
+      (args as { args?: { query?: string; style?: string; category?: string; limit?: number } })
+        .args ?? {};
     const query = (a.query ?? '').toLowerCase();
     const limit = Math.min(Math.max(a.limit ?? 30, 1), 50);
     const stubIcons = [
-      { prefix: 'lucide', name: 'search', category: 'ui', tags: ['search', 'find', '查找', '搜索'] },
+      {
+        prefix: 'lucide',
+        name: 'search',
+        category: 'ui',
+        tags: ['search', 'find', '查找', '搜索'],
+      },
       { prefix: 'lucide', name: 'settings', category: 'ui', tags: ['settings', 'gear', '设置'] },
       { prefix: 'lucide', name: 'home', category: 'navigation', tags: ['home', 'house', '主页'] },
       { prefix: 'lucide', name: 'user', category: 'ui', tags: ['user', 'person', '用户'] },
@@ -275,7 +349,9 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
     };
   },
   render_icon_svg: (args: unknown) => {
-    const a = (args as { args?: { prefix?: string; name?: string; color?: string; size?: number } }).args ?? {};
+    const a =
+      (args as { args?: { prefix?: string; name?: string; color?: string; size?: number } }).args ??
+      {};
     const size = a.size ?? 64;
     const color = a.color || 'currentColor';
     // 返回一个合法的占位 SVG（便于预览面板渲染），不是真实 Iconify 图标。
@@ -300,7 +376,12 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   list_palettes: () => [],
   apply_palette: () => ({ applied_colors: [], stroke_count: 0, mode: 'swatch_bar' }),
   list_gradients: () => [],
-  apply_gradient: () => ({ gradient_id: '', gradient_type: 'linear', stop_count: 0, bytes_written: 0 }),
+  apply_gradient: () => ({
+    gradient_id: '',
+    gradient_type: 'linear',
+    stop_count: 0,
+    bytes_written: 0,
+  }),
   create_brush_from_prompt: () => ({
     status: 'not_implemented',
     message: 'AI brush generation available in v0.3',
