@@ -31,9 +31,10 @@ describe('TopBar', () => {
   it('TB-01: 渲染品牌名 + 撤销/重做/保存/齿轮按钮', () => {
     const w = mountTopBar();
     expect(w.text()).toContain('OpenPaint');
-    // 6 个按钮：撤销、重做、保存、OpenPencil、图库、齿轮
+    // W14+ 统一画布架构：OpenPencil 不再独立出现在 TopBar（已下沉为中央画布）。
+    // 当前 TopBar 仅展示 5 个按钮：撤销、重做、保存、图库、齿轮（齿轮即 QuickPreferences）。
     const buttons = w.findAll('.top-bar__btn');
-    expect(buttons.length).toBeGreaterThanOrEqual(6);
+    expect(buttons.length).toBeGreaterThanOrEqual(5);
     expect(w.find('[data-testid="top-bar-quick-preferences"]').exists()).toBe(true);
     w.unmount();
   });

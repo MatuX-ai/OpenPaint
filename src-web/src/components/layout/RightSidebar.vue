@@ -1,12 +1,15 @@
 <!--
-  Right sidebar — OpenPencil / Gallery tab switching.
-  Uses uiStore.rightPanelMode so TopBar can also toggle it.
+  Right sidebar — 图库 / 折叠。
+
+  W14+ 统一画布架构：
+    - 右侧不再默认显示 OpenPencil 编辑器；OpenPencil 是中央画布。
+    - 右侧仅承担图库、属性等辅助面板职责。
+    - 与 uiStore.rightPanelMode 保持兼容（保留 'gallery' / 'none' 两种模式）。
 -->
 
 <script setup lang="ts">
-import { Sparkles, Library } from 'lucide-vue-next';
+import { Library } from 'lucide-vue-next';
 import { useUIStore } from '@stores/uiStore';
-import OpenPencilView from '@/components/openpencil/OpenPencilView.vue';
 import GalleryPanel from '@/components/gallery/GalleryPanel.vue';
 
 const uiStore = useUIStore();
@@ -15,15 +18,6 @@ const uiStore = useUIStore();
 <template>
   <aside class="right-sidebar">
     <header class="right-sidebar__header">
-      <button
-        type="button"
-        class="right-sidebar__tab"
-        :class="{ 'is-active': uiStore.rightPanelMode === 'openpencil' }"
-        @click="uiStore.switchRightPanel('openpencil')"
-      >
-        <Sparkles :size="14" />
-        <span>OpenPencil</span>
-      </button>
       <button
         type="button"
         class="right-sidebar__tab"
@@ -36,8 +30,7 @@ const uiStore = useUIStore();
     </header>
 
     <section class="right-sidebar__content">
-      <OpenPencilView v-if="uiStore.rightPanelMode === 'openpencil'" />
-      <GalleryPanel v-else-if="uiStore.rightPanelMode === 'gallery'" />
+      <GalleryPanel v-if="uiStore.rightPanelMode === 'gallery'" />
       <div v-else class="right-sidebar__placeholder">
         <p>右侧面板已折叠</p>
       </div>

@@ -232,3 +232,327 @@ pub async fn set_api_key(
     config.save().map_err(|e| format!("save: {}", e))?;
     Ok(())
 }
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    /// 辅助函数：返回全部 Provider，便于穷尽测试。
+    fn all_providers() -> Vec<LlmProvider> {
+        vec![
+            LlmProvider::Mock,
+            LlmProvider::Openai,
+            LlmProvider::Anthropic,
+            LlmProvider::Deepseek,
+            LlmProvider::Ollama,
+            LlmProvider::Qwen,
+            LlmProvider::Zhipu,
+            LlmProvider::Moonshot,
+            LlmProvider::Doubao,
+            LlmProvider::Minimax,
+        ]
+    }
+
+    /// 每个 Provider 必须映射到非空、稳定的 id。
+    #[test]
+    fn test_provider_id_is_non_empty_and_unique() {
+        let mut ids: Vec<&'static str> = all_providers().iter().map(|p| p.id()).collect();
+        let count_before = ids.len();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), count_before, "Provider id 必须互不重复");
+        for id in &ids {
+            assert!(!id.is_empty(), "Provider id 不应为空");
+            assert!(
+                id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()),
+                "id '{}' 应保持小写 ASCII 风格，便于序列化",
+                id
+            );
+        }
+    }
+
+    /// id() 必须等于 serde lowercase 序列化结果。
+    #[test]
+    fn test_provider_id_matches_serde_lowercase() {
+        for p in all_providers() {
+            let serialized = serde_json::to_string(&p).unwrap();
+            let expected = format!("\"{}\"", p.id());
+            assert_eq!(
+                serialized, expected,
+                "Provider {:?} 的序列化与 id() 必须一致",
+                p
+            );
+        }
+    }
+
+    /// 中文 label 至少 2 个字符，非空。
+    #[test]
+    fn test_provider_label_non_empty() {
+        for p in all_providers() {
+            let label = p.label();
+            assert!(!label.trim().is_empty(), "Provider {:?} 的 label 不应为空", p);
+            assert!(
+                label.chars().count() >= 2,
+                "Provider {:?} 的 label 过短: '{}'",
+                p,
+                label
+            );
+        }
+    }
+
+    /// 海外/国内/本地厂商端点必须落在合理 URL 上，Mock 不应是 URL。
+    #[test]
+    fn test_provider_default_endpoint_shape() {
+        for p in all_providers() {
+            let ep = p.default_endpoint();
+            match p {
+                LlmProvider::Mock => {
+                    assert!(
+                        !ep.starts_with("http"),
+                        "Mock 不应该是 URL: {}",
+                        ep
+                    );
+                }
+                _ => {
+                    assert!(
+                        ep.starts_with("http://") || ep.starts_with("https://"),
+                        "Provider {:?} 的端点必须是 http(s): {}",
+                        p,
+                        ep
+                    );
+                }
+            }
+        }
+    }
+
+    /// 模型 ID 必须非空且无空白。
+    #[test]
+    fn test_provider_default_model_non_blank() {
+        for p in all_providers() {
+            let model = p.default_model();
+            assert!(!model.trim().is_empty(), "{:?} 默认模型不能为空", p);
+            assert_eq!(model, model.trim(), "{:?} 默认模型不应有空白: '{}'", p, model);
+        }
+    }
+
+    /// Mock 与 Ollama 不应要求 API Key，其余都要求。
+    #[test]
+    fn test_as_info_requires_api_key() {
+        for p in all_providers() {
+            let info = p.as_info();
+            match p {
+                LlmProvider::Mock | LlmProvider::Ollama => {
+                    assert!(
+                        !info.requires_api_key,
+                        "{:?} 必须为 requires_api_key = false",
+                        p
+                    );
+                }
+                _ => {
+                    assert!(
+                        info.requires_api_key,
+                        "{:?} 必须为 requires_api_key = true",
+                        p
+                    );
+                }
+            }
+        }
+    }
+
+    /// ProviderInfo 五个字段必须填齐，且与调用源 Provider 对应。
+    #[test]
+    fn test_as_info_fields_match_provider() {
+        for p in all_providers() {
+            let info = p.as_info();
+            assert_eq!(info.id, p.id());
+            assert_eq!(info.label, p.label());
+            assert_eq!(info.default_endpoint, p.default_endpoint());
+            assert_eq!(info.default_model, p.default_model());
+            assert_eq!(info.requires_api_key, !matches!(p, LlmProvider::Ollama | LlmProvider::Mock));
+        }
+    }
+
+    /// ProviderInfo 必须能被序列化为合法 JSON。
+    #[test]
+    fn test_provider_info_serializable() {
+        for p in all_providers() {
+            let info = p.as_info();
+            let json = serde_json::to_value(&info).unwrap();
+            assert_eq!(json["id"], info.id);
+            assert_eq!(json["label"], info.label);
+            assert_eq!(json["default_endpoint"], info.default_endpoint);
+            assert_eq!(json["default_model"], info.default_model);
+            assert_eq!(json["requires_api_key"], info.requires_api_key);
+            assert_eq!(json.as_object().unwrap().len(), 5);
+        }
+    }
+
+    /// Serde 反序列化应兼容 lowercase 字符串。
+    #[test]
+    fn test_provider_deserialize_from_lowercase_string() {
+        for p in all_providers() {
+            let raw = format!("\"{}\"", p.id());
+            let parsed: LlmProvider = serde_json::from_str(&raw).unwrap();
+            assert_eq!(parsed, p);
+        }
+    }
+
+    /// 不认识的字符串必须反序列化失败（不能静默回退到 OpenAI）。
+    #[test]
+    fn test_provider_deserialize_unknown_rejected() {
+        let raw = "\"some_random_provider\"";
+        let parsed: Result<LlmProvider, _> = serde_json::from_str(raw);
+        assert!(parsed.is_err(), "未知 Provider 应被拒绝，便于类型安全");
+    }
+
+    /// list_providers 应返回 10 项，且首位是 Mock（零配置优先），末尾是 Ollama（本地离线压轴）。
+    #[tokio::test]
+    async fn test_list_providers_order_and_count() {
+        let providers = list_providers().await.expect("list_providers 应成功");
+        assert_eq!(providers.len(), 10);
+        assert_eq!(providers[0].id, "mock", "Mock 应置顶以提示零配置体验");
+        assert_eq!(providers[providers.len() - 1].id, "ollama", "本地离线应压轴");
+        // 所有 Provider id 都应唯一
+        let ids: Vec<&str> = providers.iter().map(|p| p.id.as_str()).collect();
+        let mut sorted = ids.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(sorted.len(), ids.len(), "list_providers 不可重复");
+    }
+
+    /// list_providers 中国内优先应在海外之前（DeepSeek 等先于 OpenAI / Anthropic）。
+    #[tokio::test]
+    async fn test_list_providers_priority_domestic_first() {
+        let providers = list_providers().await.expect("list_providers 应成功");
+        let deepseek_idx = providers.iter().position(|p| p.id == "deepseek").unwrap();
+        let openai_idx = providers.iter().position(|p| p.id == "openai").unwrap();
+        let anthropic_idx = providers.iter().position(|p| p.id == "anthropic").unwrap();
+        let ollama_idx = providers.iter().position(|p| p.id == "ollama").unwrap();
+        assert!(deepseek_idx < openai_idx, "DeepSeek 必须在 OpenAI 之前");
+        assert!(deepseek_idx < anthropic_idx, "DeepSeek 必须在 Anthropic 之前");
+        assert!(ollama_idx > openai_idx, "Ollama 压轴应在 OpenAI 之后");
+    }
+
+    /// 每个列表项都必须包含齐全字段。
+    #[tokio::test]
+    async fn test_list_providers_fields_complete() {
+        let providers = list_providers().await.expect("list_providers 应成功");
+        for info in &providers {
+            assert!(!info.id.is_empty());
+            assert!(!info.label.is_empty());
+            assert!(!info.default_endpoint.is_empty());
+            assert!(!info.default_model.is_empty());
+            // label 必须是字符串
+            assert!(info.label.is_ascii() || info.label.chars().count() > 0);
+        }
+    }
+
+    /// ProviderConfig 必填字段是 provider / endpoint / model，api_key 可选。
+    #[test]
+    fn test_provider_config_serde_shape() {
+        let cfg = ProviderConfig {
+            provider: LlmProvider::Mock,
+            api_key: None,
+            endpoint: "https://example.com".to_string(),
+            model: "test-model".to_string(),
+        };
+        let json = serde_json::to_value(&cfg).unwrap();
+        assert_eq!(json["provider"], "mock");
+        assert!(json["api_key"].is_null());
+        assert_eq!(json["endpoint"], "https://example.com");
+        assert_eq!(json["model"], "test-model");
+        let round: ProviderConfig = serde_json::from_value(json).unwrap();
+        assert_eq!(round.provider, cfg.provider);
+        assert_eq!(round.endpoint, cfg.endpoint);
+        assert_eq!(round.model, cfg.model);
+        assert!(round.api_key.is_none());
+    }
+
+    /// ProviderConfig 可以序列化 Some(api_key)。
+    #[test]
+    fn test_provider_config_with_api_key() {
+        let cfg = ProviderConfig {
+            provider: LlmProvider::Openai,
+            api_key: Some("sk-abc123".to_string()),
+            endpoint: "https://api.openai.com/v1".to_string(),
+            model: "gpt-4o".to_string(),
+        };
+        let json = serde_json::to_value(&cfg).unwrap();
+        assert_eq!(json["api_key"], "sk-abc123");
+    }
+
+    /// 大型 ProviderInfo 列表应能成功 JSON 化，便于前端 fetch。
+    #[test]
+    fn test_list_payload_serializable_for_frontend() {
+        // 模拟 list_providers 的实际返回类型（Vec<ProviderInfo>）
+        let infos: Vec<ProviderInfo> = all_providers().iter().map(|p| p.as_info()).collect();
+        let json = serde_json::to_string(&infos).unwrap();
+        assert!(json.starts_with("["));
+        assert!(json.ends_with("]"));
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(parsed.is_array());
+        assert_eq!(parsed.as_array().unwrap().len(), 10);
+    }
+
+    /// 验证主流海外/国内厂商端点固定为 HTTPS（Ollama 是 http://localhost 例外）。
+    #[test]
+    fn test_https_for_remote_providers() {
+        for p in &[
+            LlmProvider::Openai,
+            LlmProvider::Anthropic,
+            LlmProvider::Deepseek,
+            LlmProvider::Qwen,
+            LlmProvider::Zhipu,
+            LlmProvider::Moonshot,
+            LlmProvider::Doubao,
+            LlmProvider::Minimax,
+        ] {
+            assert!(
+                p.default_endpoint().starts_with("https://"),
+                "{:?} 默认端点应是 HTTPS: {}",
+                p,
+                p.default_endpoint()
+            );
+        }
+    }
+
+    /// Ollama 是本地服务，必须为 http://。
+    #[test]
+    fn test_ollama_is_http_localhost() {
+        let ep = LlmProvider::Ollama.default_endpoint();
+        assert!(ep.starts_with("http://localhost"), "Ollama 应默认 localhost: {}", ep);
+        assert!(!ep.starts_with("https://"));
+    }
+
+    /// 默认端点不能含尾部斜杠以外的脏字符（trim 后不含空白）。
+    #[test]
+    fn test_default_endpoints_no_surrounding_whitespace() {
+        for p in all_providers() {
+            let ep = p.default_endpoint();
+            assert_eq!(ep, ep.trim(), "{:?} 端点不应带前后空白: '{}'", p, ep);
+        }
+    }
+
+    /// LlmProvider 必须实现 PartialEq + Clone + Debug，便用于测试断言与日志。
+    #[test]
+    fn test_provider_marker_traits_compile_time() {
+        let a = LlmProvider::Mock;
+        let b = a.clone();
+        assert_eq!(a, b, "Clone 后必须相等");
+        let dbg = format!("{:?}", a);
+        assert!(!dbg.is_empty());
+    }
+
+    /// 测试 json! 宏构造的 raw 字符串能 round-trip 回 LlmProvider。
+    #[test]
+    fn test_provider_from_json_macro() {
+        let val = json!("qwen");
+        let parsed: LlmProvider = serde_json::from_value(val).unwrap();
+        assert_eq!(parsed, LlmProvider::Qwen);
+    }
+}

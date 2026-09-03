@@ -4,6 +4,16 @@
   - 点击遮罩关闭（除非 `dismissible=false`）
   - 焦点陷阱：打开时焦点进入第一个 focusable，关闭时还原
   - aria-modal / role=dialog
+
+  W12 VDP-FIX-01（v3）：原本使用 Vue <transition> 包裹 v-if 的元素。
+  实测在 Teleport 容器内 Vue transitionend 监听不可靠（Tauri WebView2 /
+  happy-dom / 严格 CSP 下都会复现）：enter/leave 会卡在
+  `*-enter-from *-leave-active` 组合状态，导致元素永远不卸载。
+
+  这里改为纯 v-if：open=true 立刻渲染、open=false 立刻卸载。
+  视觉动效改由 CSS keyframe + `open` 类实现，但仍保证 unmount 时机可控。
+  后续如要恢复 <transition>，需要先解决 transitionend 在 Teleport 内
+  的传播问题，再回到此处。
 -->
 
 <script setup lang="ts">
@@ -67,45 +77,43 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 
 <template>
   <Teleport to="body">
-    <transition name="app-modal">
+    <div
+      v-if="open"
+      class="app-modal"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="title || '对话框'"
+      data-openpaint-modal
+    >
+      <div class="app-modal__scrim" @click="close" />
       <div
-        v-if="open"
-        class="app-modal"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="title || '对话框'"
-        data-openpaint-modal
+        ref="panelRef"
+        class="app-modal__panel"
+        tabindex="-1"
+        :style="{ maxWidth: `${width}px` }"
       >
-        <div class="app-modal__scrim" @click="close" />
-        <div
-          ref="panelRef"
-          class="app-modal__panel"
-          tabindex="-1"
-          :style="{ maxWidth: `${width}px` }"
-        >
-          <header v-if="title || $slots.title" class="app-modal__header">
-            <h2 class="app-modal__title">
-              <slot name="title">{{ title }}</slot>
-            </h2>
-            <button
-              v-if="dismissible"
-              type="button"
-              class="app-modal__close"
-              aria-label="关闭对话框"
-              @click="close"
-            >
-              <X :size="16" />
-            </button>
-          </header>
-          <div class="app-modal__body">
-            <slot />
-          </div>
-          <footer v-if="$slots.footer" class="app-modal__footer">
-            <slot name="footer" />
-          </footer>
+        <header v-if="title || $slots.title" class="app-modal__header">
+          <h2 class="app-modal__title">
+            <slot name="title">{{ title }}</slot>
+          </h2>
+          <button
+            v-if="dismissible"
+            type="button"
+            class="app-modal__close"
+            aria-label="关闭对话框"
+            @click="close"
+          >
+            <X :size="16" />
+          </button>
+        </header>
+        <div class="app-modal__body">
+          <slot />
         </div>
+        <footer v-if="$slots.footer" class="app-modal__footer">
+          <slot name="footer" />
+        </footer>
       </div>
-    </transition>
+    </div>
   </Teleport>
 </template>
 
@@ -117,6 +125,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
   display: flex;
   align-items: center;
   justify-content: center;
+  // W12 VDP-FIX-01（v3）：CSS keyframe 替代 Vue transition 的视觉淡入。
+  animation: app-modal-in 150ms ease-out;
 
   &__scrim {
     position: absolute;
@@ -180,18 +190,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
   }
 }
 
-.app-modal-enter-active,
-.app-modal-leave-active {
-  transition: opacity var(--transition-base);
-  .app-modal__panel {
-    transition: transform var(--transition-base);
+@keyframes app-modal-in {
+  from {
+    opacity: 0;
   }
-}
-.app-modal-enter-from,
-.app-modal-leave-to {
-  opacity: 0;
-  .app-modal__panel {
-    transform: translateY(8px) scale(0.98);
+  to {
+    opacity: 1;
   }
 }
 

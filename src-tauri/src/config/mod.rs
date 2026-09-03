@@ -193,3 +193,237 @@ pub fn ensure_initialized() -> Result<(), String> {
 
     Ok(())
 }
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_yaml;
+
+    #[test]
+    fn test_data_dir_ends_with_openpaint() {
+        let p = data_dir().expect("home dir should resolve");
+        assert!(p.ends_with(".openpaint"), "{:?}", p);
+    }
+
+    #[test]
+    fn test_config_path_under_data_dir() {
+        let p = config_path().expect("config path should resolve");
+        assert!(p.ends_with("config.yaml"));
+        let parent = p.parent().expect("config has parent dir");
+        assert!(parent.ends_with(".openpaint"));
+    }
+
+    #[test]
+    fn test_default_cdn_mirror_is_default() {
+        assert_eq!(default_cdn_mirror(), "default");
+    }
+
+    #[test]
+    fn test_assets_config_default() {
+        let a = AssetsConfig::default();
+        assert_eq!(a.cdn_mirror, "default");
+        assert!(!a.attribution_notice_shown);
+    }
+
+    #[test]
+    fn test_app_config_yaml_round_trip() {
+        // 默认 YAML 应能解析 + 序列化回 YAML 后再次解析得到等价结构
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let parsed: AppConfig = serde_yaml::from_str(yaml).expect("default YAML parses");
+        let serialized = serde_yaml::to_string(&parsed).expect("serialize");
+        let re_parsed: AppConfig = serde_yaml::from_str(&serialized).expect("re-parse");
+        assert_eq!(re_parsed.llm.provider, parsed.llm.provider);
+        assert_eq!(re_parsed.llm.model, parsed.llm.model);
+        assert_eq!(re_parsed.gallery.max_items, parsed.gallery.max_items);
+        assert_eq!(re_parsed.assets.cdn_mirror, parsed.assets.cdn_mirror);
+    }
+
+    #[test]
+    fn test_app_config_default_yaml_provider() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.llm.provider, "openai");
+        assert_eq!(cfg.llm.base_url.as_deref(), Some("https://api.openai.com/v1"));
+        assert!(cfg.llm.api_key.is_empty(), "默认 api_key 应为空字符串");
+        assert_eq!(cfg.llm.local_model.as_deref(), Some("qwen2.5:7b"));
+        assert_eq!(cfg.llm.local_url.as_deref(), Some("http://localhost:11434"));
+    }
+
+    #[test]
+    fn test_app_config_preset_sizes() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.presets.web, vec![16, 32, 48, 180, 192, 512]);
+        assert_eq!(cfg.presets.android, vec![48, 72, 96, 144, 192, 512]);
+        assert_eq!(cfg.presets.favicon, vec![16, 32, 64]);
+        assert_eq!(
+            cfg.presets.ios,
+            vec![20.0, 29.0, 40.0, 60.0, 76.0, 83.5, 1024.0]
+        );
+    }
+
+    #[test]
+    fn test_app_config_gallery_defaults() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.gallery.max_items, 500);
+        assert_eq!(cfg.gallery.thumbnail_size, 256);
+        assert_eq!(cfg.gallery.storage_path, "~/.openpaint/gallery");
+    }
+
+    #[test]
+    fn test_app_config_mcp_servers() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.mcp.servers.len(), 2);
+        assert_eq!(cfg.mcp.servers[0].name, "openpaint-tools");
+        assert!(cfg.mcp.servers[0].enabled);
+        assert!(!cfg.mcp.servers[1].enabled);
+    }
+
+    #[test]
+    fn test_assets_config_serde_round_trip() {
+        let cfg = AssetsConfig {
+            cdn_mirror: "jsdelivr".into(),
+            attribution_notice_shown: true,
+        };
+        let yaml = serde_yaml::to_string(&cfg).unwrap();
+        let back: AssetsConfig = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(back.cdn_mirror, "jsdelivr");
+        assert!(back.attribution_notice_shown);
+    }
+
+    #[test]
+    fn test_app_config_assets_field_uses_default() {
+        // 当 YAML 缺省 assets 字段时，应自动应用 Default
+        let yaml = r#"
+llm:
+  provider: openai
+  model: gpt-4o
+presets:
+  web: []
+  ios: []
+  android: []
+  favicon: []
+gallery:
+  max_items: 100
+  thumbnail_size: 128
+  storage_path: /tmp
+mcp:
+  servers: []
+"#;
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.assets.cdn_mirror, "default");
+        assert!(!cfg.assets.attribution_notice_shown);
+    }
+
+    #[test]
+    fn test_assets_config_accessor_returns_clone() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        let a1 = cfg.assets_config();
+        let a2 = cfg.assets_config();
+        assert_eq!(a1.cdn_mirror, a2.cdn_mirror);
+        // 修改 a1 不应影响 cfg.assets（深 clone）
+        let mut a1 = a1;
+        a1.cdn_mirror = "jsdelivr".into();
+        assert_eq!(cfg.assets.cdn_mirror, "default");
+    }
+
+    #[test]
+    fn test_llm_config_partial_yaml_defaults() {
+        // 缺少 api_key / base_url / local_model / local_url 时应使用 default ""
+        let yaml = r#"
+provider: ollama
+model: llama3.1
+"#;
+        let cfg: LlmConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.provider, "ollama");
+        assert_eq!(cfg.api_key, "");
+        assert!(cfg.base_url.is_none());
+        assert!(cfg.local_model.is_none());
+        assert!(cfg.local_url.is_none());
+    }
+
+    #[test]
+    fn test_mcp_server_config_fields() {
+        let s = McpServerConfig {
+            name: "test".into(),
+            enabled: true,
+        };
+        let yaml = serde_yaml::to_string(&s).unwrap();
+        let back: McpServerConfig = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(back.name, "test");
+        assert!(back.enabled);
+    }
+
+    #[test]
+    fn test_preset_config_serde() {
+        let p = PresetConfig {
+            web: vec![16, 32],
+            ios: vec![20.0],
+            android: vec![48],
+            favicon: vec![16, 32, 64],
+        };
+        let yaml = serde_yaml::to_string(&p).unwrap();
+        let back: PresetConfig = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(back.web, p.web);
+        assert_eq!(back.ios, p.ios);
+    }
+
+    #[test]
+    fn test_gallery_config_serde() {
+        let g = GalleryConfig {
+            max_items: 100,
+            thumbnail_size: 256,
+            storage_path: "/tmp".into(),
+        };
+        let yaml = serde_yaml::to_string(&g).unwrap();
+        let back: GalleryConfig = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(back.max_items, 100);
+        assert_eq!(back.thumbnail_size, 256);
+        assert_eq!(back.storage_path, "/tmp");
+    }
+
+    #[test]
+    fn test_app_config_clone_is_independent() {
+        let yaml = include_str!("../../../assets/default_config.yaml");
+        let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        let mut clone = cfg.clone();
+        clone.llm.provider = "deepseek".into();
+        clone.gallery.max_items = 999;
+        assert_eq!(cfg.llm.provider, "openai", "原配置不应被修改");
+        assert_eq!(cfg.gallery.max_items, 500);
+    }
+
+    #[test]
+    fn test_invalid_yaml_returns_err() {
+        // 非法 YAML（缩进不一致）
+        let bad = "llm: : invalid";
+        let r: Result<AppConfig, _> = serde_yaml::from_str(bad);
+        assert!(r.is_err(), "非法 YAML 应返回 Err");
+    }
+
+    #[test]
+    fn test_missing_required_field_returns_err() {
+        // 缺少必需字段 model
+        let bad = r#"
+llm:
+  provider: openai
+presets:
+  web: []
+gallery:
+  max_items: 1
+  thumbnail_size: 1
+  storage_path: /tmp
+mcp:
+  servers: []
+"#;
+        let r: Result<AppConfig, _> = serde_yaml::from_str(bad);
+        assert!(r.is_err(), "缺 model 字段应失败");
+    }
+}

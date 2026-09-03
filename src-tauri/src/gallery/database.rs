@@ -353,4 +353,247 @@ mod tests {
         assert!(deleted > 0);
         assert!(db.count().unwrap() <= 10);
     }
+
+    // ----------------------------------------------------------------
+    // 补充测试：CRUD 边界 / 搜索去重 / 轮转 / Tag 索引
+    // ----------------------------------------------------------------
+
+    #[test]
+    fn test_insert_replaces_existing() {
+        // INSERT OR REPLACE：同 ID 二次插入应覆盖
+        let db = test_db();
+        let mut item = sample_item("dup");
+        item.prompt = Some("first".to_string());
+        db.insert(&item).unwrap();
+
+        let mut updated = sample_item("dup");
+        updated.prompt = Some("second".to_string());
+        updated.tags = vec!["updated".to_string()];
+        db.insert(&updated).unwrap();
+
+        let got = db.get("dup").unwrap().unwrap();
+        assert_eq!(got.prompt.as_deref(), Some("second"));
+        assert!(got.tags.contains(&"updated".to_string()));
+        assert_eq!(db.count().unwrap(), 1, "REPLACE should not duplicate rows");
+    }
+
+    #[test]
+    fn test_insert_rebuilds_tag_index() {
+        // tags 字段修改后旧 tag 必须消失
+        let db = test_db();
+        let mut item = sample_item("x");
+        item.tags = vec!["old".to_string(), "shared".to_string()];
+        db.insert(&item).unwrap();
+        let hits = db.search_by_tag("old", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+
+        // 改 tags（去掉 old，加上 new）
+        item.tags = vec!["new".to_string(), "shared".to_string()];
+        db.insert(&item).unwrap();
+
+        assert!(db.search_by_tag("old", 10).unwrap().is_empty(), "old tag should be gone");
+        assert_eq!(db.search_by_tag("new", 10).unwrap().len(), 1);
+        assert_eq!(db.search_by_tag("shared", 10).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_get_returns_none_for_missing_id() {
+        let db = test_db();
+        let result = db.get("nonexistent");
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_delete_returns_false_for_missing() {
+        let db = test_db();
+        let deleted = db.delete("nonexistent").unwrap();
+        assert!(!deleted, "delete on missing id should return false");
+    }
+
+    #[test]
+    fn test_count_starts_at_zero() {
+        let db = test_db();
+        assert_eq!(db.count().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_list_respects_limit_and_offset() {
+        let db = test_db();
+        for i in 0..5 {
+            let mut item = sample_item(&format!("item{}", i));
+            item.created_at = 1000 + i as i64;
+            db.insert(&item).unwrap();
+        }
+        // 取 2 条
+        let page1 = db.list(2, 0).unwrap();
+        assert_eq!(page1.len(), 2);
+        // 按 created_at DESC 排序，page1 应是最新的两条
+        assert!(page1[0].created_at >= page1[1].created_at);
+
+        let page2 = db.list(2, 2).unwrap();
+        assert_eq!(page2.len(), 2);
+        // 不同 offset 返回的 ID 必须不重叠
+        let page1_ids: std::collections::HashSet<_> = page1.iter().map(|i| i.id.clone()).collect();
+        let page2_ids: std::collections::HashSet<_> = page2.iter().map(|i| i.id.clone()).collect();
+        assert!(page1_ids.is_disjoint(&page2_ids));
+    }
+
+    #[test]
+    fn test_list_returns_empty_when_offset_exceeds_total() {
+        let db = test_db();
+        db.insert(&sample_item("a")).unwrap();
+        let result = db.list(10, 100).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_search_finds_by_prompt_text() {
+        let db = test_db();
+        let mut a = sample_item("a");
+        a.prompt = Some("a beautiful sunset".to_string());
+        let mut b = sample_item("b");
+        b.prompt = Some("a quiet mountain".to_string());
+        db.insert(&a).unwrap();
+        db.insert(&b).unwrap();
+        let hits = db.search("sunset", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, "a");
+    }
+
+    #[test]
+    fn test_search_finds_by_model_text() {
+        let db = test_db();
+        let mut a = sample_item("a");
+        a.model = Some("stable-diffusion-xl".to_string());
+        let mut b = sample_item("b");
+        b.model = Some("midjourney-v6".to_string());
+        db.insert(&a).unwrap();
+        db.insert(&b).unwrap();
+        let hits = db.search("midjourney", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, "b");
+    }
+
+    #[test]
+    fn test_search_returns_empty_on_no_match() {
+        let db = test_db();
+        db.insert(&sample_item("a")).unwrap();
+        let hits = db.search("nonexistent_keyword_xyz", 10).unwrap();
+        assert!(hits.is_empty());
+    }
+
+    #[test]
+    fn test_search_by_tag_exact_match_only() {
+        let db = test_db();
+        let mut a = sample_item("a");
+        a.tags = vec!["blue".to_string()];
+        let mut b = sample_item("b");
+        b.tags = vec!["bluish".to_string()];
+        db.insert(&a).unwrap();
+        db.insert(&b).unwrap();
+        let hits = db.search_by_tag("blue", 10).unwrap();
+        // 精确匹配：只命中 a，不命中 bluish
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, "a");
+    }
+
+    #[test]
+    fn test_search_by_tag_respects_limit() {
+        let db = test_db();
+        for i in 0..5 {
+            let mut item = sample_item(&format!("item{}", i));
+            item.tags = vec!["shared".to_string()];
+            db.insert(&item).unwrap();
+        }
+        let hits = db.search_by_tag("shared", 3).unwrap();
+        assert_eq!(hits.len(), 3);
+    }
+
+    #[test]
+    fn test_rotate_no_op_when_under_limit() {
+        let db = test_db();
+        for i in 0..3 {
+            let mut item = sample_item(&format!("i{}", i));
+            item.created_at = i as i64;
+            db.insert(&item).unwrap();
+        }
+        // max=10 不应触发删除
+        let deleted = db.rotate(10).unwrap();
+        assert_eq!(deleted, 0);
+        assert_eq!(db.count().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_rotate_deletes_oldest_first() {
+        // 验证轮转删的是最早的
+        let db = test_db();
+        for i in 0..6 {
+            let mut item = sample_item(&format!("i{}", i));
+            item.created_at = i as i64; // i0 最早，i5 最新
+            db.insert(&item).unwrap();
+        }
+        // max=4 → overflow=2，10% = floor(4/10)=0 但 .max(1)=1，每次删 1 条（ceil 2/1=2）
+        let _deleted = db.rotate(4).unwrap();
+        assert!(db.count().unwrap() <= 4);
+        // 最早的两条 i0/i1 应被删除（创建时间最小）
+        assert!(db.get("i0").unwrap().is_none(), "oldest should be removed");
+        // 最晚的几条应保留
+        assert!(db.get("i5").unwrap().is_some(), "newest should survive");
+    }
+
+    #[test]
+    fn test_rotate_at_max_size_boundary() {
+        let db = test_db();
+        for i in 0..5 {
+            let mut item = sample_item(&format!("i{}", i));
+            item.created_at = i as i64;
+            db.insert(&item).unwrap();
+        }
+        // max=5 == count → 不删
+        let deleted = db.rotate(5).unwrap();
+        assert_eq!(deleted, 0);
+        assert_eq!(db.count().unwrap(), 5);
+    }
+
+    #[test]
+    fn test_item_with_unicode_prompt_round_trips() {
+        // 中文 prompt / tags 完整往返
+        let db = test_db();
+        let mut item = sample_item("uni");
+        item.prompt = Some("日落时的山脉".to_string());
+        item.tags = vec!["山".to_string(), "日落".to_string()];
+        db.insert(&item).unwrap();
+        let got = db.get("uni").unwrap().unwrap();
+        assert_eq!(got.prompt.as_deref(), Some("日落时的山脉"));
+        assert!(got.tags.contains(&"山".to_string()));
+        assert!(got.tags.contains(&"日落".to_string()));
+    }
+
+    #[test]
+    fn test_item_with_null_optional_fields() {
+        // group_id / full_size_path / prompt / model 都可以为 None
+        let db = test_db();
+        let item = GalleryItem {
+            id: "n".to_string(),
+            group_id: None,
+            thumbnail_path: "/tmp/n.webp".to_string(),
+            full_size_path: None,
+            width: 0,
+            height: 0,
+            prompt: None,
+            model: None,
+            tags: vec![],
+            created_at: 0,
+            source: "imported".to_string(),
+        };
+        db.insert(&item).unwrap();
+        let got = db.get("n").unwrap().unwrap();
+        assert!(got.group_id.is_none());
+        assert!(got.full_size_path.is_none());
+        assert!(got.prompt.is_none());
+        assert!(got.model.is_none());
+        assert!(got.tags.is_empty());
+        assert_eq!(got.source, "imported");
+    }
 }

@@ -1,15 +1,24 @@
 <!--
   AI result preview modal — show generated image, confirm / cancel / refine.
+
+  W14+ 统一画布架构：
+    - "确认" 现在直接把 AI 返回的 SVG 通过 OpenPencil bridge 插入中央画布
+      （替换选区）。不再经由 Rust canvasApi.pasteImage（那会把矢量栅格化）。
+    - "微调" 不再打开独立的 OpenPencil 右窗——OpenPencil 已经是中央画布，
+      直接关闭预览即可让用户继续编辑。
 -->
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { X, Check, Pencil } from 'lucide-vue-next';
 import { useUIStore } from '@stores/uiStore';
-import { canvasApi } from '@api/index';
+import { useToast } from '@composables/useToast';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
 import Spinner from '@/components/common/Spinner.vue';
 
 const uiStore = useUIStore();
+const toast = useToast();
+const bridge = getOpenPencilBridge();
 
 const visible = computed(() => uiStore.previewModalVisible);
 const payload = computed(() => uiStore.previewPayload);
@@ -23,21 +32,21 @@ const imgSrc = computed(() => {
 const busy = ref(false);
 
 async function confirm() {
-  if (!payload.value?.png || busy.value) return;
+  if (!payload.value?.svg || busy.value) return;
   busy.value = true;
   try {
-    await canvasApi.pasteImage(payload.value.png);
+    await bridge.importSVG(payload.value.svg, { replaceSelection: true });
     uiStore.closePreview();
   } catch (e) {
     console.error('[PreviewModal] confirm failed:', e);
+    toast.error(`插入失败：${String((e as Error).message ?? e)}`);
   } finally {
     busy.value = false;
   }
 }
 
 function refine() {
-  // W4: expand the OpenPencil right panel for manual editing.
-  uiStore.switchRightPanel('openpencil');
+  // OpenPencil 已在中央画布；直接关闭预览让用户继续编辑即可。
   uiStore.closePreview();
 }
 </script>
@@ -75,16 +84,16 @@ function refine() {
           </button>
           <button class="preview-modal__btn" type="button" @click="refine">
             <Pencil :size="14" />
-            微调
+            在中央画布继续编辑
           </button>
           <button
             class="preview-modal__btn preview-modal__btn--primary"
             type="button"
-            :disabled="busy || !imgSrc"
+            :disabled="busy || !payload?.svg"
             @click="confirm"
           >
             <Check :size="14" />
-            确认落回画布
+            插入中央画布
           </button>
         </footer>
       </div>

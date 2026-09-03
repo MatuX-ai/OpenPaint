@@ -56,12 +56,13 @@
 | :-------------- | :------------------------ | :----- | :------------------------------- |
 | **桌面框架**    | Tauri                     | v2     | 跨平台打包、系统调用、进程管理   |
 | **前端框架**    | Vue 3 + TypeScript        | 3.x    | UI 渲染、状态管理、组件化开发    |
-| **画布渲染**    | Canvas 2D / Skia          | -      | 像素级图形渲染、图层合成         |
+| **画布渲染**    | OpenPencil (统一中央画布)    | 0.14+  | 唯一主画布，矢量 / 位图混合编辑、AI 直入         |
 | **AI 智能体**   | Hermes Agent              | v0.6+  | 意图理解、自主决策、MCP 工具调度 |
-| **AI 生成引擎** | OpenPencil (Web)          | Latest | 矢量编辑、AI 图像生成            |
+| **AI 生成引擎** | OpenPencil 编辑器内置       | 0.14+  | 矢量节点 / AI 图像生成（不再独立右窗）  |
 | **本地数据库**  | SQLite (rusqlite)         | 0.31+  | 图库元数据、历史记录持久化       |
 | **向量数据库**  | LanceDB                   | 0.23+  | 语义搜索（渐进式集成）           |
-| **SVG 渲染**    | resvg                     | 0.9+   | SVG 到 PNG 的无损缩放渲染        |
+| **SVG 渲染**    | resvg                     | 0.48+  | SVG 到 PNG 的无损缩放渲染（资产库渐变 / 图标预览）        |
+| **位图栅格层**  | Canvas 2D (兼容层)        | -      | 画笔 / 橡皮 / 旋转 / 混合模式（与 OpenPencil 位图层并存）  |
 | **图像处理**    | image-rs                  | 0.25+  | 缩略图生成、格式转换             |
 | **通信协议**    | MCP (JSON-RPC over stdio) | -      | 工具注册与调用                   |
 
@@ -212,46 +213,78 @@ MCP 服务器启动后，Hermes Agent 自动发现可用工具，支持 `tools/l
 
 ---
 
-### 3.3 OpenPencil 嵌入模块
+### 3.3 OpenPencil 嵌入模块（统一中央画布，W14+）
 
-#### 3.3.1 集成方案
+#### 3.3.1 集成架构变化
 
-OpenPencil 提供 **Vue SDK**，支持将其嵌入到其他应用中：
+原架构：OpenPencil 作为独立右窗，用户在中央画布与 OpenPencil 之间切换，AI 结果以 base64 PNG 落回中央画布（矢量->位图退化）。
+
+新架构：OpenPencil 本身成为中央画布，唯一 Editor 实例 + 唯一 SceneGraph 是项目唯一文档。Rust `CanvasState` / `canvasApi` 降为兼容层。
 
 ```typescript
-// src-web/components/OpenPencilView.vue
-import { CanvasRoot, ToolbarRoot, useEditor } from '@open-pencil/vue-sdk';
+// src-web/src/composables/useOpenPencil.ts（W14+ 关键变更）
+let singletonEditor: Editor | null = null;
+let singletonBridge: OpenPencilBridge | null = null;
 
-// 嵌入 OpenPencil 编辑器
-<CanvasRoot :initial-document="documentData">
-  <ToolbarRoot />
-</CanvasRoot>
+export function getOpenPencilBridge(): OpenPencilBridge {
+  if (!singletonBridge) singletonBridge = createSingleton();
+  return singletonBridge;   // 全应用唯一
+}
+
+// 上层组件
+const bridge = getOpenPencilBridge();
+<OpenPencilView>    // CentralLayout 中挂载一处，提供 provideEditor
+  <ToolbarRoot />   // OpenPencil 自带工具面
+  <LayerTreeRoot />
+</OpenPencilView>
 ```
 
-#### 3.3.2 双向通信
+#### 3.3.2 责任划分
 
-OpenPencil 内置 **MCP 服务器**，支持外部 AI Agent 检查与操作画布：
+- **OpenPencil editor（唯一编辑器）**：
+  - SceneGraph 唯一真理源（节点 / 选区 / 矢量图层 / 文本）
+  - `undoAction()` / `redoAction()` 统一所有姿势的 Undo/Redo
+  - `pasteFromHTML(svg, undefined, { replaceSelection: true })` 接收 AI SVG（直入，不栅格化）
+  - `replaceGraph()` 重置文档（如示例 / 加载 .op）
+  - `getLayerTree()` / `getSelectedNodes()` 透出给 Vue 状态
+- **Rust `canvasApi`（兼容层）**：
+  - 位图层 / 画笔 / 橡皮 / 旋转 / 文字 / 混合模式 / 缩放适配
+  - `paste_image_to_layer` 仍用于位图导入（不供 AI 路径使用）
+- **不重复实现**：Rust 不在维护中央文档 OpenPencil 已表达的选区 / 节点树。
+
+#### 3.3.3 AI 闭环通信
 
 ```
-┌─────────────┐    WebSocket     ┌─────────────────┐
-│ OpenPaint   │ ◄──────────────► │ OpenPencil      │
-│ (Tauri 后端)│                  │ (MCP Server)    │
-└─────────────┘                  └─────────────────┘
-      │                                  │
-      │  MCP over stdio                   │  MCP over WebSocket
-      ▼                                  ▼
-┌─────────────┐                  ┌─────────────────┐
-│ Hermes Agent│                  │ AI 生成/编辑    │
-└─────────────┘                  └─────────────────┘
+OpenPaint                                OpenPencil
+ (Tauri WebView)                          (中央画布)
+
+AI Assistant ──「插画一个圆形」 ─→  aiApi.sendToAiEngine → LLM
+                                            │
+                                            ▼ svg/png
+                                    预览弹窗 PreviewModal
+                                            │ 「插入中央画布」
+                                            ▼
+                              bridge.importSVG(svg, { replaceSelection: true })
+                                            │
+                                            ▼  editor.pasteFromHTML()
+                                SceneGraph（不栅格化）
 ```
 
-OpenPencil 的 MCP 服务器已支持 `export_png` 等工具，可直接复用。
+**关键点**：
 
-#### 3.3.3 通信流程
+1. AI 返回 SVG 不再“PNG 化”又再贴中央画布，避免矢量退化。
+2. `replaceSelection: true` 默认替换当前选区，为画布局部重画提供上下文。
+3. 乐观插入 + 后续 Undo/Redo 可一键移除，再按 Ctrl+Z 还原。
 
-1. **图源传递**：中央画布选区 → Base64 → 注入 OpenPencil 画布
-2. **AI 生成**：Hermes Agent 通过 MCP 调用 OpenPencil 的 AI 能力
-3. **结果回传**：OpenPencil 导出 SVG/PNG → 通过 MCP 返回 → 落回中央画布
+#### 3.3.4 迁移阶段
+
+| 阶段 | 状态 | 备注 |
+| --- | --- | --- |
+| Stage 1：中央编辑实例 + OpenPencil 桥接口 | ✅ | `useOpenPencil` 单例化，提供 TODO 必需方法 |
+| Stage 2：工具 / 图层 / AI 状态全部走桥 | ✅ | CanvasToolbar / LayerPanel / useShortcuts |
+| Stage 3：移除独立 OpenPencil 右窗入口 | ✅ | TopBar / RightSidebar / uiStore / AppView |
+| Stage 4：测试与生产验证 | ✅ | 375 vitest · type-check · lint 0 error |
+| Stage 5：文档更新 | ✅ | 本轮同步 |
 
 ---
 

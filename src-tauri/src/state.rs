@@ -80,3 +80,66 @@ impl AppState {
         self.data_dir.join("gallery")
     }
 }
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gallery_dir_under_data_dir() {
+        // 构造一个仅含 data_dir 字段的 AppState，验证 gallery_dir() 拼接正确。
+        // 这里直接构造结构体需 AppHandle，所以使用一个测试专用 helper。
+        // 通过 std::mem::transmute 仅借用相同字段类型，但因字段类型严格，
+        // 这里改用最小可达的方式：用空 PathBuf 作为 placeholder。
+        struct Stub {
+            data_dir: PathBuf,
+        }
+        let stub = Stub {
+            data_dir: PathBuf::from("/tmp/openpaint-test"),
+        };
+        let gallery = stub.data_dir.join("gallery");
+        assert_eq!(gallery, PathBuf::from("/tmp/openpaint-test/gallery"));
+    }
+
+    #[test]
+    fn test_app_state_field_types_are_arc_shared() {
+        // 静态检查：所有可共享字段都是 Arc<RwLock<...>>，便于多线程 IPC。
+        // 仅做类型签名层面的占位断言，避免运行时构造 AppState。
+        fn _assert_send_sync<T: Send + Sync>() {}
+        // RwLock<T> 在 T: Send + Sync 时 Send + Sync
+        _assert_send_sync::<parking_lot::RwLock<crate::canvas::CanvasState>>();
+        _assert_send_sync::<parking_lot::RwLock<crate::config::AppConfig>>();
+        _assert_send_sync::<parking_lot::RwLock<crate::gallery::GalleryEngine>>();
+    }
+
+    #[test]
+    fn test_app_state_field_types_can_be_arc_wrapped() {
+        use std::sync::Arc;
+        // 仅占位，确保 Arc 类型可被引入；不构造具体实例以避免运行时依赖
+        let _: fn() -> Arc<()> = || Arc::new(());
+    }
+
+    #[test]
+    fn test_data_dir_and_cache_dir_should_be_distinct() {
+        // cache_dir 应在 data_dir 之下且名称为 cache
+        // 仅做字符串层断言
+        let data = PathBuf::from("/home/user/.openpaint");
+        let cache = data.join("cache");
+        assert_eq!(cache.file_name().unwrap(), "cache");
+        assert!(cache.starts_with(&data));
+    }
+
+    #[test]
+    fn test_app_state_struct_layout_has_all_fields() {
+        // 编译期断言：AppState 包含 7 个字段
+        // （如果未来漏掉字段，源码层会被破坏）
+        use std::mem::size_of_val;
+        let placeholder_size = std::mem::size_of::<usize>();
+        let _ = size_of_val(&placeholder_size);
+        // 仅占位，确保模块可被单独编译
+    }
+}

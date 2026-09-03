@@ -3,8 +3,13 @@
   Structure:
     AppMenuBar              菜单栏 (32px)  -- 文件 / 编辑 / 视图 / 帮助
     TopBar                  title bar (48px) -- 标题 + 全局操作
-    [LeftSidebar | Center | RightSidebar | LayerPanel]
+    [LeftSidebar | Center (OpenPencil 中央画布 + 共享工具条) | RightSidebar | LayerPanel]
     StatusBar               footer (24px)
+
+  W14+ 统一画布架构：
+    - 中央区域 = OpenPencil View，唯一主画布与文档状态。
+    - 不再同时挂载 Rust 像素画 CanvasView；保留该组件作为兼容参考但不在主布局。
+    - 右侧仅保留图库 / 折叠等辅助面板，浮动 AI 助理独立显示。
 -->
 
 <script setup lang="ts">
@@ -13,9 +18,9 @@ import TopBar from './TopBar.vue';
 import LeftSidebar from './LeftSidebar.vue';
 import RightSidebar from './RightSidebar.vue';
 import StatusBar from './StatusBar.vue';
-import CanvasView from '@/components/canvas/CanvasView.vue';
 import CanvasToolbar from '@/components/canvas/CanvasToolbar.vue';
 import LayerPanel from '@/components/canvas/LayerPanel.vue';
+import OpenPencilView from '@/components/openpencil/OpenPencilView.vue';
 </script>
 
 <template>
@@ -27,7 +32,7 @@ import LayerPanel from '@/components/canvas/LayerPanel.vue';
       <LeftSidebar class="main-layout__left" />
       <div class="main-layout__center">
         <CanvasToolbar class="main-layout__toolbar" />
-        <CanvasView class="main-layout__canvas" />
+        <OpenPencilView class="main-layout__canvas" />
       </div>
       <RightSidebar class="main-layout__right" />
       <LayerPanel class="main-layout__layers" />

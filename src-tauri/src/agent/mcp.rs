@@ -188,3 +188,172 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
     ]
 }
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 返回所有工具名，方便测试断言。
+    fn all_tool_names() -> Vec<String> {
+        tool_definitions().into_iter().map(|t| t.name).collect()
+    }
+
+    #[test]
+    fn test_tool_definitions_total_count_is_15() {
+        let tools = tool_definitions();
+        assert_eq!(tools.len(), 15, "原子工具数应 = 15");
+    }
+
+    #[test]
+    fn test_tool_definitions_no_duplicate_names() {
+        let names = all_tool_names();
+        let mut sorted = names.clone();
+        sorted.sort();
+        let before = sorted.len();
+        sorted.dedup();
+        assert_eq!(sorted.len(), before, "工具名不可重复");
+    }
+
+    #[test]
+    fn test_every_tool_has_required_fields() {
+        let tools = tool_definitions();
+        for t in tools {
+            assert!(!t.name.is_empty(), "name 不能为空");
+            assert!(!t.description.is_empty(), "description 不能为空");
+            assert!(t.input_schema.is_object(), "input_schema 必须是对象");
+            assert_eq!(
+                t.input_schema["type"],
+                "object",
+                "{}: type 应为 object",
+                t.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_every_tool_description_contains_chinese() {
+        // 中文描述是产品要求，确保未被简化掉
+        for t in tool_definitions() {
+            let has_cjk = t.description.chars().any(|c| {
+                let cp = c as u32;
+                (0x4E00..=0x9FFF).contains(&cp)
+            });
+            assert!(has_cjk, "{}: description 应包含中文", t.name);
+        }
+    }
+
+    #[test]
+    fn test_required_fields_are_declared() {
+        // 每个工具的 required 字段必须是 properties 里的 key
+        for t in tool_definitions() {
+            let required = t.input_schema["required"].as_array();
+            if let Some(req) = required {
+                let props = t.input_schema["properties"].as_object();
+                for r in req {
+                    let name = r.as_str().unwrap();
+                    if let Some(p) = props {
+                        assert!(
+                            p.contains_key(name),
+                            "{}: required '{}' 必须在 properties 中",
+                            t.name,
+                            name
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_core_tools_present() {
+        let names = all_tool_names();
+        for n in [
+            "get_canvas_selection",
+            "get_selection_bounds",
+            "paste_image_to_layer",
+            "get_layer_info",
+            "send_to_ai_engine",
+            "render_svg_to_png",
+            "get_current_svg",
+            "save_to_gallery",
+            "search_gallery",
+            "get_gallery_image",
+        ] {
+            assert!(names.contains(&n.to_string()), "缺少工具 {}", n);
+        }
+    }
+
+    #[test]
+    fn test_asset_tools_present() {
+        let names = all_tool_names();
+        for n in [
+            "search_icons",
+            "render_icon_svg",
+            "apply_palette",
+            "apply_gradient",
+            "create_brush_from_prompt",
+        ] {
+            assert!(names.contains(&n.to_string()), "缺少资产库工具 {}", n);
+        }
+    }
+
+    #[test]
+    fn test_specific_tool_schemas() {
+        let tools = tool_definitions();
+        for t in &tools {
+            match t.name.as_str() {
+                "send_to_ai_engine" => {
+                    assert!(t.input_schema["properties"]["image_data"].is_object());
+                    assert!(t.input_schema["properties"]["prompt"].is_object());
+                }
+                "render_svg_to_png" => {
+                    let reqd = t.input_schema["required"].as_array().unwrap();
+                    assert!(reqd.iter().any(|v| v == "svg"));
+                    assert!(reqd.iter().any(|v| v == "width"));
+                    assert!(reqd.iter().any(|v| v == "height"));
+                }
+                "apply_palette" => {
+                    let reqd = t.input_schema["required"].as_array().unwrap();
+                    assert!(reqd.iter().any(|v| v == "palette_id"));
+                }
+                "apply_gradient" => {
+                    let reqd = t.input_schema["required"].as_array().unwrap();
+                    assert!(reqd.iter().any(|v| v == "gradient_id"));
+                }
+                "create_brush_from_prompt" => {
+                    let reqd = t.input_schema["required"].as_array().unwrap();
+                    assert!(reqd.iter().any(|v| v == "prompt"));
+                }
+                "search_icons" => {
+                    let reqd = t.input_schema["required"].as_array().unwrap();
+                    assert!(reqd.iter().any(|v| v == "query"));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn test_tool_definitions_serializable() {
+        // MCP 工具定义需要通过 JSON-RPC 发送给客户端
+        let json = serde_json::to_string(&tool_definitions()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(parsed.is_array());
+        assert_eq!(parsed.as_array().unwrap().len(), 15);
+    }
+
+    #[test]
+    fn test_no_tool_has_empty_required_array() {
+        for t in tool_definitions() {
+            let reqd = t.input_schema["required"].as_array();
+            // 至少有一个工具需要必填项
+            if let Some(r) = reqd {
+                assert!(!r.is_empty(), "{}: required 不能为空数组", t.name);
+            }
+        }
+    }
+}

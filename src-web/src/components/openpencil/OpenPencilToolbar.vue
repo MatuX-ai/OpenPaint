@@ -1,50 +1,20 @@
 <!--
-  OpenPencil toolbar — OK / cancel / refresh actions.
+  OpenPencil 工具条兜底（中央画布）。
+
+  W14+ 中央画布架构：
+    - 默认由 OpenPencil 自带的 <ToolbarRoot> 渲染工具按钮（见 OpenPencilView.vue）。
+    - 当前组件仅在 SDK 尚未 ready 时，作为轻量 title 占位展示，避免中央画布顶部
+      出现"OK / 取消 / 刷新"等历史右窗残留语义。
 -->
 
 <script setup lang="ts">
-import { Check, X, RefreshCw } from 'lucide-vue-next';
-import { ref } from 'vue';
-
-const emit = defineEmits<{
-  ok: [];
-  cancel: [];
-  refresh: [];
-}>();
-
-const busy = ref(false);
-
-async function onOK() {
-  busy.value = true;
-  try {
-    emit('ok');
-  } finally {
-    setTimeout(() => (busy.value = false), 300);
-  }
-}
+defineProps<{ loading?: boolean }>();
 </script>
 
 <template>
   <div class="openpencil-toolbar">
     <span class="openpencil-toolbar__title">OpenPencil</span>
-    <div class="openpencil-toolbar__actions">
-      <button
-        class="openpencil-toolbar__btn openpencil-toolbar__btn--primary"
-        type="button"
-        :disabled="busy"
-        title="OK — 将结果落回画布"
-        @click="onOK"
-      >
-        <Check :size="14" />
-        <span>OK</span>
-      </button>
-      <button class="openpencil-toolbar__btn" type="button" title="取消" @click="emit('cancel')">
-        <X :size="14" />
-      </button>
-      <button class="openpencil-toolbar__btn" type="button" title="刷新" @click="emit('refresh')">
-        <RefreshCw :size="14" />
-      </button>
-    </div>
+    <span v-if="loading" class="openpencil-toolbar__state">载入中…</span>
   </div>
 </template>
 
@@ -63,39 +33,9 @@ async function onOK() {
     color: var(--text-secondary);
   }
 
-  &__actions {
-    display: inline-flex;
-    gap: var(--space-1);
-  }
-
-  &__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+  &__state {
     font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-
-    &:hover:not(:disabled) {
-      background: var(--bg-hover);
-      color: var(--text-primary);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    &--primary {
-      color: #fff;
-      background: var(--accent);
-
-      &:hover:not(:disabled) {
-        background: var(--accent-hover);
-        color: #fff;
-      }
-    }
+    color: var(--text-muted);
   }
 }
 </style>

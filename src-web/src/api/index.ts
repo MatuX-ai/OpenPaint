@@ -193,6 +193,58 @@ export const canvasApi = {
   fillLayer: (layerId: string, color: string): Promise<void> =>
     invoke('fill_layer', { args: { layer_id: layerId, color } }),
 
+  /** Rotate a layer around its center. Positive degrees = clockwise. */
+  rotateLayer: (layerId: string, degrees: number): Promise<void> =>
+    invoke('rotate_layer', { args: { layer_id: layerId, degrees } }),
+
+  /** Rasterize and paste text into a layer. Returns the rasterized bitmap size. */
+  addText: (args: {
+    layerId: string;
+    text: string;
+    x: number;
+    y: number;
+    fontSize: number;
+    color: string;
+    fontFamily?: string;
+    fontWeight?: string;
+  }): Promise<{ bitmapWidth: number; bitmapHeight: number }> =>
+    invoke<{ bitmap_width: number; bitmap_height: number }>('add_text', {
+      args: {
+        layer_id: args.layerId,
+        text: args.text,
+        x: args.x,
+        y: args.y,
+        font_size: args.fontSize,
+        color: args.color,
+        font_family: args.fontFamily,
+        font_weight: args.fontWeight,
+      },
+    }).then((r) => ({ bitmapWidth: r.bitmap_width, bitmapHeight: r.bitmap_height })),
+
+  /** Paste an already-rasterized RGBA bitmap (base64) into a layer. */
+  pasteTextBitmap: (args: {
+    layerId: string;
+    bitmapBase64: string;
+    bitmapWidth: number;
+    bitmapHeight: number;
+    x: number;
+    y: number;
+  }): Promise<void> =>
+    invoke('paste_text_bitmap', {
+      args: {
+        layer_id: args.layerId,
+        bitmap_base64: args.bitmapBase64,
+        bitmap_width: args.bitmapWidth,
+        bitmap_height: args.bitmapHeight,
+        x: args.x,
+        y: args.y,
+      },
+    }),
+
+  /** Toggle a layer's blend mode (normal/multiply/screen/overlay). */
+  setLayerBlendMode: (layerId: string, mode: 'normal' | 'multiply' | 'screen' | 'overlay'): Promise<void> =>
+    invoke('set_layer_blend_mode', { args: { layer_id: layerId, mode } }),
+
   /** Undo the last canvas operation. Returns true if anything happened. */
   undo: (): Promise<boolean> => invoke('undo_canvas'),
 
@@ -211,6 +263,14 @@ export const canvasApi = {
   /** Toggle a layer's visibility. */
   setLayerVisibility: (layerId: string, visible: boolean): Promise<void> =>
     invoke('set_layer_visibility', { layerId, visible }),
+
+  /** Toggle a layer's locked state. */
+  setLayerLocked: (layerId: string, locked: boolean): Promise<void> =>
+    invoke('set_layer_locked', { args: { layer_id: layerId, locked } }),
+
+  /** Set a layer's opacity (0.0 - 1.0; values are clamped on the backend). */
+  setLayerOpacity: (layerId: string, opacity: number): Promise<void> =>
+    invoke('set_layer_opacity', { args: { layer_id: layerId, opacity } }),
 
   /** Resize the canvas (existing layers are dropped to fit). */
   resizeCanvas: (width: number, height: number): Promise<void> =>

@@ -728,4 +728,374 @@ mod tests {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
     }
+
+    // --------------------------------------------------------------------
+    // mock_chat_reply 全面覆盖
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_mock_chat_reply_english_greeting() {
+        let r = mock_chat_reply("Hi there");
+        assert!(r.contains("模拟"));
+        assert!(r.contains("OpenPaint"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_hello_lowercase() {
+        let r = mock_chat_reply("hello");
+        assert!(r.contains("模拟"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_nihao_with_punct() {
+        let r = mock_chat_reply("  你好！");
+        assert!(r.contains("模拟"), "前后空格/标点后仍应命中问候");
+    }
+
+    #[test]
+    fn test_mock_chat_reply_shortcut_keyword_chinese() {
+        let r = mock_chat_reply("常用快捷键");
+        assert!(r.contains("Ctrl"));
+        assert!(r.contains("⌘"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_shortcut_english() {
+        let r = mock_chat_reply("keyboard shortcut");
+        assert!(r.contains("Ctrl"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_zhichi_question_mark() {
+        let r = mock_chat_reply("?");
+        assert!(r.contains("Ctrl"), "单独 ? 应触发速查");
+    }
+
+    #[test]
+    fn test_mock_chat_reply_canvas_keyword() {
+        let r = mock_chat_reply("画布尺寸怎么改");
+        assert!(r.contains("图层") || r.contains("选区") || r.contains("工具"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_canvas_english() {
+        let r = mock_chat_reply("canvas size");
+        assert!(r.contains("画布") || r.contains("图层") || r.contains("选区"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_brush_chinese() {
+        let r = mock_chat_reply("有哪些画笔");
+        assert!(r.contains("笔刷"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_brush_english() {
+        let r = mock_chat_reply("brush type");
+        assert!(r.contains("笔刷") || r.contains("画笔"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_brush_keyword_uses_keyword() {
+        // 直接使用画笔关键词以避开别名歧义
+        let r = mock_chat_reply("画笔");
+        assert!(r.contains("笔刷"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_icon_zh() {
+        let r = mock_chat_reply("搜索图标");
+        assert!(r.contains("Iconify"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_icon_en() {
+        let r = mock_chat_reply("find me an icon");
+        assert!(r.contains("图标") || r.contains("Iconify"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_palette_zh() {
+        let r = mock_chat_reply("调色板");
+        assert!(r.contains("Material"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_palette_en() {
+        let r = mock_chat_reply("color palette");
+        assert!(r.contains("色板") || r.contains("Material"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_gradient_zh() {
+        let r = mock_chat_reply("使用渐变");
+        assert!(r.contains("linear-sunset"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_gradient_en() {
+        let r = mock_chat_reply("sunset gradient");
+        assert!(r.contains("渐变"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_llm_zh() {
+        let r = mock_chat_reply("大模型");
+        assert!(r.contains("Provider"));
+        assert!(r.contains("DeepSeek") || r.contains("通义千问"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_llm_en() {
+        let r = mock_chat_reply("AI 模型");
+        assert!(r.contains("Provider"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_unknown_topic_uses_fallback() {
+        let r = mock_chat_reply("讲讲量子纠缠");
+        assert!(r.contains("模拟模式"));
+        assert!(r.contains("偏好"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_fallback_truncates_input() {
+        // 超过 40 字符的输入应被截断到前 40
+        let long = "x".repeat(100);
+        let r = mock_chat_reply(&long);
+        assert!(r.contains("模拟模式"));
+        // 截断串中不能出现 100 个 x 中的字符全段
+        assert!(!r.contains(&"x".repeat(60)));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_empty_input_returns_fallback() {
+        let r = mock_chat_reply("");
+        assert!(r.contains("模拟模式"));
+    }
+
+    #[test]
+    fn test_mock_chat_reply_only_whitespace_returns_fallback() {
+        let r = mock_chat_reply("   \t\n");
+        assert!(r.contains("模拟模式"));
+    }
+
+    // --------------------------------------------------------------------
+    // extract_svg_from_markdown 边界用例
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_extract_svg_no_fence_returns_none() {
+        assert!(extract_svg_from_markdown("纯文本无代码块").is_none());
+        assert!(extract_svg_from_markdown("").is_none());
+    }
+
+    #[test]
+    fn test_extract_svg_html_only_no_fence_returns_none() {
+        // 没有 ```svg 围栏即使有 svg 标签也不行，避免误抽取
+        let r = extract_svg_from_markdown("<svg xmlns=\"...\"></svg>");
+        assert!(r.is_none());
+    }
+
+    #[test]
+    fn test_extract_svg_unclosed_fence_returns_none() {
+        let r = extract_svg_from_markdown("```svg\n<svg></svg>");
+        assert!(r.is_none(), "未闭合的围栏应返回 None");
+    }
+
+    #[test]
+    fn test_extract_svg_no_closing_tag_returns_none() {
+        let r = extract_svg_from_markdown("```svg\n<svg><rect/></svg");
+        assert!(r.is_none(), "缺少 </svg> 应视为无效");
+    }
+
+    #[test]
+    fn test_extract_svg_multiple_blocks_returns_first() {
+        let text = "```svg\n<svg><rect id=\"first\"/></svg>\n```\n中间\n```svg\n<svg><rect id=\"second\"/></svg>\n```";
+        let r = extract_svg_from_markdown(text).unwrap();
+        assert!(r.contains("first"));
+        assert!(!r.contains("second"));
+    }
+
+    #[test]
+    fn test_extract_svg_with_surrounding_text() {
+        let text = "好的，这是结果：\n```svg\n<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><rect/></svg>\n```\n请查收。";
+        let r = extract_svg_from_markdown(text).unwrap();
+        assert!(r.starts_with("<svg"));
+        assert!(r.ends_with("</svg>"));
+    }
+
+    // --------------------------------------------------------------------
+    // parse_provider 覆盖全部厂商 + 默认回退
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_parse_provider_all_supported() {
+        assert_eq!(parse_provider("qwen"), LlmProvider::Qwen);
+        assert_eq!(parse_provider("zhipu"), LlmProvider::Zhipu);
+        assert_eq!(parse_provider("moonshot"), LlmProvider::Moonshot);
+        assert_eq!(parse_provider("doubao"), LlmProvider::Doubao);
+        assert_eq!(parse_provider("minimax"), LlmProvider::Minimax);
+    }
+
+    #[test]
+    fn test_parse_provider_unknown_defaults_to_openai() {
+        assert_eq!(parse_provider(""), LlmProvider::Openai);
+        assert_eq!(parse_provider("garbage"), LlmProvider::Openai);
+        assert_eq!(parse_provider("OPENAI"), LlmProvider::Openai, "大小写敏感");
+    }
+
+    // --------------------------------------------------------------------
+    // mock_svg_for 渲染参数
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_mock_svg_for_truncates_to_eight_chars() {
+        let svg = mock_svg_for("abcdefghijklmnopqrstuvwxyz");
+        assert!(svg.contains("abcdefgh"), "应保留前 8 个字符");
+        assert!(!svg.contains("tuvwxyz"));
+    }
+
+    #[test]
+    fn test_mock_svg_for_handles_empty_prompt() {
+        let svg = mock_svg_for("");
+        assert!(svg.contains("<svg"));
+        assert!(svg.contains("</svg>"));
+    }
+
+    #[test]
+    fn test_mock_svg_for_escapes_special_chars_in_text() {
+        // 不强制 XML escape，但要保证不会出现 <svg 误闭合
+        let svg = mock_svg_for("<<<>>>");
+        assert!(svg.contains("<svg"));
+        assert!(svg.contains("</svg>"));
+        assert!(svg.matches("<svg").count() == 1);
+    }
+
+    // --------------------------------------------------------------------
+    // mock_response 输出 shape
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_mock_response_contains_svg_and_png() {
+        let resp = mock_response("测试");
+        assert!(resp.svg.contains("<svg"));
+        assert!(!resp.png.is_empty(), "mock PNG 应至少为 base64 非空串");
+        assert_eq!(resp.mode, "mock");
+        assert_eq!(resp.model, "mock-v1");
+    }
+
+    // --------------------------------------------------------------------
+    // Scenario 数据结构
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_scenario_deserialize_minimal() {
+        let yaml = "name: demo\ndescription: demo scene\n";
+        let s: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(s.name, "demo");
+        assert!(s.tools.is_empty());
+        assert!(s.steps.is_empty());
+    }
+
+    #[test]
+    fn test_scenario_deserialize_full() {
+        let yaml = r#"
+name: full
+description: full
+tools:
+  - search_icons
+  - apply_palette
+steps:
+  - tool: search_icons
+    args:
+      query: bell
+  - tool: apply_palette
+"#;
+        let s: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(s.tools.len(), 2);
+        assert_eq!(s.steps.len(), 2);
+        assert_eq!(s.steps[0].tool, "search_icons");
+        assert_eq!(s.steps[0].args["query"], "bell");
+        // 第二步没有 args，应使用 default（Null）
+        assert!(s.steps[1].args.is_null());
+    }
+
+    #[test]
+    fn test_scenario_step_default_args_is_null() {
+        let yaml = "tool: foo\n";
+        let step: ScenarioStep = serde_yaml::from_str(yaml).unwrap();
+        assert!(step.args.is_null());
+    }
+
+    // --------------------------------------------------------------------
+    // AiEngineResponse / SvgRenderResponse / ScenarioListItem 结构
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_ai_engine_response_serializes() {
+        let r = AiEngineResponse {
+            svg: "<svg/>".into(),
+            png: "AAAA".into(),
+            model: "gpt-4o".into(),
+            mode: "real".into(),
+        };
+        let v = serde_json::to_value(&r).unwrap();
+        assert_eq!(v["svg"], "<svg/>");
+        assert_eq!(v["png"], "AAAA");
+        assert_eq!(v["model"], "gpt-4o");
+        assert_eq!(v["mode"], "real");
+    }
+
+    #[test]
+    fn test_svg_render_response_serializes() {
+        let r = SvgRenderResponse {
+            png_data: "AAAA".into(),
+            width: 64,
+            height: 64,
+        };
+        let v = serde_json::to_value(&r).unwrap();
+        assert_eq!(v["width"], 64);
+        assert_eq!(v["height"], 64);
+        assert_eq!(v["png_data"], "AAAA");
+    }
+
+    #[test]
+    fn test_scenario_list_item_serializes() {
+        let item = ScenarioListItem {
+            name: "demo".into(),
+            description: "description".into(),
+        };
+        let v = serde_json::to_value(&item).unwrap();
+        assert_eq!(v["name"], "demo");
+        assert_eq!(v["description"], "description");
+    }
+
+    // --------------------------------------------------------------------
+    // render_svg_to_png_internal 边界
+    // --------------------------------------------------------------------
+
+    #[test]
+    fn test_render_svg_to_png_internal_invalid_returns_err() {
+        // 非 XML 字符串
+        let r = render_svg_to_png_internal("not an svg", 32, 32);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_render_svg_to_png_internal_empty_returns_err() {
+        let r = render_svg_to_png_internal("", 32, 32);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_render_svg_to_png_internal_decodes() {
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="green"/></svg>"#;
+        let b64 = render_svg_to_png_internal(svg, 32, 32).unwrap();
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(&b64)
+            .expect("应为合法 base64");
+        // PNG 头 8 字节：\x89 PNG \r \n \x1a \n
+        assert_eq!(&bytes[..8], &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]);
+    }
 }

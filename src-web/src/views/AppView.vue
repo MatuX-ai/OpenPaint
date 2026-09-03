@@ -178,7 +178,7 @@ function registerOnce() {
   unregisters.push(menu.register('view.zoom.fit', () => canvasStore.resetView()));
   unregisters.push(menu.register('view.zoom.in', () => canvasStore.setZoom(canvasStore.zoom * 1.2)));
   unregisters.push(menu.register('view.zoom.out', () => canvasStore.setZoom(canvasStore.zoom / 1.2)));
-  unregisters.push(menu.register('view.rightPanel.openpencil', () => uiStore.switchRightPanel('openpencil')));
+  // W14+ 统一画布架构：OpenPencil 已移至中央，不再有 "view.rightPanel.openpencil" 菜单项。
   unregisters.push(menu.register('view.rightPanel.gallery', () => uiStore.switchRightPanel('gallery')));
   unregisters.push(menu.register('view.rightPanel.none', () => uiStore.switchRightPanel('none')));
   unregisters.push(menu.register('view.theme', () => uiStore.toggleTheme()));
@@ -339,26 +339,32 @@ onBeforeUnmount(() => {
     />
   </div>
 
+  <!--
+    W12 VDP-UI-01/02：QuickPreferences / AdvancedSettings 自身用 Teleport + v-if
+    控制可见性并管理 mount/unmount 时序。父组件不能再用 v-show 包裹（会触发
+    `Runtime directive used on component with non-element root node` 警告，
+    且对 Teleport 内的实际内容无效）。这里直接挂载。
+  -->
   <AIAssistant />
-  <QuickPreferences v-show="uiStore.quickPreferencesVisible" />
-  <AdvancedSettings v-show="uiStore.advancedSettingsVisible" />
+  <QuickPreferences />
+  <AdvancedSettings />
   <ToastContainer />
 
-  <NewCanvasDialog v-show="newCanvasOpen" :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
-  <ExportDialog v-show="exportOpen" :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
+  <!-- 同理：以下对话框均为 Teleport 内部 v-if 控制可见性，外层不再加 v-show。
+       :open 与 @update:open 双向绑定仍保留，组件契约完整。-->
+  <NewCanvasDialog :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
+  <ExportDialog :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
   <BatchExportDialog
-    v-show="batchExportOpen"
     :open="batchExportOpen"
     @update:open="batchExportOpen = $event"
     @confirm="onBatchExportConfirm"
   />
   <UnsavedConfirmDialog
-    v-show="unsavedOpen"
     :open="unsavedOpen"
     @update:open="unsavedOpen = $event"
     @decide="onUnsavedDecide"
   />
-  <KeyboardCheatsheet v-show="cheatsheetOpen" :open="cheatsheetOpen" @update:open="cheatsheetOpen = $event" />
+  <KeyboardCheatsheet :open="cheatsheetOpen" @update:open="cheatsheetOpen = $event" />
 </template>
 
 <style lang="scss">

@@ -2,14 +2,16 @@
   TopBar — 标题栏 + 全局操作。
   - 左侧：Logo + 应用名
   - 中间：当前文件名 + 未保存指示器
-  - 右侧：撤销/重做 · 保存 · OpenPencil/图库切换 · 设置
+  - 右侧：撤销/重做 · 保存 · 图库切换 · 设置
 
   关联需求：docs/ux-onboarding-requirements.md §2.2 标题栏、US-4。
+
+  W14+ 统一画布架构：OpenPencil 已移至中央，标题栏不再有 OpenPencil 右窗按钮。
 -->
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Undo2, Redo2, Library, Sparkles, Settings, Save, Loader2 } from 'lucide-vue-next';
+import { Undo2, Redo2, Library, Settings, Save, Loader2 } from 'lucide-vue-next';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useUIStore } from '@stores/uiStore';
 import { useDocumentState } from '@composables/useDocumentState';
@@ -39,7 +41,7 @@ const indicatorLabel = computed(() => {
 
 const indicatorClass = computed(() => `top-bar__file--${doc.indicator.value}`);
 
-function togglePanel(mode: 'openpencil' | 'gallery') {
+function togglePanel(mode: 'gallery') {
   uiStore.switchRightPanel(uiStore.rightPanelMode === mode ? 'none' : mode);
 }
 
@@ -116,16 +118,6 @@ async function onSave() {
 
       <span class="top-bar__divider" />
 
-      <button
-        class="top-bar__btn"
-        type="button"
-        :class="{ 'is-active': uiStore.rightPanelMode === 'openpencil' }"
-        title="OpenPencil 右窗 (Ctrl+Alt+P)"
-        aria-label="OpenPencil 右窗"
-        @click="togglePanel('openpencil')"
-      >
-        <Sparkles :size="16" />
-      </button>
       <button
         class="top-bar__btn"
         type="button"

@@ -425,4 +425,277 @@ mod tests {
         assert_eq!(out.width(), 50);
         assert_eq!(out.height(), 25);
     }
+
+    // ----------------------------------------------------------------
+    // 补充测试：混合模式 / 缩放 / 边界 / 组合测试
+    // ----------------------------------------------------------------
+
+    #[test]
+    fn test_blend_pixel_multiply_darkens() {
+        // Multiply: src * dst / 255。同为黑=0，同为白=255
+        let white = Rgba([255, 255, 255, 255]);
+        let black = Rgba([0, 0, 0, 255]);
+        let r = CanvasRenderer::blend_pixel(white, black, BlendMode::Multiply, 1.0);
+        assert_eq!(r, Rgba([0, 0, 0, 255]));
+        // 半透明不透明度 0.5：dst 与 src=黑混合后近似 dst 自身 × inv_alpha
+        let mid = Rgba([128, 128, 128, 255]);
+        let r2 = CanvasRenderer::blend_pixel(mid, black, BlendMode::Multiply, 0.5);
+        // multiply 公式：dst*src/255 = 0；alpha=0.5*1=0.5；out = 0*0.5 + 128*0.5 = 64
+        assert_eq!(r2[0], 64);
+    }
+
+    #[test]
+    fn test_blend_pixel_screen_lightens() {
+        // Screen: 255 - ((255-dst)*(255-src)/255)
+        let dst = Rgba([128, 128, 128, 255]);
+        let src = Rgba([255, 255, 255, 255]);
+        let r = CanvasRenderer::blend_pixel(dst, src, BlendMode::Screen, 1.0);
+        // screen of (128,255) = 255
+        assert_eq!(r[0], 255);
+    }
+
+    #[test]
+    fn test_blend_pixel_overlay_handles_dark_and_light_dst() {
+        // Overlay 对 dst<128 走 multiply，dst>=128 走 screen
+        let dst_dark = Rgba([64, 64, 64, 255]);
+        let src_white = Rgba([255, 255, 255, 255]);
+        let r = CanvasRenderer::blend_pixel(dst_dark, src_white, BlendMode::Overlay, 1.0);
+        // dark dst * white src = dst 本身（被 multiply 拉黑后与 src 合成回 dst*1）
+        assert_eq!(r, dst_dark);
+
+        let dst_light = Rgba([192, 192, 192, 255]);
+        let r2 = CanvasRenderer::blend_pixel(dst_light, src_white, BlendMode::Overlay, 1.0);
+        // light dst + white src = white（screen）
+        assert_eq!(r2, Rgba([255, 255, 255, 255]));
+    }
+
+    #[test]
+    fn test_blend_pixel_opacity_clamped() {
+        // opacity 超过 1 必须被 clamp（避免像素溢出）
+        let dst = Rgba([100, 100, 100, 255]);
+        let src = Rgba([255, 0, 0, 255]);
+        let r = CanvasRenderer::blend_pixel(dst, src, BlendMode::Normal, 5.0);
+        // opacity=5 被 clamp 到 1，与 opacity=1 等价
+        let r1 = CanvasRenderer::blend_pixel(dst, src, BlendMode::Normal, 1.0);
+        assert_eq!(r, r1);
+    }
+
+    #[test]
+    fn test_blend_pixel_negative_opacity_clamped_to_zero() {
+        // 负 opacity 应被 clamp 到 0，src 不贡献像素，但 dst alpha 保持不变
+        // （因为 alpha = src_alpha/255 * opacity_clamped = 0，结果 src 不参与 alpha 混合）
+        let dst = Rgba([100, 100, 100, 255]);
+        let src = Rgba([255, 0, 0, 255]);
+        let r = CanvasRenderer::blend_pixel(dst, src, BlendMode::Normal, -2.0);
+        // 验证 src 颜色未注入：R 通道应是 dst 的 R（100），不是 src 的 255
+        assert_eq!(r[0], 100, "src 红色不应被注入，opacity=0");
+        // dst alpha 仍为 255（src 不参与 alpha 合成）
+        assert_eq!(r[3], 255);
+    }
+
+    #[test]
+    fn test_composite_uses_layer_offset() {
+        // offset_x=20 把图层整体向右平移 20 像素
+        let mut state = CanvasState::new(64, 64);
+        // 把 background 透明以便断言原位置不为红
+        let bg_id = state.layers[0].id;
+        if let Some(bg) = state.layers.iter_mut().find(|l| l.id == bg_id) {
+            for px in bg.image_data.chunks_exact_mut(4) {
+                px[0] = 0;
+                px[1] = 0;
+                px[2] = 0;
+                px[3] = 0;
+            }
+        }
+        let layer_id = state.add_layer("shifted");
+        let layer = state.layers.iter_mut().find(|l| l.id == layer_id).unwrap();
+        layer.offset_x = 20;
+        // 在 (5,5) 写一个不透明红色像素
+        let idx = ((5 * 64 + 5) * 4) as usize;
+        layer.image_data[idx] = 255;
+        layer.image_data[idx + 3] = 255;
+        // src (5,5) → dst (25,5)
+        let composed = CanvasRenderer::composite(&state).expect("composite");
+        let dst_idx = ((5 * 64 + 25) * 4) as usize;
+        assert_eq!(composed.as_raw()[dst_idx], 255, "red channel moved to (25,5)");
+        assert_eq!(composed.as_raw()[dst_idx + 3], 255, "alpha preserved");
+        // 原位置不应有红色（背景已透明）
+        let src_idx = ((5 * 64 + 5) * 4) as usize;
+        assert_ne!(composed.as_raw()[src_idx], 255, "原位置不应有红色");
+    }
+
+    #[test]
+    fn test_composite_skips_invisible_layers() {
+        // visible=false 的图层应被跳过
+        let mut state = CanvasState::new(64, 64);
+        let layer_id = state.add_layer("hidden");
+        let layer = state.layers.iter_mut().find(|l| l.id == layer_id).unwrap();
+        layer.visible = false;
+        // 在图层上写满红
+        for px in layer.image_data.chunks_exact_mut(4) {
+            px[0] = 255;
+            px[3] = 255;
+        }
+        let composed = CanvasRenderer::composite(&state).expect("composite");
+        // 合成后整张图应保持背景层白（除了背景层本身）
+        // 检查所有像素：要么是 [255,255,255,255]（背景层），要么就是其他
+        let pixels = composed.as_raw();
+        for chunk in pixels.chunks_exact(4) {
+            // 红色（hidden 层）不应出现
+            assert!(
+                !(chunk[0] == 255 && chunk[1] == 0 && chunk[2] == 0),
+                "invisible layer's red should not appear"
+            );
+        }
+    }
+
+    #[test]
+    fn test_composite_empty_layer_skipped() {
+        // 0×0 的图层不能触发 ImageBuffer 分配错误
+        let mut state = CanvasState::new(64, 64);
+        let bogus = uuid::Uuid::new_v4();
+        state.layers.push(Layer::new(bogus, "zero", 0, 0));
+        let result = CanvasRenderer::composite(&state);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_composite_with_multiple_layers_orders_correctly() {
+        // 后 add 的图层在更上层，覆盖前面
+        let mut state = CanvasState::new(32, 32);
+        let bg_id = state.add_layer("bg");
+        let top_id = state.add_layer("top");
+        // bg = 红
+        if let Some(l) = state.layers.iter_mut().find(|l| l.id == bg_id) {
+            for px in l.image_data.chunks_exact_mut(4) {
+                px[0] = 255;
+                px[1] = 0;
+                px[2] = 0;
+                px[3] = 255;
+            }
+        }
+        // top = 蓝
+        if let Some(l) = state.layers.iter_mut().find(|l| l.id == top_id) {
+            for px in l.image_data.chunks_exact_mut(4) {
+                px[0] = 0;
+                px[1] = 0;
+                px[2] = 255;
+                px[3] = 255;
+            }
+        }
+        let composed = CanvasRenderer::composite(&state).unwrap();
+        let pixel = composed.as_raw();
+        assert_eq!(pixel[0], 0, "blue should be on top (R=0)");
+        assert_eq!(pixel[2], 255, "blue channel");
+        assert_eq!(pixel[3], 255, "opaque");
+    }
+
+    #[test]
+    fn test_extract_selection_returns_error_when_empty() {
+        // 空选区必须返回 Err
+        let state = CanvasState::new(64, 64);
+        let sel = crate::canvas::Selection::empty();
+        let res = CanvasRenderer::extract_selection(&state, &sel);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_extract_selection_returns_base64_with_size_mismatch() {
+        // 选区大小合法时返回 base64 PNG；选区尺寸不能超过画布
+        let state = CanvasState::new(64, 64);
+        let mut sel = crate::canvas::Selection::empty();
+        sel.x = 0;
+        sel.y = 0;
+        sel.width = 16;
+        sel.height = 16;
+        let res = CanvasRenderer::extract_selection(&state, &sel);
+        assert!(res.is_ok());
+        let b64 = res.unwrap();
+        assert!(!b64.is_empty());
+        // 标准 base64 字符集
+        assert!(b64
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
+    }
+
+    #[test]
+    fn test_render_image_quality_clamped_both_ends() {
+        // q=0 应被 clamp 到 1，q=255 应被 clamp 到 100
+        let img: RgbaImage = RgbaImage::from_pixel(8, 8, Rgba([128, 128, 128, 255]));
+        let bytes_low = CanvasRenderer::render_image(&img, "jpg", 0).unwrap();
+        let bytes_high = CanvasRenderer::render_image(&img, "jpg", 255).unwrap();
+        assert!(!bytes_low.is_empty());
+        assert!(!bytes_high.is_empty());
+        // 极端 quality 不应让结果溢出（都仍可解码）
+        assert_eq!(&bytes_low[..2], &[0xFF, 0xD8]);
+        assert_eq!(&bytes_high[..2], &[0xFF, 0xD8]);
+    }
+
+    #[test]
+    fn test_resize_to_long_edge_keeps_aspect_ratio() {
+        // 长边缩放必须保持纵横比
+        let img: RgbaImage = RgbaImage::from_pixel(200, 100, Rgba([1, 2, 3, 255]));
+        let out = CanvasRenderer::resize_to_long_edge(&img, 50);
+        assert_eq!(out.width(), 50);
+        assert_eq!(out.height(), 25, "200:100 比例缩放到长边 50 → 25");
+    }
+
+    #[test]
+    fn test_resize_to_long_edge_already_at_target() {
+        // 长边已经等于 target 时直接 clone，不缩放
+        let img: RgbaImage = RgbaImage::from_pixel(128, 64, Rgba([1, 2, 3, 255]));
+        let out = CanvasRenderer::resize_to_long_edge(&img, 128);
+        assert_eq!(out.dimensions(), (128, 64));
+        // 像素应完全一致（clone 不缩放）
+        assert_eq!(out.as_raw(), img.as_raw());
+    }
+
+    #[test]
+    fn test_resize_to_long_edge_one_pixel_target() {
+        // target=1 必须缩到极小尺寸（不为 0）
+        let img: RgbaImage = RgbaImage::from_pixel(100, 50, Rgba([1, 2, 3, 255]));
+        let out = CanvasRenderer::resize_to_long_edge(&img, 1);
+        assert!(out.width() >= 1);
+        assert!(out.height() >= 1);
+    }
+
+    #[test]
+    fn test_to_base64_png_returns_standard_base64() {
+        let img: RgbaImage = RgbaImage::from_pixel(4, 4, Rgba([1, 2, 3, 255]));
+        let b64 = CanvasRenderer::to_base64_png(&img).unwrap();
+        // 解码 base64 后前 8 字节必须是 PNG signature
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD.decode(&b64).unwrap();
+        assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    }
+
+    #[test]
+    fn test_thumbnail_clamps_size() {
+        // thumbnail 必须产出 max_size×max_size 的方形缩略图
+        let img: RgbaImage = RgbaImage::from_pixel(200, 100, Rgba([128, 128, 128, 255]));
+        let bytes = CanvasRenderer::thumbnail(&img, 32).unwrap();
+        assert!(!bytes.is_empty());
+        // RIFF / WEBP magic
+        assert_eq!(&bytes[..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WEBP");
+    }
+
+    #[test]
+    fn test_render_image_base64_returns_decodable() {
+        let img: RgbaImage = RgbaImage::from_pixel(8, 8, Rgba([1, 2, 3, 255]));
+        let b64 = CanvasRenderer::render_image_base64(&img, "png", 100).unwrap();
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(&b64)
+            .unwrap();
+        assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    }
+
+    #[test]
+    fn test_paste_image_to_layer_unknown_layer_errors() {
+        let mut state = CanvasState::new(8, 8);
+        let bogus = uuid::Uuid::new_v4();
+        let res = CanvasRenderer::paste_image_to_layer(&mut state, bogus, "AAA");
+        assert!(res.is_err());
+    }
 }

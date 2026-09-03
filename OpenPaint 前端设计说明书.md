@@ -53,7 +53,7 @@ src-web/
 │   │   ├── MainLayout.vue        # 主布局（左/中/右三栏）
 │   │   ├── TopBar.vue            # 顶部工具栏
 │   │   ├── LeftSidebar.vue       # 左侧工具面板
-│   │   ├── RightSidebar.vue      # 右侧面板（OpenPencil / 图库切换）
+│   │   ├── RightSidebar.vue      # 右侧面板（图库 / 资产切换，OpenPencil 已下沉中央画布）
 │   │   └── StatusBar.vue         # 底部状态栏
 │   │
 │   ├── canvas/                   # 中央画布
@@ -71,10 +71,9 @@ src-web/
 │   │   ├── ToolCallCard.vue      # 工具调用卡片（展示 AI 执行了什么）
 │   │   └── PreviewModal.vue      # AI 生成结果预览弹窗
 │   │
-│   ├── openpencil/               # OpenPencil 嵌入
-│   │   ├── OpenPencilView.vue    # 右窗容器
-│   │   ├── OpenPencilToolbar.vue # 右上角操作栏（OK / 取消 / 刷新）
-│   │   └── MCPStatus.vue         # MCP 连接状态指示器
+│   ├── openpencil/               # OpenPencil 中央画布壳层（W14+ 唯一 editor 实例）
+│   │   ├── OpenPencilView.vue    # 中央画布壳层（provideEditor + ToolbarRoot + LayerTreeRoot）
+│   │   └── OpenPencilToolbar.vue # 加载占位，加载完毕后隐藏（编辑器自带工具面）
 │   │
 │   ├── gallery/                  # 图库管理
 │   │   ├── GalleryPanel.vue      # 图库侧面板
@@ -151,11 +150,11 @@ src-web/
 ├───────┬───────────────────────────────────────────┬─────────────────────────┤
 │       │                                           │   RightSidebar  (可折叠)│
 │ Left  │           Central Canvas                  │ ┌─────────────────────┐ │
-│ Side- │           (中央画布)                      │ │ OpenPencil / Gallery │ │
+│ Side- │   （OpenPencil 唯一实例，承担场景图）     │ │ Gallery / Assets    │ │
 │ bar   │                                           │ │                     │ │
-│ (工  │                                           │ │   (右窗内容)        │ │
-│ 具  │                                           │ │                     │ │
-│ 栏) │                                           │ │                     │ │
+│ (工  │           ← 包含 OpenPencil 内置 工具面    │ │   (右窗内容)        │ │
+│ 具  │             （选区 / 画笔 / 文字 / 图形）   │ │                     │ │
+│ 栏) │             撤销 / 重走直走 editor          │ │                     │ │
 │       │                                           │ └─────────────────────┘ │
 │       │                                           │   Resize Handle        │
 ├───────┴───────────────────────────────────────────┴─────────────────────────┤
@@ -283,61 +282,48 @@ export const useChatStore = defineStore('chat', {
 });
 ```
 
-### 6.3 OpenPencilView.vue（右窗嵌入）
+### 6.3 OpenPencilView.vue（中央画布壳层，W14+）
 
-**嵌入方式**：使用 OpenPencil 官方 Vue SDK（如提供），或通过 `<iframe>` 加载其 Web 版。
+**架构变化**：OpenPencil 不再是独立“右窗”。它以单例形式贯穿整个应用：
 
-**方案选择**：
+- `composables/useOpenPencil.ts` 导出 `getOpenPencilBridge()` 返回**全应用唯一**的桥接对象
+- `OpenPencilView.vue` 是这个单例被 `provide()` / `inject()` 下去的唯一场所
+- `MainLayout.vue` 的中央画布区始终指向 `OpenPencilView`，不存在第二处 editor
 
-- **优先方案**：`@open-pencil/vue-sdk`（官方 NPM 包），可精细控制通信。
-- **备选方案**：`<iframe>` 加载 OpenPencil Web 版，通过 `postMessage` 通信。
+**职责**：
 
-**通信协议**：
+- 装载 `@open-pencil/core` 中的 `Editor` 实例（single editor / single SceneGraph）
+- `provideEditor(editor)`，让 React 组件（`ToolbarRoot` / `LayerTreeRoot`）拿到同一个 editor
+- 通过 `useEditorEvent` 转发 selection:changed / tool:changed / viewport:changed / graph:replaced，同步到 `canvasStore`
+- 在 status !== ready 时展示加载占位
+
+**桥接接口**：
 
 ```typescript
 // composables/useOpenPencil.ts
-export const useOpenPencil = () => {
-  const iframeRef = ref<HTMLIFrameElement>();
+export interface OpenPencilBridge {
+  editor: Editor;                 // 单例 @open-pencil/core editor
+  status: Ref<'loading' | 'ready' | 'error'>;
+  lastResult: Ref<{ svg?: string; png?: string } | null>;
 
-  // 向 OpenPencil 发送图源和 Prompt
-  const sendImageToAI = (imageData: string, prompt: string) => {
-    iframeRef.value?.contentWindow?.postMessage(
-      {
-        type: 'OPENPENCIL_AI_GENERATE',
-        payload: { imageData, prompt },
-      },
-      '*',
-    );
-  };
+  exportSVG(): string | null;         // 获取当前文档 SVG
+  importSVG(svg: string, opts?: { replaceSelection?: boolean }): Promise<void>;
+  sendImageToAI(image: string, prompt: string): Promise<{ svg: string; png?: string; model?: string }>;
 
-  // 监听 OpenPencil 返回结果
-  const onResult = (callback: (svg: string, png: string) => void) => {
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'OPENPENCIL_RESULT') {
-        callback(event.data.svg, event.data.png);
-      }
-    });
-  };
-
-  // 导出当前 SVG
-  const exportSVG = () => {
-    iframeRef.value?.contentWindow?.postMessage(
-      {
-        type: 'OPENPENCIL_EXPORT_SVG',
-      },
-      '*',
-    );
-  };
-};
+  undo(): void;                       // editor.undoAction()
+  redo(): void;                       // editor.redoAction()
+  getLayerTree(): unknown[];          // editor.getLayerTree()
+  getSelectedNodes(): unknown[];      // editor.getSelectedNodes()
+  replaceDocument(graph: unknown): void;  // editor.replaceGraph()
+  onEditorEvent(type: EditorEventType, handler: (...args: unknown[]) => void): () => void;
+}
 ```
 
-**OK / 取消 流程**：
+**责任划分**：
 
-1. 用户点击右窗的 **OK** → 前端调用 `openpencilApi.exportPNG()` → 拿到 Base64 图片
-2. 调用 `canvasApi.pasteImageToLayer()` → 图片覆盖到中央画布当前图层
-3. 自动触发 `galleryApi.saveToGallery()` → 归档图库
-4. 关闭右窗（或切换回图库面板）
-5. 用户点击 **取消** → 丢弃 OpenPencil 中所有未保存改动，关闭右窗
+- **OpenPencil editor**：选区 / 图层 / 节点 / 矢量图形 / 文本 / 撤销重走走走走走走走走
+- **Rust `canvasApi`（兼容层）**：位图层 / 画笔橡皮 / 旋转 / 混合模式 / 画刷参数
+- **两者不重复实现同一概念**：位图工具调用 `canvasApi`，节点 / 选区调 OpenPencil editor
 
 ### 6.4 GalleryPanel.vue（图库面板）
 

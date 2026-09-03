@@ -202,4 +202,157 @@ mod tests {
         assert!(history.is_empty());
         assert!(!history.can_undo());
     }
+
+    // ----------------------------------------------------------------
+    // 补充测试：history 边界用例 / 防御性 / 详细行为验证
+    // ----------------------------------------------------------------
+
+    #[test]
+    fn test_history_initial_state_is_empty() {
+        let mut history = HistoryStack::new(10);
+        assert!(history.is_empty());
+        assert_eq!(history.len(), 0);
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+        assert!(history.current().is_none());
+        assert!(history.undo().is_none());
+        assert!(history.redo().is_none());
+    }
+
+    #[test]
+    fn test_push_one_snapshot_cannot_undo() {
+        // 至少需要 2 个快照才能 undo（push 后 cursor=1，undo 要求 cursor>1）
+        let mut history = HistoryStack::new(10);
+        history.push(dummy_snapshot("only"));
+        assert!(!history.can_undo(), "single push should not allow undo");
+        assert!(!history.can_redo());
+        assert!(history.undo().is_none());
+        assert!(history.redo().is_none());
+        assert_eq!(history.current().unwrap().description, "only");
+    }
+
+    #[test]
+    fn test_undo_at_beginning_does_not_change_state() {
+        let mut history = HistoryStack::new(10);
+        history.push(dummy_snapshot("op1"));
+        history.push(dummy_snapshot("op2"));
+        // 先 undo 到 op1
+        history.undo();
+        // 此时 cursor=1，再次 undo 必须返回 None 且不破坏状态
+        let result = history.undo();
+        assert!(result.is_none());
+        assert_eq!(history.current().unwrap().description, "op1");
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn test_redo_at_end_does_not_change_state() {
+        let mut history = HistoryStack::new(10);
+        history.push(dummy_snapshot("op1"));
+        history.push(dummy_snapshot("op2"));
+        assert!(!history.can_redo());
+        let result = history.redo();
+        assert!(result.is_none());
+        assert_eq!(history.current().unwrap().description, "op2");
+    }
+
+    #[test]
+    fn test_max_size_zero_treats_as_at_least_one() {
+        // max_size=0 不应 panic；首次 push 后后续都被裁掉，最终保持 1 条最新。
+        let mut history = HistoryStack::new(0);
+        history.push(dummy_snapshot("op1"));
+        // 第一次 push：snapshots.len() = 1，不大于 max_size=0 也不会 drain
+        // 但 push 后逻辑会检查 1>0 → drain overflow=1 → snapshots 空 → cursor=0
+        // 实际行为：最终 len 可能为 0，取决于 push 的内部语义
+        // 我们只断言：不会出现 panic，且 current 是被裁掉后的最后一条或 None
+        history.push(dummy_snapshot("op2"));
+        history.push(dummy_snapshot("op3"));
+        // 至少不 panic
+        let _ = history.len();
+        // 不应无限增长
+        assert!(history.len() <= 1, "max_size=0 不应无限增长，实际 len={}", history.len());
+    }
+
+    #[test]
+    fn test_undo_redo_after_push_clears_future_branch() {
+        // 标准编辑器场景：undo 几次后 push 新操作，redo 栈必须被裁掉
+        let mut history = HistoryStack::new(50);
+        history.push(dummy_snapshot("op1"));
+        history.push(dummy_snapshot("op2"));
+        history.push(dummy_snapshot("op3"));
+        history.undo(); // cursor=2
+        history.undo(); // cursor=1
+        assert!(history.can_redo());
+        history.push(dummy_snapshot("op4")); // 裁掉 op2/op3
+        assert!(!history.can_redo(), "redo branch should be cleared");
+        assert_eq!(history.current().unwrap().description, "op4");
+        assert_eq!(history.len(), 2);
+    }
+
+    #[test]
+    fn test_current_returns_latest_snapshot() {
+        let mut history = HistoryStack::new(10);
+        history.push(dummy_snapshot("first"));
+        history.push(dummy_snapshot("second"));
+        history.push(dummy_snapshot("third"));
+        let cur = history.current().expect("current must exist");
+        assert_eq!(cur.description, "third");
+    }
+
+    #[test]
+    fn test_drain_old_snapshots_keeps_cursor_consistent() {
+        // 超过 max_size 后被裁掉的应是队首，cursor 应重新对齐到 len
+        let mut history = HistoryStack::new(3);
+        for i in 0..5 {
+            history.push(dummy_snapshot(&format!("op{}", i)));
+        }
+        assert_eq!(history.len(), 3);
+        // 保留最后 3 个：op2/op3/op4
+        assert!(history.can_undo(), "still has prior snapshot");
+        let snap = history.undo().unwrap();
+        assert_eq!(snap.description, "op3");
+        assert_eq!(history.current().unwrap().description, "op3");
+    }
+
+    #[test]
+    fn test_clear_resets_cursor_and_redo_flag() {
+        let mut history = HistoryStack::new(10);
+        history.push(dummy_snapshot("op1"));
+        history.push(dummy_snapshot("op2"));
+        history.undo();
+        assert!(history.can_redo());
+        history.clear();
+        assert!(history.is_empty());
+        assert_eq!(history.len(), 0);
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+        assert!(history.current().is_none());
+    }
+
+    #[test]
+    fn test_history_snapshot_uses_distinct_ids() {
+        // HistorySnapshot 每次 new 都应分配新 id，否则 undo 链会指向同一引用
+        let s1 = HistorySnapshot::new("a", vec![], Uuid::new_v4(), None);
+        let s2 = HistorySnapshot::new("b", vec![], Uuid::new_v4(), None);
+        assert_ne!(s1.id, s2.id);
+        // 注：timestamp 是 millis，连续调用可能相同——只保证 id 唯一。
+    }
+
+    #[test]
+    fn test_history_keeps_order_after_multiple_undo_redo() {
+        let mut history = HistoryStack::new(50);
+        for i in 0..5 {
+            history.push(dummy_snapshot(&format!("op{}", i)));
+        }
+        // op0 op1 op2 op3 op4，cursor=5
+        assert_eq!(history.current().unwrap().description, "op4");
+        history.undo(); // cursor=4
+        assert_eq!(history.current().unwrap().description, "op3");
+        history.undo(); // cursor=3
+        assert_eq!(history.current().unwrap().description, "op2");
+        history.redo(); // cursor=4
+        assert_eq!(history.current().unwrap().description, "op3");
+        history.redo(); // cursor=5
+        assert_eq!(history.current().unwrap().description, "op4");
+    }
 }

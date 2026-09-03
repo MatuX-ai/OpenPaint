@@ -14,7 +14,17 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Brush, Eraser, MousePointer2, Hand, Crop, Square, Shapes } from 'lucide-vue-next';
+import {
+  Brush,
+  Eraser,
+  MousePointer2,
+  Hand,
+  Crop,
+  Square,
+  Shapes,
+  RotateCw,
+  Type,
+} from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
 import type { ToolType } from '@/types/canvas';
@@ -36,6 +46,9 @@ const tools: ToolDef[] = [
   { id: 'eraser', label: '橡皮', shortcut: 'E', icon: Eraser },
   { id: 'move', label: '移动', shortcut: 'H', icon: Hand },
   { id: 'transform', label: '变形', shortcut: 'T', icon: Crop },
+  // W13 UX 验收补齐：旋转 / 文字两个工具
+  { id: 'rotate', label: '旋转', shortcut: 'R', icon: RotateCw },
+  { id: 'text', label: '文字', shortcut: 'X', icon: Type },
 ];
 
 const store = useCanvasStore();
@@ -61,6 +74,21 @@ watch(mode, (next) => {
 });
 
 const isIcons = computed(() => mode.value === 'icons');
+
+// 同步 body class，让 MainLayout 的 CSS 变量 `--left-sidebar-width` 跟随模式切换：
+// - tools: 56px（工具条宽度）
+// - icons: 280px（资源面板需要的最小宽度）
+// 不直接修改子组件 width：父容器 MainLayout__left 是 hardcode 的 CSS 变量，
+// 只能通过 :root 或 documentElement 的 data 属性反向覆盖。
+watch(
+  isIcons,
+  (next) => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.leftSidebarMode = next ? 'icons' : 'tools';
+    }
+  },
+  { immediate: true },
+);
 
 function toggleMode(): void {
   mode.value = mode.value === 'tools' ? 'icons' : 'tools';
@@ -158,7 +186,10 @@ function onImportError(message: string): void {
   width: 100%;
   height: 100%;
   padding: var(--space-2) 0;
-  transition: width var(--transition-fast);
+  // W12 VDP-FIX-02：去掉 width 过渡。
+  // 原 transition: width var(--transition-fast) 在 data 属性切换时与
+  // CSS 变量更新并发触发，浏览器反复中断重启 transition，导致宽度卡在
+  // 初始值不动。这里使用瞬时切换，避免渲染与动画相互干扰。
 
   &--wide {
     width: 280px;

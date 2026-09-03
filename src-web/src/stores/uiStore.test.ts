@@ -11,10 +11,11 @@ describe('uiStore', () => {
     setActivePinia(createPinia());
   });
 
-  it('initial state is dark theme', () => {
+  it('initial state is dark theme + gallery right panel', () => {
     const store = useUIStore();
     expect(store.theme).toBe('dark');
-    expect(store.rightPanelMode).toBe('openpencil');
+    // W14+ 统一画布架构：右侧默认 gallery，不再默认 OpenPencil 右窗。
+    expect(store.rightPanelMode).toBe('gallery');
     expect(store.previewModalVisible).toBe(false);
   });
 

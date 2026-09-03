@@ -301,4 +301,120 @@ mod tests {
             assert!(!s.is_empty());
         }
     }
+
+    // ----------------------------------------------------------------
+    // 补充测试：序列化 / 边界用例 / 防御性编程
+    // ----------------------------------------------------------------
+
+    #[test]
+    fn test_brush_serde_round_trip_preserves_all_fields() {
+        // 序列化 → 反序列化必须保留全部字段，且 category 走 kebab-case
+        let original = builtin_brushes()[2].clone();
+        let json = serde_json::to_string(&original).unwrap();
+        let restored: BrushPreset = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.id, original.id);
+        assert_eq!(restored.name_zh, original.name_zh);
+        assert_eq!(restored.name_en, original.name_en);
+        assert_eq!(restored.file_name, original.file_name);
+        assert_eq!(restored.category, original.category);
+        assert_eq!(restored.default_radius, original.default_radius);
+        assert!((restored.falloff - original.falloff).abs() < f32::EPSILON);
+        assert_eq!(restored.description, original.description);
+    }
+
+    #[test]
+    fn test_brush_category_serializes_as_kebab_case() {
+        // kebab-case：避免 UI 解析 "Hard"/"hard"/"HARD" 三种形式
+        for cat in [
+            BrushCategory::Hard,
+            BrushCategory::Soft,
+            BrushCategory::Texture,
+            BrushCategory::Special,
+            BrushCategory::Mark,
+        ] {
+            let s = cat.as_str();
+            assert!(!s.contains('_'), "category string must not contain underscore: {}", s);
+            assert!(s.chars().all(|c| c.is_ascii_lowercase() || !c.is_ascii_alphabetic()));
+        }
+    }
+
+    #[test]
+    fn test_brush_json_round_trip_with_chinese_description() {
+        // 中文描述必须能被 UTF-8 编码并原样还原
+        let mut original = builtin_brushes()[0].clone();
+        original.description = "硬边 · 适合勾线".to_string();
+        let json = serde_json::to_string(&original).unwrap();
+        assert!(json.contains("硬边"));
+        let restored: BrushPreset = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.description, "硬边 · 适合勾线");
+    }
+
+    #[test]
+    fn test_find_brush_by_partial_id_returns_none() {
+        // ID 必须完全匹配，前缀不能命中
+        assert!(find_brush("round").is_none());
+        assert!(find_brush("hard").is_none());
+        assert!(find_brush("ROUND-HARD").is_none());
+        assert!(find_brush(" round-hard ").is_none());
+    }
+
+    #[test]
+    fn test_find_brush_each_builtin_resolvable() {
+        for b in builtin_brushes() {
+            let found = find_brush(&b.id);
+            assert!(found.is_some(), "builtin brush id {} not found", b.id);
+            assert_eq!(found.unwrap().id, b.id);
+        }
+    }
+
+    #[test]
+    fn test_default_brush_id_matches_a_real_brush() {
+        // DEFAULT_BRUSH_ID 引用必须真实存在，且 category 应是 Hard（保证勾线默认值合理）
+        let brush = find_brush(DEFAULT_BRUSH_ID).expect("DEFAULT_BRUSH_ID must exist");
+        assert_eq!(brush.id, DEFAULT_BRUSH_ID);
+        assert_eq!(
+            brush.category,
+            BrushCategory::Hard,
+            "default brush should be a hard-edge brush for line drawing"
+        );
+    }
+
+    #[test]
+    fn test_brush_deserialize_accepts_missing_description_field() {
+        // description 字段为 #[serde(default)]，缺省时反序列化必须成功
+        let json = format!(
+            r#"{{"id":"tmp","name_zh":"测试","name_en":"Test","file_name":"tmp.png","category":"hard","default_radius":4,"falloff":0.1}}"#
+        );
+        let restored: BrushPreset = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.id, "tmp");
+        assert_eq!(restored.description, "");
+    }
+
+    #[test]
+    fn test_brush_preset_constructor_produces_distinct_objects() {
+        // 验证 new() 不返回共享引用，避免编辑其中之一污染全部
+        let b1 = BrushPreset::new(
+            "id-a",
+            "A",
+            "A-en",
+            "a.png",
+            BrushCategory::Hard,
+            8,
+            0.1,
+            "",
+        );
+        let b2 = BrushPreset::new(
+            "id-b",
+            "B",
+            "B-en",
+            "b.png",
+            BrushCategory::Soft,
+            12,
+            0.9,
+            "",
+        );
+        assert_ne!(b1.id, b2.id);
+        assert_ne!(b1.name_zh, b2.name_zh);
+        assert_ne!(b1.category, b2.category);
+    }
 }

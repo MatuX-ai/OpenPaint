@@ -16,7 +16,8 @@ const HIGHLIGHT_DURATION_MS = 8000;
 
 interface PersistedState {
   theme?: Theme;
-  rightPanelMode?: RightPanelMode;
+  /** 历史版本可能持久化 'openpencil'；W14+ 仅保留 'gallery' / 'none'。 */
+  rightPanelMode?: RightPanelMode | 'openpencil';
   rightPanelWidth?: number;
 }
 
@@ -44,7 +45,13 @@ export const useUIStore = defineStore('ui', () => {
   const initial = loadPersisted();
 
   const theme = ref<Theme>(initial.theme ?? 'dark');
-  const rightPanelMode = ref<RightPanelMode>(initial.rightPanelMode ?? 'openpencil');
+  // W14+ 统一画布架构：OpenPencil 已移至中央，右侧不再默认 OpenPencil 入口。
+  // 旧版本 localStorage 持久化的 'openpencil' 视为 'gallery' 兼容回退。
+  const normalizedMode: RightPanelMode =
+    initial.rightPanelMode === 'openpencil' || initial.rightPanelMode === undefined
+      ? 'gallery'
+      : initial.rightPanelMode;
+  const rightPanelMode = ref<RightPanelMode>(normalizedMode);
   const rightPanelWidth = ref(initial.rightPanelWidth ?? 320);
   const assistantVisible = ref(true);
   const previewModalVisible = ref(false);

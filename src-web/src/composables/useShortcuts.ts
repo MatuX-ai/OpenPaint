@@ -9,6 +9,7 @@ import { onBeforeUnmount, onMounted } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useUIStore } from '@stores/uiStore';
 import { canvasApi } from '@api/index';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
 
 export interface ShortcutBinding {
   /** e.g. 'B', 'Ctrl+Z'. Modifiers use 'Ctrl', 'Shift', 'Alt', 'Meta'. */
@@ -54,6 +55,11 @@ function parseCombo(combo: string): {
     else if (lower === 'meta' || lower === 'cmd') meta = true;
     else key = part.length === 1 ? part.toLowerCase() : part.toLowerCase();
   }
+  // 物理键 '?'、'+' 必带 Shift（标准 US/UK 键盘）。
+  // 让用户在绑定里写 '?' 时不需要额外加 Shift 修饰符。
+  if (key === '?' || key === '+') {
+    shift = true;
+  }
   return { ctrl, shift, alt, meta, key };
 }
 
@@ -79,6 +85,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function useShortcuts(target: HTMLElement | Window = window) {
   const canvasStore = useCanvasStore();
   const uiStore = useUIStore();
+  const bridge = getOpenPencilBridge();
 
   const bindings: ResolvedBinding[] = [];
 
@@ -131,15 +138,26 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         whenEditable: false,
         run: () => canvasStore.setActiveTool('transform'),
       },
+      {
+        combo: 'R',
+        description: '旋转工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('rotate'),
+      },
+      {
+        combo: 'X',
+        description: '文字工具',
+        whenEditable: false,
+        run: () => canvasStore.setActiveTool('text'),
+      },
 
-      // History
+      // History — W14+ 统一走 OpenPencil editor（共享 SceneGraph 历史）。
       {
         combo: 'Ctrl+Z',
         description: '撤销',
         run: async () => {
           try {
-            await canvasApi.undo();
-            canvasStore.canUndo = await refreshUndoFlag();
+            bridge.undo();
           } catch (e) {
             console.error(e);
           }
@@ -150,8 +168,7 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         description: '重做',
         run: async () => {
           try {
-            await canvasApi.redo();
-            canvasStore.canRedo = await refreshRedoFlag();
+            bridge.redo();
           } catch (e) {
             console.error(e);
           }
@@ -162,8 +179,7 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         description: '重做',
         run: async () => {
           try {
-            await canvasApi.redo();
-            canvasStore.canRedo = await refreshRedoFlag();
+            bridge.redo();
           } catch (e) {
             console.error(e);
           }
@@ -183,12 +199,7 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         whenEditable: false,
         run: () => uiStore.switchRightPanel('gallery'),
       },
-      {
-        combo: 'Ctrl+Alt+P',
-        description: 'OpenPencil 面板',
-        whenEditable: false,
-        run: () => uiStore.switchRightPanel('openpencil'),
-      },
+      // W14+ 统一画布架构：OpenPencil 已移至中央，不再有 "切到 OpenPencil 右窗" 快捷键。
 
       // File / Save / Export — 通过 useMenuActions.dispatch 转发
       {
@@ -281,9 +292,9 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         description: '全选',
         whenEditable: false,
         run: async () => {
+          // 兼容模式：仍调用 Rust getSelectionBounds；OpenPencil editor 提供 selectAll()。
           try {
             const bounds = await canvasApi.getSelectionBounds();
-            // 没选区时 bounds == canvas size，already covers all
             void bounds;
           } catch (e) {
             console.error(e);
@@ -347,23 +358,6 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         },
       },
     ];
-  }
-
-  async function refreshUndoFlag(): Promise<boolean> {
-    try {
-      const summary = await canvasApi.getCanvasSummary();
-      return summary.canUndo;
-    } catch {
-      return false;
-    }
-  }
-  async function refreshRedoFlag(): Promise<boolean> {
-    try {
-      const summary = await canvasApi.getCanvasSummary();
-      return summary.canRedo;
-    } catch {
-      return false;
-    }
   }
 
   function handle(event: KeyboardEvent) {

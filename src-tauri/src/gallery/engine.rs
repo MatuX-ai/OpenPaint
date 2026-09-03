@@ -190,4 +190,222 @@ mod tests {
         assert_eq!(item.width, 512);
         assert_eq!(item.source, "ai_generated");
     }
+
+    // ----------------------------------------------------------------
+    // 补充测试：save / ensure_dirs / rotate / 边界用例
+    // ----------------------------------------------------------------
+
+    #[test]
+    fn test_ensure_dirs_creates_subdirs() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+        assert!(dir.join("originals").exists());
+        assert!(dir.join("thumbnails").exists());
+    }
+
+    #[test]
+    fn test_save_creates_thumbnail_and_db_entry() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        // 编码 32x32 红色 PNG
+        let img = image::RgbaImage::from_pixel(32, 32, image::Rgba([255, 0, 0, 255]));
+        let mut buf = Vec::new();
+        use image::ImageEncoder;
+        image::codecs::png::PngEncoder::new(&mut buf)
+            .write_image(
+                img.as_raw(),
+                img.width(),
+                img.height(),
+                image::ExtendedColorType::Rgba8,
+            )
+            .unwrap();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+
+        let item = engine
+            .save(
+                &b64,
+                Some("test red".to_string()),
+                Some("test-model".to_string()),
+                vec!["red".to_string(), "test".to_string()],
+                None,
+                "imported",
+            )
+            .unwrap();
+
+        assert_eq!(item.width, 32);
+        assert_eq!(item.height, 32);
+        assert_eq!(item.source, "imported");
+        assert_eq!(item.prompt.as_deref(), Some("test red"));
+        assert_eq!(item.model.as_deref(), Some("test-model"));
+
+        // originals/{id}.png 必须落盘
+        let original = dir.join("originals").join(format!("{}.png", item.id));
+        assert!(original.exists(), "original png should be persisted");
+        // thumbnails/{id}.webp 必须落盘
+        let thumb = dir.join("thumbnails").join(format!("{}.webp", item.id));
+        assert!(thumb.exists(), "thumbnail webp should be persisted");
+
+        // DB 必须记录 1 条
+        assert_eq!(engine.db().read().count().unwrap(), 1);
+        let fetched = engine.db().read().get(&item.id).unwrap().unwrap();
+        assert_eq!(fetched.id, item.id);
+    }
+
+    #[test]
+    fn test_save_with_data_url_prefix() {
+        // save() 接受 data:image/png;base64, 前缀
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        let img = image::RgbaImage::from_pixel(8, 8, image::Rgba([0, 0, 0, 255]));
+        let mut buf = Vec::new();
+        use image::ImageEncoder;
+        image::codecs::png::PngEncoder::new(&mut buf)
+            .write_image(
+                img.as_raw(),
+                img.width(),
+                img.height(),
+                image::ExtendedColorType::Rgba8,
+            )
+            .unwrap();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+        let data_url = format!("data:image/png;base64,{}", b64);
+
+        let item = engine
+            .save(&data_url, None, None, vec![], None, "ai_generated")
+            .unwrap();
+        assert_eq!(item.width, 8);
+        assert!(item.prompt.is_none());
+        assert!(item.model.is_none());
+    }
+
+    #[test]
+    fn test_save_invalid_base64_errors() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        let res = engine.save(
+            "not-valid-base64!!!",
+            None,
+            None,
+            vec![],
+            None,
+            "ai_generated",
+        );
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_save_invalid_image_data_errors() {
+        // base64 合法但不是图片 → 应报错
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        let b64 = base64::engine::general_purpose::STANDARD.encode(b"hello world");
+        let res = engine.save(&b64, None, None, vec![], None, "ai_generated");
+        assert!(res.is_err(), "non-image base64 should fail");
+    }
+
+    #[test]
+    fn test_rotate_below_limit_no_op() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        let item = engine.save_demo_entry().unwrap();
+        // max_items > 当前 → rotate 应返回 0
+        let deleted = engine.rotate(100).unwrap();
+        assert_eq!(deleted, 0);
+        assert!(engine.db().read().get(&item.id).unwrap().is_some());
+    }
+
+    #[test]
+    fn test_rotate_deletes_oldest_when_over_limit() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        // 插 5 条：created_at 由小到大
+        let mut ids = Vec::new();
+        for i in 0..5 {
+            let mut item = engine.save_demo_entry().unwrap();
+            item.created_at = 1000 + i;
+            // 直接改 DB 的 created_at（绕开 Utc::now）
+            engine.db().write().insert(&item).unwrap();
+            ids.push(item.id);
+        }
+        // max=3 → 应删最早的 2 条
+        let deleted = engine.rotate(3).unwrap();
+        assert!(deleted > 0);
+        assert!(engine.db().read().count().unwrap() <= 3);
+        // 最早的应被删
+        assert!(engine.db().read().get(&ids[0]).unwrap().is_none());
+        // 最新的应保留
+        assert!(engine.db().read().get(&ids[4]).unwrap().is_some());
+    }
+
+    #[test]
+    fn test_rotate_attempts_to_remove_files() {
+        // 轮转后应尝试删除磁盘文件（即使文件不存在也不应 panic）
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        // 插 5 条 demo
+        for _ in 0..5 {
+            let _ = engine.save_demo_entry().unwrap();
+        }
+        // max=3
+        let deleted = engine.rotate(3).unwrap();
+        assert!(deleted > 0);
+        // 不强制要求所有 thumbnail 文件被删（rotate 是 best-effort 删除），
+        // 但调用不应 panic。
+    }
+
+    #[test]
+    fn test_gallery_dir_accessor() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        assert_eq!(engine.gallery_dir(), dir.as_path());
+    }
+
+    #[test]
+    fn test_db_accessor_returns_same_arc() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc.clone(), dir.clone());
+        let got = engine.db();
+        // Arc::ptr_eq 比较两个 Arc 是否指向同一底层对象
+        assert!(Arc::ptr_eq(&db_arc, &got));
+    }
+
+    #[test]
+    fn test_multiple_saves_produce_unique_ids() {
+        let (db, dir) = test_db();
+        let db_arc = Arc::new(RwLock::new(db));
+        let engine = GalleryEngine::new(db_arc, dir.clone());
+        engine.ensure_dirs().unwrap();
+
+        let item1 = engine.save_demo_entry().unwrap();
+        let item2 = engine.save_demo_entry().unwrap();
+        let item3 = engine.save_demo_entry().unwrap();
+        assert_ne!(item1.id, item2.id);
+        assert_ne!(item2.id, item3.id);
+        assert_ne!(item1.id, item3.id);
+    }
 }

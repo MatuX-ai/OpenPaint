@@ -113,6 +113,25 @@ const DEFAULT_WEB_PROVIDER_CONFIG: WebProviderConfig = {
 };
 let webProviderConfig: WebProviderConfig = { ...DEFAULT_WEB_PROVIDER_CONFIG };
 
+// W13 VDP-WEB-MOCK-01：web preview 下模拟一个内存图层栈，让锁 / 不透明度
+// / 混合模式 / 可见性 在浏览器预览里也能立即看到 UI 反馈（避免点击后
+// 频繁弹出 `[web-preview] Command ... is not supported` 错误）。底层
+// 状态由 mock 维护，desktop 模式下完全被 Rust CanvasState 接管。
+interface WebLayer {
+  id: string;
+  name: string;
+  opacity: number;
+  blendMode: string;
+  visible: boolean;
+  locked: boolean;
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+  isActive?: boolean;
+}
+const webLayers: WebLayer[] = [];
+
 /**
  * Commands that are safe to mock with empty/zero defaults so the UI
  * can still render an "empty state" instead of crashing.
@@ -153,6 +172,36 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
   }),
   get_canvas_selection: () => '',
   list_tools: () => [],
+
+  // W13 VDP-WEB-MOCK-01：图层属性变更在 web preview 下走内存模拟
+  set_layer_visibility: (args: unknown) => {
+    const a = (args as { layerId?: string; visible?: boolean }).layerId
+      ?? ((args as { args?: { layer_id?: string } }).args?.layer_id ?? '');
+    const visible = (args as { visible?: boolean }).visible ?? true;
+    const layer = webLayers.find((l) => l.id === a);
+    if (layer) layer.visible = visible;
+    return undefined;
+  },
+  set_layer_locked: (args: unknown) => {
+    const a = (args as { args?: { layer_id?: string; locked?: boolean } }).args ?? {};
+    const layer = webLayers.find((l) => l.id === a.layer_id);
+    if (layer && typeof a.locked === 'boolean') layer.locked = a.locked;
+    return undefined;
+  },
+  set_layer_opacity: (args: unknown) => {
+    const a = (args as { args?: { layer_id?: string; opacity?: number } }).args ?? {};
+    const layer = webLayers.find((l) => l.id === a.layer_id);
+    if (layer && typeof a.opacity === 'number') {
+      layer.opacity = Math.max(0, Math.min(1, a.opacity));
+    }
+    return undefined;
+  },
+  set_layer_blend_mode: (args: unknown) => {
+    const a = (args as { args?: { layer_id?: string; mode?: string } }).args ?? {};
+    const layer = webLayers.find((l) => l.id === a.layer_id);
+    if (layer && typeof a.mode === 'string') layer.blendMode = a.mode;
+    return undefined;
+  },
 
   // Gallery (read-only)
   list_gallery: () => [],
@@ -303,7 +352,6 @@ const REJECTED_COMMANDS = new Set<string>([
   'add_layer',
   'remove_active_layer',
   'set_active_layer',
-  'set_layer_visibility',
   'resize_canvas',
 
   // Gallery (write)

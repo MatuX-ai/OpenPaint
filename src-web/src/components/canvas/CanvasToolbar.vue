@@ -1,16 +1,18 @@
 <!--
   Canvas toolbar (above the canvas, below the top bar).
 
-  UX-A09 / §2.2: 主工具条信息密度低 → 现包含 5 组（用 `│` 视觉分隔）：
-    [↶ 撤销] [↷ 重做] │ [+ 新建图层] │ [−][100%][+][适配] │ 工具：画笔 │ ●●●●●●●● │ 粗细 ▭▭▭ 32
+  UX-A09 / §2.2: 主工具条信息密度低 → 现包含多组（用 `│` 视觉分隔）：
+    [↶ 撤销] [↷ 重做] │ [+ 新建图层] │ [↻ 旋转] [T 文字] │ [−][100%][+][适配] │ 工具：xxx │ 颜色 ●●●●●●●● │ 粗细 ▭▭▭ 32 │ [混合 normal ▾]
 
-  设计原则：
-  - 撤销/重做/新建图层/缩放/适配 是"全局工具"，任何 activeTool 下都显示。
-  - 颜色/粗细 仍是画笔/橡皮专属条件渲染（其余工具隐藏避免空 UI）。
+  W13 UX 验收补齐：
+    - 暴露 canvasApi.rotateLayer（旋转活动图层 +90° / -90° / 任意角度）
+    - 暴露 canvasApi.addText（打开文字输入对话框）
+    - 暴露 canvasApi.setLayerBlendMode（混合模式下拉）
+    - 窄屏（< 1024px）下 flex-wrap: wrap，避免溢出遮挡右栏
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
   Undo2,
   Redo2,
@@ -18,19 +20,27 @@ import {
   Maximize2,
   ZoomIn,
   ZoomOut,
+  RotateCw,
+  RotateCcw,
+  Type as TypeIcon,
+  ChevronDown,
 } from 'lucide-vue-next';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useToast } from '@composables/useToast';
-import { useCanvas } from '@composables/useCanvas';
 import { canvasApi } from '@api/index';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import type { BlendMode } from '@/types/canvas';
+import TextInputDialog from './TextInputDialog.vue';
 
 const store = useCanvasStore();
 const toast = useToast();
-const canvas = useCanvas();
+const bridge = getOpenPencilBridge();
 
 const showBrushControls = computed(
   () => store.activeTool === 'brush' || store.activeTool === 'eraser',
 );
+
+const textDialogOpen = ref(false);
 
 const toolLabel = computed<string>(() => {
   switch (store.activeTool) {
@@ -46,6 +56,10 @@ const toolLabel = computed<string>(() => {
       return '移动';
     case 'transform':
       return '变形';
+    case 'rotate':
+      return '旋转';
+    case 'text':
+      return '文字';
     default:
       return store.activeTool;
   }
@@ -64,6 +78,13 @@ const swatches = [
   '#d63031',
 ];
 
+const blendModes: { value: BlendMode; label: string }[] = [
+  { value: 'normal', label: '正常' },
+  { value: 'multiply', label: '正片叠底' },
+  { value: 'screen', label: '滤色' },
+  { value: 'overlay', label: '叠加' },
+];
+
 function pickColor(color: string) {
   store.setBrushColor(color);
 }
@@ -72,18 +93,18 @@ function setRadius(e: Event) {
   store.setBrushRadius(parseInt(target.value, 10));
 }
 
+// W14+ 统一画布架构：撤销 / 重做直接走 OpenPencil editor（共享 SceneGraph 历史），
+// 不再调用 Rust canvasApi.undo / redo。
 async function doUndo() {
   try {
-    await canvasApi.undo();
-    await canvas.refresh();
+    bridge.undo();
   } catch (e) {
     toast.error(`撤销失败：${String((e as Error).message ?? e)}`);
   }
 }
 async function doRedo() {
   try {
-    await canvasApi.redo();
-    await canvas.refresh();
+    bridge.redo();
   } catch (e) {
     toast.error(`重做失败：${String((e as Error).message ?? e)}`);
   }
@@ -92,7 +113,6 @@ async function doAddLayer() {
   try {
     const id = await canvasApi.addLayer(`图层 ${store.layerList.length + 1}`);
     store.activeLayerId = id;
-    await canvas.refresh();
     toast.success('已新建图层');
   } catch (e) {
     toast.error(`新建图层失败：${String((e as Error).message ?? e)}`);
@@ -104,6 +124,87 @@ function zoomIn() {
 function zoomOut() {
   store.setZoom(store.zoom / 1.2);
 }
+
+// W13：旋转活动图层。默认顺时针 90°，Shift 修饰 = 逆时针。
+async function rotateActive(degrees: number) {
+  const activeId = store.activeLayerId;
+  if (!activeId) {
+    toast.warn('请先选中一个图层');
+    return;
+  }
+  try {
+    await canvasApi.rotateLayer(activeId, degrees);
+    toast.success(`已旋转 ${degrees > 0 ? '顺时针' : '逆时针'} ${Math.abs(degrees)}°`);
+  } catch (e) {
+    toast.error(`旋转失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+// W13：文字工具激活时，打开文字输入对话框
+function openTextDialog() {
+  if (!store.activeLayerId) {
+    toast.warn('请先选中一个图层');
+    return;
+  }
+  textDialogOpen.value = true;
+}
+
+// W13 UX 优化：选中文字工具时自动打开对话框
+// Vue watch 默认 immediate:false，组件挂载时不会触发，所以无需首次守卫。
+watch(
+  () => store.activeTool,
+  (next, prev) => {
+    if (next === 'text' && prev !== 'text') {
+      openTextDialog();
+    }
+  },
+);
+
+// W13：文字对话框确认后回调
+async function onTextConfirm(payload: {
+  text: string;
+  fontSize: number;
+  color: string;
+  x: number;
+  y: number;
+}) {
+  textDialogOpen.value = false;
+  const activeId = store.activeLayerId;
+  if (!activeId) return;
+  try {
+    await canvasApi.addText({
+      layerId: activeId,
+      text: payload.text,
+      x: payload.x,
+      y: payload.y,
+      fontSize: payload.fontSize,
+      color: payload.color,
+    });
+    toast.success(`已添加文字：${payload.text.slice(0, 12)}${payload.text.length > 12 ? '…' : ''}`);
+  } catch (e) {
+    toast.error(`添加文字失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+// W13：混合模式切换
+async function onBlendModeChange(mode: BlendMode) {
+  const activeId = store.activeLayerId;
+  if (!activeId) {
+    toast.warn('请先选中一个图层');
+    return;
+  }
+  try {
+    await canvasApi.setLayerBlendMode(activeId, mode);
+    toast.info(`混合模式：${blendModes.find((b) => b.value === mode)?.label ?? mode}`);
+  } catch (e) {
+    toast.error(`切换混合模式失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+const activeBlendMode = computed<BlendMode>(() => {
+  const layer = store.layerList.find((l) => l.id === store.activeLayerId);
+  return (layer?.blendMode ?? 'normal') as BlendMode;
+});
 </script>
 
 <template>
@@ -145,6 +246,40 @@ function zoomOut() {
       >
         <Plus :size="14" />
         <span>图层</span>
+      </button>
+    </div>
+
+    <span class="canvas-toolbar__sep" aria-hidden="true" />
+
+    <!-- W13：旋转 / 文字工具入口 -->
+    <div class="canvas-toolbar__group">
+      <button
+        type="button"
+        class="canvas-toolbar__btn canvas-toolbar__btn--icon"
+        title="逆时针 90° (Shift)"
+        aria-label="逆时针旋转 90°"
+        @click="rotateActive(-90)"
+      >
+        <RotateCcw :size="14" />
+      </button>
+      <button
+        type="button"
+        class="canvas-toolbar__btn canvas-toolbar__btn--icon"
+        title="顺时针 90° (R)"
+        aria-label="顺时针旋转 90°"
+        @click="rotateActive(90)"
+      >
+        <RotateCw :size="14" />
+      </button>
+      <button
+        type="button"
+        class="canvas-toolbar__btn canvas-toolbar__btn--labeled"
+        title="文字输入 (X)"
+        aria-label="文字输入"
+        @click="openTextDialog"
+      >
+        <TypeIcon :size="14" />
+        <span>文字</span>
       </button>
     </div>
 
@@ -228,6 +363,33 @@ function zoomOut() {
         </label>
       </div>
     </template>
+
+    <span class="canvas-toolbar__sep" aria-hidden="true" />
+
+    <!-- W13：混合模式下拉（针对活动图层） -->
+    <div class="canvas-toolbar__group">
+      <label class="canvas-toolbar__blend">
+        <span class="canvas-toolbar__label">混合</span>
+        <select
+          class="canvas-toolbar__select"
+          :value="activeBlendMode"
+          aria-label="图层混合模式"
+          :disabled="!store.activeLayerId"
+          @change="onBlendModeChange(($event.target as HTMLSelectElement).value as BlendMode)"
+        >
+          <option v-for="m in blendModes" :key="m.value" :value="m.value">{{ m.label }}</option>
+        </select>
+        <ChevronDown :size="12" class="canvas-toolbar__select-caret" aria-hidden="true" />
+      </label>
+    </div>
+
+    <!-- W13：文字输入对话框（Teleport 到 body） -->
+    <TextInputDialog
+      :open="textDialogOpen"
+      :default-color="store.brushColor"
+      @update:open="textDialogOpen = $event"
+      @confirm="onTextConfirm"
+    />
   </div>
 </template>
 
@@ -235,12 +397,14 @@ function zoomOut() {
 .canvas-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* W13：窄屏下允许换行，避免被右栏遮挡 */
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   font-size: var(--font-size-sm);
   min-height: 36px;
+  row-gap: 6px; /* 换行后组与组之间间距 */
 
   &__group {
     display: inline-flex;
@@ -381,6 +545,61 @@ function zoomOut() {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
+  }
+
+  /* W13：混合模式下拉 */
+  &__blend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  &__select {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 26px;
+    padding: 0 22px 0 8px;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+      background var(--transition-fast),
+      border-color var(--transition-fast);
+
+    &:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  &__select-caret {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+  }
+
+  /* 窄屏（< 1024px）隐藏次要元素，避免工具条继续拥挤 */
+  @media (max-width: 1024px) {
+    &__label {
+      display: none;
+    }
   }
 }
 </style>
