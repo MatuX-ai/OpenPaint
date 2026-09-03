@@ -40,7 +40,10 @@ watch(activeTab, (next) => {
 
 const emit = defineEmits<{
   (e: 'icon-imported', payload: { icon: IconMeta; layerId: string }): void;
-  (e: 'palette-applied', payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' }): void;
+  (
+    e: 'palette-applied',
+    payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' },
+  ): void;
   (e: 'gradient-applied', payload: { gradientId: string }): void;
   (e: 'brush-changed', brushId: string): void;
   (e: 'error', message: string): void;
@@ -52,7 +55,10 @@ function onIconImported(payload: { icon: IconMeta; layerId: string }): void {
 function onError(message: string): void {
   emit('error', message);
 }
-function onPaletteApplied(payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' }): void {
+function onPaletteApplied(payload: {
+  paletteId: string;
+  mode: 'swatch_bar' | 'replace_color';
+}): void {
   emit('palette-applied', payload);
 }
 function onGradientApplied(payload: { gradientId: string }): void {
@@ -99,16 +105,10 @@ function onBrushChanged(brushId: string): void {
     </nav>
 
     <section v-show="activeTab === 'icons'" class="resource-tabs__pane" role="tabpanel">
-      <IconPanel
-        @icon-imported="onIconImported"
-        @error="onError"
-      />
+      <IconPanel @icon-imported="onIconImported" @error="onError" />
     </section>
     <section v-show="activeTab === 'brushes'" class="resource-tabs__pane" role="tabpanel">
-      <BrushPanel
-        @brush-changed="onBrushChanged"
-        @error="onError"
-      />
+      <BrushPanel @brush-changed="onBrushChanged" @error="onError" />
     </section>
     <section v-show="activeTab === 'palette'" class="resource-tabs__pane" role="tabpanel">
       <PalettePanel

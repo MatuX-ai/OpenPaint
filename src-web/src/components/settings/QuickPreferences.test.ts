@@ -53,7 +53,9 @@ describe('QuickPreferences', () => {
     const w = mount(QuickPreferences, { attachTo: document.body });
     await nextTick();
     expect(store.theme).toBe('dark');
-    q('[data-testid="quick-prefs-theme"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    q('[data-testid="quick-prefs-theme"]')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    );
     await nextTick();
     expect(store.theme).toBe('light');
     w.unmount();
@@ -64,7 +66,9 @@ describe('QuickPreferences', () => {
     store.openQuickPreferences();
     const w = mount(QuickPreferences, { attachTo: document.body });
     await nextTick();
-    q('[data-testid="quick-prefs-model"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    q('[data-testid="quick-prefs-model"]')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    );
     await nextTick();
     expect(store.advancedSettingsVisible).toBe(true);
     w.unmount();
@@ -75,7 +79,9 @@ describe('QuickPreferences', () => {
     store.openQuickPreferences();
     const w = mount(QuickPreferences, { attachTo: document.body });
     await nextTick();
-    q('[data-testid="quick-prefs-open-advanced"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    q('[data-testid="quick-prefs-open-advanced"]')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    );
     await nextTick();
     expect(store.advancedSettingsVisible).toBe(true);
     w.unmount();

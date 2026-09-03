@@ -52,11 +52,7 @@ function openPreferences() {
   align-items: center;
   gap: var(--space-2);
   padding: 6px 10px;
-  background: linear-gradient(
-    180deg,
-    rgba(214, 158, 46, 0.12) 0%,
-    rgba(214, 158, 46, 0.06) 100%
-  );
+  background: linear-gradient(180deg, rgba(214, 158, 46, 0.12) 0%, rgba(214, 158, 46, 0.06) 100%);
   border-bottom: 1px solid rgba(214, 158, 46, 0.25);
   font-size: var(--font-size-xs);
   color: var(--text-secondary);

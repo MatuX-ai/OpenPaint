@@ -28,5 +28,12 @@ function onSelect(id: string): void {
 </script>
 
 <template>
-  <MenuDropdown label="帮助" :open="open" :items="items" @toggle="emit('toggle')" @close="emit('close')" @select="onSelect" />
+  <MenuDropdown
+    label="帮助"
+    :open="open"
+    :items="items"
+    @toggle="emit('toggle')"
+    @close="emit('close')"
+    @select="onSelect"
+  />
 </template>

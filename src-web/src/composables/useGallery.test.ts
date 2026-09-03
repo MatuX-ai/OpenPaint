@@ -91,10 +91,7 @@ describe('useGallery', () => {
     vi.mocked(ApiIndex.galleryApi.delete).mockResolvedValueOnce(true);
     const g = useGallery();
     // 直接填 store
-    g.store.items = [
-      { id: 'a' } as any,
-      { id: 'b' } as any,
-    ];
+    g.store.items = [{ id: 'a' } as any, { id: 'b' } as any];
     const ok = await g.deleteItem('a');
     expect(ok).toBe(true);
     expect(g.store.items).toHaveLength(1);

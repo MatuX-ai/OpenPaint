@@ -155,13 +155,13 @@
       "name_en": "Rainbow",
       "center": [0.5, 0.5],
       "stops": [
-        { "offset": 0.00, "hex": "#FF0000" },
+        { "offset": 0.0, "hex": "#FF0000" },
         { "offset": 0.17, "hex": "#FFFF00" },
         { "offset": 0.33, "hex": "#00FF00" },
-        { "offset": 0.50, "hex": "#00FFFF" },
+        { "offset": 0.5, "hex": "#00FFFF" },
         { "offset": 0.67, "hex": "#0000FF" },
         { "offset": 0.83, "hex": "#FF00FF" },
-        { "offset": 1.00, "hex": "#FF0000" }
+        { "offset": 1.0, "hex": "#FF0000" }
       ]
     },
     {
@@ -171,11 +171,11 @@
       "name_en": "Prism",
       "center": [0.5, 0.5],
       "stops": [
-        { "offset": 0.00, "hex": "#FF6B6B" },
+        { "offset": 0.0, "hex": "#FF6B6B" },
         { "offset": 0.25, "hex": "#4ECDC4" },
-        { "offset": 0.50, "hex": "#45B7D1" },
+        { "offset": 0.5, "hex": "#45B7D1" },
         { "offset": 0.75, "hex": "#FFA07A" },
-        { "offset": 1.00, "hex": "#FF6B6B" }
+        { "offset": 1.0, "hex": "#FF6B6B" }
       ]
     },
     {
@@ -185,10 +185,10 @@
       "name_en": "Warmth",
       "center": [0.5, 0.5],
       "stops": [
-        { "offset": 0.00, "hex": "#FFD26F" },
+        { "offset": 0.0, "hex": "#FFD26F" },
         { "offset": 0.33, "hex": "#FF7A6B" },
         { "offset": 0.66, "hex": "#9C6ADE" },
-        { "offset": 1.00, "hex": "#FFD26F" }
+        { "offset": 1.0, "hex": "#FFD26F" }
       ]
     }
   ]

@@ -52,19 +52,19 @@
 
 ### 2.2 技术栈明细
 
-| 层级            | 技术选型                  | 版本   | 用途                             |
-| :-------------- | :------------------------ | :----- | :------------------------------- |
-| **桌面框架**    | Tauri                     | v2     | 跨平台打包、系统调用、进程管理   |
-| **前端框架**    | Vue 3 + TypeScript        | 3.x    | UI 渲染、状态管理、组件化开发    |
-| **画布渲染**    | OpenPencil (统一中央画布)    | 0.14+  | 唯一主画布，矢量 / 位图混合编辑、AI 直入         |
-| **AI 智能体**   | Hermes Agent              | v0.6+  | 意图理解、自主决策、MCP 工具调度 |
-| **AI 生成引擎** | OpenPencil 编辑器内置       | 0.14+  | 矢量节点 / AI 图像生成（不再独立右窗）  |
-| **本地数据库**  | SQLite (rusqlite)         | 0.31+  | 图库元数据、历史记录持久化       |
-| **向量数据库**  | LanceDB                   | 0.23+  | 语义搜索（渐进式集成）           |
-| **SVG 渲染**    | resvg                     | 0.48+  | SVG 到 PNG 的无损缩放渲染（资产库渐变 / 图标预览）        |
-| **位图栅格层**  | Canvas 2D (兼容层)        | -      | 画笔 / 橡皮 / 旋转 / 混合模式（与 OpenPencil 位图层并存）  |
-| **图像处理**    | image-rs                  | 0.25+  | 缩略图生成、格式转换             |
-| **通信协议**    | MCP (JSON-RPC over stdio) | -      | 工具注册与调用                   |
+| 层级            | 技术选型                  | 版本  | 用途                                                      |
+| :-------------- | :------------------------ | :---- | :-------------------------------------------------------- |
+| **桌面框架**    | Tauri                     | v2    | 跨平台打包、系统调用、进程管理                            |
+| **前端框架**    | Vue 3 + TypeScript        | 3.x   | UI 渲染、状态管理、组件化开发                             |
+| **画布渲染**    | OpenPencil (统一中央画布) | 0.14+ | 唯一主画布，矢量 / 位图混合编辑、AI 直入                  |
+| **AI 智能体**   | Hermes Agent              | v0.6+ | 意图理解、自主决策、MCP 工具调度                          |
+| **AI 生成引擎** | OpenPencil 编辑器内置     | 0.14+ | 矢量节点 / AI 图像生成（不再独立右窗）                    |
+| **本地数据库**  | SQLite (rusqlite)         | 0.31+ | 图库元数据、历史记录持久化                                |
+| **向量数据库**  | LanceDB                   | 0.23+ | 语义搜索（渐进式集成）                                    |
+| **SVG 渲染**    | resvg                     | 0.48+ | SVG 到 PNG 的无损缩放渲染（资产库渐变 / 图标预览）        |
+| **位图栅格层**  | Canvas 2D (兼容层)        | -     | 画笔 / 橡皮 / 旋转 / 混合模式（与 OpenPencil 位图层并存） |
+| **图像处理**    | image-rs                  | 0.25+ | 缩略图生成、格式转换                                      |
+| **通信协议**    | MCP (JSON-RPC over stdio) | -     | 工具注册与调用                                            |
 
 ---
 
@@ -278,13 +278,13 @@ AI Assistant ──「插画一个圆形」 ─→  aiApi.sendToAiEngine → LLM
 
 #### 3.3.4 迁移阶段
 
-| 阶段 | 状态 | 备注 |
-| --- | --- | --- |
-| Stage 1：中央编辑实例 + OpenPencil 桥接口 | ✅ | `useOpenPencil` 单例化，提供 TODO 必需方法 |
-| Stage 2：工具 / 图层 / AI 状态全部走桥 | ✅ | CanvasToolbar / LayerPanel / useShortcuts |
-| Stage 3：移除独立 OpenPencil 右窗入口 | ✅ | TopBar / RightSidebar / uiStore / AppView |
-| Stage 4：测试与生产验证 | ✅ | 375 vitest · type-check · lint 0 error |
-| Stage 5：文档更新 | ✅ | 本轮同步 |
+| 阶段                                      | 状态 | 备注                                       |
+| ----------------------------------------- | ---- | ------------------------------------------ |
+| Stage 1：中央编辑实例 + OpenPencil 桥接口 | ✅   | `useOpenPencil` 单例化，提供 TODO 必需方法 |
+| Stage 2：工具 / 图层 / AI 状态全部走桥    | ✅   | CanvasToolbar / LayerPanel / useShortcuts  |
+| Stage 3：移除独立 OpenPencil 右窗入口     | ✅   | TopBar / RightSidebar / uiStore / AppView  |
+| Stage 4：测试与生产验证                   | ✅   | 375 vitest · type-check · lint 0 error     |
+| Stage 5：文档更新                         | ✅   | 本轮同步                                   |
 
 ---
 
@@ -300,23 +300,23 @@ AI Assistant ──「插画一个圆形」 ─→  aiApi.sendToAiEngine → LLM
 
 #### 3.4.2 工具列表
 
-| 工具名称               | 描述                            | 输入参数                                                | 输出                              |
-| :--------------------- | :------------------------------ | :------------------------------------------------------ | :-------------------------------- |
-| `get_canvas_selection` | 获取当前选区/图层为 Base64 PNG  | `layer_id?` (可选)                                      | `{ data: string, width, height }` |
-| `get_selection_bounds` | 获取选区坐标与尺寸              | 无                                                      | `{ x, y, width, height }`         |
-| `paste_image_to_layer` | 将 Base64 图片粘贴到当前图层    | `image_data: string`                                    | `{ layer_id }`                    |
-| `get_layer_info`       | 获取所有图层信息                | 无                                                      | `Layer[]`                         |
-| `send_to_ai_engine`    | 发送图源 + Prompt 给 OpenPencil | `image_data: string, prompt: string`                    | `{ svg: string, png: string }`    |
-| `render_svg_to_png`    | 将 SVG 渲染为指定尺寸 PNG       | `svg: string, width: int, height: int`                  | `{ png_data: string }`            |
-| `get_current_svg`      | 获取 OpenPencil 当前文档 SVG    | 无                                                      | `{ svg: string }`                 |
-| `save_to_gallery`      | 保存图片到图库                  | `image_data: string, tags: string[], group_id?: string` | `{ record_id }`                   |
-| `search_gallery`       | 按标签/关键词搜索图库           | `query: string, limit?: int`                            | `GalleryItem[]`                   |
-| `get_gallery_image`    | 按 ID 获取图库原图              | `record_id: string`                                     | `{ image_data: string }`          |
-| `search_icons`         | 按关键词搜索图标（Iconify 集成）  | `query: string, style?: string, category?: string, limit?: int` | `{ icons: IconMeta[], total, has_more }` |
-| `render_icon_svg`      | 把图标 ID 渲染为指定尺寸/颜色 SVG（带本地缓存） | `prefix: string, name: string, color?: string, size?: int` | `{ svg, width, height, from_cache }` |
-| `apply_palette`        | 应用调色板到图层（swatch_bar / replace_color） | `palette_id: string, mode?: string, layer_id?: string, replace_hex?: string` | `{ applied_colors, stroke_count, mode }` |
-| `apply_gradient`       | 应用渐变预设到图层（16 个 SVG 渐变） | `gradient_id: string, layer_id?: string, opacity?: number` | `{ gradient_id, gradient_type, stop_count, bytes_written }` |
-| `create_brush_from_prompt` | AI 生成画刷（v0.2 stub；v0.3 真实实现） | `prompt: string, name?: string` | `{ status: "not_implemented", message: "AI brush generation available in v0.3" }` |
+| 工具名称                   | 描述                                            | 输入参数                                                                     | 输出                                                                              |
+| :------------------------- | :---------------------------------------------- | :--------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| `get_canvas_selection`     | 获取当前选区/图层为 Base64 PNG                  | `layer_id?` (可选)                                                           | `{ data: string, width, height }`                                                 |
+| `get_selection_bounds`     | 获取选区坐标与尺寸                              | 无                                                                           | `{ x, y, width, height }`                                                         |
+| `paste_image_to_layer`     | 将 Base64 图片粘贴到当前图层                    | `image_data: string`                                                         | `{ layer_id }`                                                                    |
+| `get_layer_info`           | 获取所有图层信息                                | 无                                                                           | `Layer[]`                                                                         |
+| `send_to_ai_engine`        | 发送图源 + Prompt 给 OpenPencil                 | `image_data: string, prompt: string`                                         | `{ svg: string, png: string }`                                                    |
+| `render_svg_to_png`        | 将 SVG 渲染为指定尺寸 PNG                       | `svg: string, width: int, height: int`                                       | `{ png_data: string }`                                                            |
+| `get_current_svg`          | 获取 OpenPencil 当前文档 SVG                    | 无                                                                           | `{ svg: string }`                                                                 |
+| `save_to_gallery`          | 保存图片到图库                                  | `image_data: string, tags: string[], group_id?: string`                      | `{ record_id }`                                                                   |
+| `search_gallery`           | 按标签/关键词搜索图库                           | `query: string, limit?: int`                                                 | `GalleryItem[]`                                                                   |
+| `get_gallery_image`        | 按 ID 获取图库原图                              | `record_id: string`                                                          | `{ image_data: string }`                                                          |
+| `search_icons`             | 按关键词搜索图标（Iconify 集成）                | `query: string, style?: string, category?: string, limit?: int`              | `{ icons: IconMeta[], total, has_more }`                                          |
+| `render_icon_svg`          | 把图标 ID 渲染为指定尺寸/颜色 SVG（带本地缓存） | `prefix: string, name: string, color?: string, size?: int`                   | `{ svg, width, height, from_cache }`                                              |
+| `apply_palette`            | 应用调色板到图层（swatch_bar / replace_color）  | `palette_id: string, mode?: string, layer_id?: string, replace_hex?: string` | `{ applied_colors, stroke_count, mode }`                                          |
+| `apply_gradient`           | 应用渐变预设到图层（16 个 SVG 渐变）            | `gradient_id: string, layer_id?: string, opacity?: number`                   | `{ gradient_id, gradient_type, stop_count, bytes_written }`                       |
+| `create_brush_from_prompt` | AI 生成画刷（v0.2 stub；v0.3 真实实现）         | `prompt: string, name?: string`                                              | `{ status: "not_implemented", message: "AI brush generation available in v0.3" }` |
 
 #### 3.4.4 资产库子模块（W9 + W10 + W11）
 

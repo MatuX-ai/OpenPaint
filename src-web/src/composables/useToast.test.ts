@@ -87,7 +87,12 @@ describe('useToast', () => {
     let called = 0;
     const id = t.show({
       message: 'with action',
-      action: { label: 'undo', onClick: () => { called++; } },
+      action: {
+        label: 'undo',
+        onClick: () => {
+          called++;
+        },
+      },
     });
     expect(t.toasts.value[0].action?.label).toBe('undo');
     t.toasts.value[0].action?.onClick();

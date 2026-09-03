@@ -61,7 +61,11 @@ describe('BatchExportDialog', () => {
     await nextTick();
     (document.body.querySelectorAll('.app-btn--primary')[0] as HTMLElement).click();
     await nextTick();
-    const payload = w.emitted('confirm')?.[0]?.[0] as { sizes: number[]; saveToGallery: boolean; tags: string[] };
+    const payload = w.emitted('confirm')?.[0]?.[0] as {
+      sizes: number[];
+      saveToGallery: boolean;
+      tags: string[];
+    };
     expect(payload.sizes).toEqual([20, 29, 40, 60, 76, 83.5, 1024]);
     expect(payload.saveToGallery).toBe(true);
     expect(payload.tags).toEqual([]);
@@ -84,7 +88,9 @@ describe('BatchExportDialog', () => {
     mount(BatchExportDialog, { props: { open: true }, attachTo: document.body });
     await nextTick();
     expect(document.body.querySelector('.batch-export__tags')).toBeTruthy();
-    const checkbox = document.body.querySelector('.batch-export__check input[type="checkbox"]') as HTMLInputElement;
+    const checkbox = document.body.querySelector(
+      '.batch-export__check input[type="checkbox"]',
+    ) as HTMLInputElement;
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
     await nextTick();

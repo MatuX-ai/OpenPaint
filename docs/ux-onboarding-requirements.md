@@ -14,14 +14,14 @@
 
 OpenPaint 桌面版安装启动后，新用户看到的界面与传统画图软件（Paint.NET / Photoshop / Figma）存在巨大心智落差：
 
-| 维度 | 传统画图软件 | OpenPaint 现状 |
-| --- | --- | --- |
-| 新建 / 打开 / 保存 | `文件` 菜单或显式按钮 | 无任何入口（见 `src-web/src/components/layout/TopBar.vue:50-101`） |
-| 标题栏 | 显示当前文件名 + 未保存红点 | 仅显示 Logo + "OpenPaint" + "MVP" 徽标 |
-| 主工具条 | 撤销/重做/缩放/新建图层/裁剪 | 仅显示"工具：brush"一行字 + 8 个色板 |
-| 关闭未保存 | 弹"是否保存"对话框 | 直接退出，所有笔触丢失 |
-| 画布空白 | 居中显示引导卡 | 纯白/灰空白 |
-| AI 助理未配置 | 引导去设置 | 浮窗打开后是空状态，无 CTA |
+| 维度               | 传统画图软件                 | OpenPaint 现状                                                     |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------ |
+| 新建 / 打开 / 保存 | `文件` 菜单或显式按钮        | 无任何入口（见 `src-web/src/components/layout/TopBar.vue:50-101`） |
+| 标题栏             | 显示当前文件名 + 未保存红点  | 仅显示 Logo + "OpenPaint" + "MVP" 徽标                             |
+| 主工具条           | 撤销/重做/缩放/新建图层/裁剪 | 仅显示"工具：brush"一行字 + 8 个色板                               |
+| 关闭未保存         | 弹"是否保存"对话框           | 直接退出，所有笔触丢失                                             |
+| 画布空白           | 居中显示引导卡               | 纯白/灰空白                                                        |
+| AI 助理未配置      | 引导去设置                   | 浮窗打开后是空状态，无 CTA                                         |
 
 用户面对的客观状态（截至本次需求评审）：
 
@@ -177,24 +177,24 @@ OpenPaint 桌面版安装启动后，新用户看到的界面与传统画图软�
 
 **验收标准**
 
-| 快捷键 | 功能 | 实现方式 |
-| --- | --- | --- |
-| `Ctrl+N` | 新建画布向导 | 调用 `uiStore.openNewCanvasDialog()` |
-| `Ctrl+O` | 打开本地图片 | 调用 Tauri `dialog.open` |
-| `Ctrl+S` | 保存到图库 | 触发 `galleryApi.save` |
-| `Ctrl+Shift+S` | 另存为本地 | `dialog.save` |
-| `Ctrl+E` | 导出 PNG | `dialog.save`，格式 PNG |
-| `Ctrl+Shift+E` | 批量导出 | 打开批量导出对话框 |
-| `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | 撤销 / 重做 | 已实现 ✅（仅需文档与测试） |
-| `Ctrl+A` | 全选 | `canvasApi.setRectSelection({0,0,W,H})` |
-| `Ctrl+D` | 取消选区 | `canvasApi.clearSelection()` |
-| `Ctrl+C` / `Ctrl+V` | 复制 / 粘贴 | OS 剪贴板（暂仅 PNG），需 `tauri-plugin-clipboard-manager` |
-| `+` / `-` | 缩放 | `canvasStore.setZoom(z * 1.2)` / `/1.2` |
-| `0` | 缩放至 100% | `canvasStore.setZoom(1)` |
-| `Ctrl+0` | 适配窗口 | `canvasStore.fitToWindow` |
-| `Space` + 拖拽 | 平移画布 | `CanvasView` 内监听 |
-| `F11` | 全屏 | Tauri `getCurrentWindow().setFullscreen(true)` |
-| `?` | 打开快捷键速查面板 | 弹 Modal，列出全部快捷键 |
+| 快捷键                               | 功能               | 实现方式                                                   |
+| ------------------------------------ | ------------------ | ---------------------------------------------------------- |
+| `Ctrl+N`                             | 新建画布向导       | 调用 `uiStore.openNewCanvasDialog()`                       |
+| `Ctrl+O`                             | 打开本地图片       | 调用 Tauri `dialog.open`                                   |
+| `Ctrl+S`                             | 保存到图库         | 触发 `galleryApi.save`                                     |
+| `Ctrl+Shift+S`                       | 另存为本地         | `dialog.save`                                              |
+| `Ctrl+E`                             | 导出 PNG           | `dialog.save`，格式 PNG                                    |
+| `Ctrl+Shift+E`                       | 批量导出           | 打开批量导出对话框                                         |
+| `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | 撤销 / 重做        | 已实现 ✅（仅需文档与测试）                                |
+| `Ctrl+A`                             | 全选               | `canvasApi.setRectSelection({0,0,W,H})`                    |
+| `Ctrl+D`                             | 取消选区           | `canvasApi.clearSelection()`                               |
+| `Ctrl+C` / `Ctrl+V`                  | 复制 / 粘贴        | OS 剪贴板（暂仅 PNG），需 `tauri-plugin-clipboard-manager` |
+| `+` / `-`                            | 缩放               | `canvasStore.setZoom(z * 1.2)` / `/1.2`                    |
+| `0`                                  | 缩放至 100%        | `canvasStore.setZoom(1)`                                   |
+| `Ctrl+0`                             | 适配窗口           | `canvasStore.fitToWindow`                                  |
+| `Space` + 拖拽                       | 平移画布           | `CanvasView` 内监听                                        |
+| `F11`                                | 全屏               | Tauri `getCurrentWindow().setFullscreen(true)`             |
+| `?`                                  | 打开快捷键速查面板 | 弹 Modal，列出全部快捷键                                   |
 
 ### US-11：可访问性最小集
 
@@ -294,16 +294,16 @@ OpenPaint 桌面版安装启动后，新用户看到的界面与传统画图软�
 
 ### 3.1 新增组件清单
 
-| 组件 | 路径 | 职责 |
-| --- | --- | --- |
-| `AppMenuBar.vue` | `components/layout/AppMenuBar.vue` | 顶部菜单栏，托管所有菜单下拉 |
-| `FileMenu.vue` / `EditMenu.vue` / `ViewMenu.vue` / `HelpMenu.vue` | `components/layout/menus/` | 各菜单下拉内容 |
-| `OnboardingCard.vue` | `components/onboarding/OnboardingCard.vue` | 画布空白引导卡 |
-| `NewCanvasDialog.vue` | `components/canvas/NewCanvasDialog.vue` | US-2 新建画布向导 |
-| `ExportDialog.vue` | `components/canvas/ExportDialog.vue` | US-5 / US-9 导出对话框 |
-| `UnsavedConfirmDialog.vue` | `components/common/UnsavedConfirmDialog.vue` | US-6 关闭确认 |
-| `KeyboardCheatsheet.vue` | `components/help/KeyboardCheatsheet.vue` | US-10 快捷键速查 |
-| `Toast.vue` / `useToast.ts` | `components/common/Toast.vue`、`composables/useToast.ts` | 顶部右下角通知 |
+| 组件                                                              | 路径                                                     | 职责                         |
+| ----------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------- |
+| `AppMenuBar.vue`                                                  | `components/layout/AppMenuBar.vue`                       | 顶部菜单栏，托管所有菜单下拉 |
+| `FileMenu.vue` / `EditMenu.vue` / `ViewMenu.vue` / `HelpMenu.vue` | `components/layout/menus/`                               | 各菜单下拉内容               |
+| `OnboardingCard.vue`                                              | `components/onboarding/OnboardingCard.vue`               | 画布空白引导卡               |
+| `NewCanvasDialog.vue`                                             | `components/canvas/NewCanvasDialog.vue`                  | US-2 新建画布向导            |
+| `ExportDialog.vue`                                                | `components/canvas/ExportDialog.vue`                     | US-5 / US-9 导出对话框       |
+| `UnsavedConfirmDialog.vue`                                        | `components/common/UnsavedConfirmDialog.vue`             | US-6 关闭确认                |
+| `KeyboardCheatsheet.vue`                                          | `components/help/KeyboardCheatsheet.vue`                 | US-10 快捷键速查             |
+| `Toast.vue` / `useToast.ts`                                       | `components/common/Toast.vue`、`composables/useToast.ts` | 顶部右下角通知               |
 
 ### 3.2 关键组件 API
 
@@ -377,20 +377,29 @@ defineProps<{
 }>();
 defineEmits<{
   (e: 'update:open', v: boolean): void;
-  (e: 'confirm', v: { w: number; h: number; unit: 'px' | 'mm'; dpi: number; handleLayers: 'crop' | 'discard' | 'cancel' }): void;
+  (
+    e: 'confirm',
+    v: {
+      w: number;
+      h: number;
+      unit: 'px' | 'mm';
+      dpi: number;
+      handleLayers: 'crop' | 'discard' | 'cancel';
+    },
+  ): void;
 }>();
 ```
 
 ### 3.3 与现有 store / API 的关系
 
-| 需求项 | 触发的 store action | 触发的 API |
-| --- | --- | --- |
-| US-2 新建 | `canvasStore.resetView()` | `canvasApi.resizeCanvas(w, h)` |
-| US-3 打开 | `canvasStore.activeLayerId` 不变 | `canvasApi.pasteImage(base64)` |
-| US-4 保存到图库 | `galleryStore.prepend()` | `galleryApi.save({ imageData, tags, source: 'imported' })` |
-| US-5 另存为 | — | `canvasApi.renderCanvasPng()` + Tauri `dialog.save` |
-| US-6 关闭拦截 | `useDocumentState().requestClose()` | `getCurrentWindow().onCloseRequested` |
-| US-10 快捷键 | 各自 store action | 现有 + 新增 |
+| 需求项          | 触发的 store action                 | 触发的 API                                                 |
+| --------------- | ----------------------------------- | ---------------------------------------------------------- |
+| US-2 新建       | `canvasStore.resetView()`           | `canvasApi.resizeCanvas(w, h)`                             |
+| US-3 打开       | `canvasStore.activeLayerId` 不变    | `canvasApi.pasteImage(base64)`                             |
+| US-4 保存到图库 | `galleryStore.prepend()`            | `galleryApi.save({ imageData, tags, source: 'imported' })` |
+| US-5 另存为     | —                                   | `canvasApi.renderCanvasPng()` + Tauri `dialog.save`        |
+| US-6 关闭拦截   | `useDocumentState().requestClose()` | `getCurrentWindow().onCloseRequested`                      |
+| US-10 快捷键    | 各自 store action                   | 现有 + 新增                                                |
 
 ---
 
@@ -404,21 +413,21 @@ defineEmits<{
 
 ### 4.2 关键文案表
 
-| 场景 | 文案 | 备选（避免） |
-| --- | --- | --- |
-| 新建引导卡主标题 | "从一张画布开始" | "Create new document" |
-| 新建引导卡副标题 | "选个尺寸，或让 AI 帮你定" | "Start a new project" |
-| 打开按钮 tooltip | "打开图片 (Ctrl+O)" | "Open file" |
-| 保存按钮 tooltip（已修改） | "保存到图库 (Ctrl+S) · 1 处未保存改动" | "Save" |
-| 保存按钮 tooltip（已保存） | "已保存到图库 · 3 分钟前" | "Saved" |
-| 另存为菜单 | "另存为 PNG 到本地…" | "Export as…" |
-| 导出失败 Toast | "导出失败：磁盘空间不足。请清理后重试。" | "Export failed." |
-| 关闭未保存对话框 | "这份画布还没保存。要继续吗？" | "You have unsaved changes." |
-| 关闭对话框按钮 | `[保存到图库] [丢弃] [取消]` | `[Save] [Don't Save] [Cancel]` |
-| AI 助理空状态标题 | "AI 助理还没启用" | "AI not configured" |
-| AI 助理空状态副文 | "需要先配置一个大模型（OpenAI / Claude / DeepSeek / Ollama），AI 才能帮你画。" | "Please configure LLM." |
-| AI 助理空状态 CTA | `[打开设置]` | `[Configure]` |
-| 快捷键速查标题 | "快捷键速查" | "Keyboard shortcuts" |
+| 场景                       | 文案                                                                           | 备选（避免）                   |
+| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------ |
+| 新建引导卡主标题           | "从一张画布开始"                                                               | "Create new document"          |
+| 新建引导卡副标题           | "选个尺寸，或让 AI 帮你定"                                                     | "Start a new project"          |
+| 打开按钮 tooltip           | "打开图片 (Ctrl+O)"                                                            | "Open file"                    |
+| 保存按钮 tooltip（已修改） | "保存到图库 (Ctrl+S) · 1 处未保存改动"                                         | "Save"                         |
+| 保存按钮 tooltip（已保存） | "已保存到图库 · 3 分钟前"                                                      | "Saved"                        |
+| 另存为菜单                 | "另存为 PNG 到本地…"                                                           | "Export as…"                   |
+| 导出失败 Toast             | "导出失败：磁盘空间不足。请清理后重试。"                                       | "Export failed."               |
+| 关闭未保存对话框           | "这份画布还没保存。要继续吗？"                                                 | "You have unsaved changes."    |
+| 关闭对话框按钮             | `[保存到图库] [丢弃] [取消]`                                                   | `[Save] [Don't Save] [Cancel]` |
+| AI 助理空状态标题          | "AI 助理还没启用"                                                              | "AI not configured"            |
+| AI 助理空状态副文          | "需要先配置一个大模型（OpenAI / Claude / DeepSeek / Ollama），AI 才能帮你画。" | "Please configure LLM."        |
+| AI 助理空状态 CTA          | `[打开设置]`                                                                   | `[Configure]`                  |
+| 快捷键速查标题             | "快捷键速查"                                                                   | "Keyboard shortcuts"           |
 
 ### 4.3 ARIA label 模板
 
@@ -489,15 +498,15 @@ aria-label="未保存改动，点击保存或按 Ctrl+S"
 
 ### 5.4 错误状态对照表
 
-| 场景 | 提示文案 | 处理建议 |
-| --- | --- | --- |
-| LLM Key 失效 | "API Key 无效，请到设置更新" | 弹 Toast + 自动打开 SettingsModal |
-| Tauri IPC 失败 | "与后端通信失败：{err.message}" | 自动重试 1 次，仍失败则弹 Modal |
-| 文件过大 (>50MB) | "图片超过 50MB，请压缩后再打开" | 弹 Toast，按钮保留可重试 |
-| 格式不支持 | "{ext} 暂不支持，可转 PNG / JPG / SVG 后再试" | 弹 Toast |
-| 写文件无权限 | "没有写入权限：{path}" | 弹 Toast，建议改路径 |
-| 磁盘空间不足 | "磁盘空间不足，请清理后重试" | 弹 Toast，按钮 disabled 5 秒 |
-| 撤销栈满 | "已到达历史记录上限（50 步）" | 仅 statusbar 提示，不弹窗 |
+| 场景             | 提示文案                                      | 处理建议                          |
+| ---------------- | --------------------------------------------- | --------------------------------- |
+| LLM Key 失效     | "API Key 无效，请到设置更新"                  | 弹 Toast + 自动打开 SettingsModal |
+| Tauri IPC 失败   | "与后端通信失败：{err.message}"               | 自动重试 1 次，仍失败则弹 Modal   |
+| 文件过大 (>50MB) | "图片超过 50MB，请压缩后再打开"               | 弹 Toast，按钮保留可重试          |
+| 格式不支持       | "{ext} 暂不支持，可转 PNG / JPG / SVG 后再试" | 弹 Toast                          |
+| 写文件无权限     | "没有写入权限：{path}"                        | 弹 Toast，建议改路径              |
+| 磁盘空间不足     | "磁盘空间不足，请清理后重试"                  | 弹 Toast，按钮 disabled 5 秒      |
+| 撤销栈满         | "已到达历史记录上限（50 步）"                 | 仅 statusbar 提示，不弹窗         |
 
 ---
 
@@ -559,58 +568,58 @@ flowchart TD
 
 ### ONB-1xx · 启动与引导
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| ONB-101 | 全新 `~/.openpaint` 启动 | OnboardingCard 显示 |
-| ONB-102 | 24h 内第二次启动 | OnboardingCard 不显示 |
-| ONB-103 | 画布非空（layerList.length > 0）启动 | OnboardingCard 不显示 |
-| ONB-104 | "帮助 → 入门引导" | OnboardingCard 强制显示 |
-| ONB-105 | 点击 "+ 新建" → 取消 | 画布不变，OnboardingCard 仍可显示 |
+| ID      | 用例                                 | 期望                              |
+| ------- | ------------------------------------ | --------------------------------- |
+| ONB-101 | 全新 `~/.openpaint` 启动             | OnboardingCard 显示               |
+| ONB-102 | 24h 内第二次启动                     | OnboardingCard 不显示             |
+| ONB-103 | 画布非空（layerList.length > 0）启动 | OnboardingCard 不显示             |
+| ONB-104 | "帮助 → 入门引导"                    | OnboardingCard 强制显示           |
+| ONB-105 | 点击 "+ 新建" → 取消                 | 画布不变，OnboardingCard 仍可显示 |
 
 ### ONB-2xx · 文件菜单
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| ONB-201 | `Ctrl+N` | NewCanvasDialog 弹出 |
-| ONB-202 | NewCanvasDialog 选 1080×1080 + 保留图层裁切 | resizeCanvas 调用，参数正确 |
-| ONB-203 | `Ctrl+O` 选 PNG | pasteImage 成功，新图层激活 |
-| ONB-204 | `Ctrl+O` 选 .psd | Toast 错误，文件不导入 |
-| ONB-205 | 主画布拖拽 PNG | 显示"松手导入"覆盖层，松手导入成功 |
-| ONB-206 | 主画布拖拽 .txt | 显示"不支持的格式"覆盖层 |
+| ID      | 用例                                        | 期望                               |
+| ------- | ------------------------------------------- | ---------------------------------- |
+| ONB-201 | `Ctrl+N`                                    | NewCanvasDialog 弹出               |
+| ONB-202 | NewCanvasDialog 选 1080×1080 + 保留图层裁切 | resizeCanvas 调用，参数正确        |
+| ONB-203 | `Ctrl+O` 选 PNG                             | pasteImage 成功，新图层激活        |
+| ONB-204 | `Ctrl+O` 选 .psd                            | Toast 错误，文件不导入             |
+| ONB-205 | 主画布拖拽 PNG                              | 显示"松手导入"覆盖层，松手导入成功 |
+| ONB-206 | 主画布拖拽 .txt                             | 显示"不支持的格式"覆盖层           |
 
 ### ONB-3xx · 保存 / 导出 / 关闭
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| ONB-301 | 画一笔 → `Ctrl+S` | galleryApi.save 调用，Toast 成功，红点消失 |
-| ONB-302 | 画一笔 → `Ctrl+Shift+S` | dialog.save 弹出，可写本地 PNG |
-| ONB-303 | 导出 JPG 质量滑块 70 | 写入文件大小 < 90 质量 |
-| ONB-304 | 未保存时关闭窗口 | UnsavedConfirmDialog 弹出 |
-| ONB-305 | 未保存对话框选"丢弃" | 窗口关闭，画布丢弃 |
-| ONB-306 | 未保存对话框选"取消" | 窗口不关，画布不变 |
-| ONB-307 | 保存到图库失败（数据库写异常） | Toast 错误，红点保留，按钮可重试 |
+| ID      | 用例                           | 期望                                       |
+| ------- | ------------------------------ | ------------------------------------------ |
+| ONB-301 | 画一笔 → `Ctrl+S`              | galleryApi.save 调用，Toast 成功，红点消失 |
+| ONB-302 | 画一笔 → `Ctrl+Shift+S`        | dialog.save 弹出，可写本地 PNG             |
+| ONB-303 | 导出 JPG 质量滑块 70           | 写入文件大小 < 90 质量                     |
+| ONB-304 | 未保存时关闭窗口               | UnsavedConfirmDialog 弹出                  |
+| ONB-305 | 未保存对话框选"丢弃"           | 窗口关闭，画布丢弃                         |
+| ONB-306 | 未保存对话框选"取消"           | 窗口不关，画布不变                         |
+| ONB-307 | 保存到图库失败（数据库写异常） | Toast 错误，红点保留，按钮可重试           |
 | ONB-308 | 批量导出 iOS 全尺寸 + 存入图库 | 7 个文件落地 + 7 条 gallery 记录，标签一致 |
 
 ### ONB-4xx · 快捷键
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| ONB-401 | `?` 键 | KeyboardCheatsheet 弹出 |
-| ONB-402 | `Ctrl+Z` 连续按 3 次 | 撤销 3 步，canUndo 状态正确 |
-| ONB-403 | 输入框聚焦时按 `B` | 不切换工具（whenEditable 规则） |
-| ONB-404 | `Ctrl+0` | 缩放至 100%，pan 归零 |
-| ONB-405 | `F11` | 窗口全屏切换 |
-| ONB-406 | `Ctrl+E` 未配置 LLM | 导出对话框仍可打开（与 LLM 无关） |
+| ID      | 用例                 | 期望                              |
+| ------- | -------------------- | --------------------------------- |
+| ONB-401 | `?` 键               | KeyboardCheatsheet 弹出           |
+| ONB-402 | `Ctrl+Z` 连续按 3 次 | 撤销 3 步，canUndo 状态正确       |
+| ONB-403 | 输入框聚焦时按 `B`   | 不切换工具（whenEditable 规则）   |
+| ONB-404 | `Ctrl+0`             | 缩放至 100%，pan 归零             |
+| ONB-405 | `F11`                | 窗口全屏切换                      |
+| ONB-406 | `Ctrl+E` 未配置 LLM  | 导出对话框仍可打开（与 LLM 无关） |
 
 ### ONB-5xx · 可访问性 & 文案
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| ONB-501 | Tab 键从 Logo 移到第一个按钮 | 焦点环可见 |
-| ONB-502 | 屏幕阅读器读 OnboardingCard 标题 | 朗读"从一张画布开始" |
-| ONB-503 | Esc 关闭任意 Modal | 焦点回到触发按钮 |
-| ONB-504 | 保存成功 Toast | aria-live 区域朗读"已保存到图库" |
-| ONB-505 | 深色 / 浅色切换 | 所有新增按钮颜色符合 token |
+| ID      | 用例                             | 期望                             |
+| ------- | -------------------------------- | -------------------------------- |
+| ONB-501 | Tab 键从 Logo 移到第一个按钮     | 焦点环可见                       |
+| ONB-502 | 屏幕阅读器读 OnboardingCard 标题 | 朗读"从一张画布开始"             |
+| ONB-503 | Esc 关闭任意 Modal               | 焦点回到触发按钮                 |
+| ONB-504 | 保存成功 Toast                   | aria-live 区域朗读"已保存到图库" |
+| ONB-505 | 深色 / 浅色切换                  | 所有新增按钮颜色符合 token       |
 
 ---
 
@@ -618,14 +627,14 @@ flowchart TD
 
 > 全部本地记录到 `~/.openpaint/telemetry/onboarding.json`，**不外发**，仅在"反馈问题"时可由用户选择附带导出。
 
-| 指标 | 定义 | 目标 |
-| --- | --- | --- |
-| 首次激活到首次操作时间 | 启动 → 第一次点击 / 第一次笔触 | ≤60s |
-| 首次保存成功率 | 首启动后 24h 内出现 `Ctrl+S` 且成功的比例 | ≥70% |
-| 引导卡片完成率 | 三选项中任一被点击且走通 | ≥80% |
-| 关闭未保存触发率 | isDirty=true 时窗口关闭触发弹窗的比例 | =100% |
-| 快捷键使用率 | 7 天内使用 ≥1 次 `Ctrl+N/O/S/E` 的用户 | ≥40% |
-| 批量导出使用率 | 7 天内使用 ≥1 次批量导出的用户 | ≥10% |
+| 指标                   | 定义                                      | 目标  |
+| ---------------------- | ----------------------------------------- | ----- |
+| 首次激活到首次操作时间 | 启动 → 第一次点击 / 第一次笔触            | ≤60s  |
+| 首次保存成功率         | 首启动后 24h 内出现 `Ctrl+S` 且成功的比例 | ≥70%  |
+| 引导卡片完成率         | 三选项中任一被点击且走通                  | ≥80%  |
+| 关闭未保存触发率       | isDirty=true 时窗口关闭触发弹窗的比例     | =100% |
+| 快捷键使用率           | 7 天内使用 ≥1 次 `Ctrl+N/O/S/E` 的用户    | ≥40%  |
+| 批量导出使用率         | 7 天内使用 ≥1 次批量导出的用户            | ≥10%  |
 
 ---
 
@@ -708,17 +717,17 @@ flowchart TD
 
 ## 12. 变更日志
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
+| 版本   | 日期       | 变更                                                               |
+| ------ | ---------- | ------------------------------------------------------------------ |
 | v0.1.0 | 2026-08-28 | 初稿（11 个用户故事 + IA + 组件契约 + 文案 + 测试矩阵 + 落地计划） |
 
 ---
 
 > 评审签字
 
-| 角色 | 签字 | 日期 | 备注 |
-| --- | --- | --- | --- |
-| 产品 Owner | _____ | _____ | 范围与优先级 |
-| 前端 Lead | _____ | _____ | 组件拆分 / 排期 |
-| 设计 Lead | _____ | _____ | 文案 / 空状态 / IA |
-| 测试 Lead | _____ | _____ | ONB-xxx 用例覆盖 |
+| 角色       | 签字  | 日期  | 备注               |
+| ---------- | ----- | ----- | ------------------ |
+| 产品 Owner | _____ | _____ | 范围与优先级       |
+| 前端 Lead  | _____ | _____ | 组件拆分 / 排期    |
+| 设计 Lead  | _____ | _____ | 文案 / 空状态 / IA |
+| 测试 Lead  | _____ | _____ | ONB-xxx 用例覆盖   |

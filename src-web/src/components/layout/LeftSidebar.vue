@@ -102,7 +102,10 @@ function onIconImported(payload: { icon: IconMeta; layerId: string }): void {
   });
 }
 
-function onPaletteApplied(payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' }): void {
+function onPaletteApplied(payload: {
+  paletteId: string;
+  mode: 'swatch_bar' | 'replace_color';
+}): void {
   const label = payload.mode === 'swatch_bar' ? '色条' : '主色替换';
   toast.show({
     kind: 'success',
@@ -138,7 +141,7 @@ function onImportError(message: string): void {
     :class="{ 'left-sidebar--wide': isIcons }"
     :aria-label="isIcons ? '资源面板' : '绘图工具'"
   >
-    <nav v-if="! isIcons" class="left-sidebar__tools" :aria-label="'绘图工具'">
+    <nav v-if="!isIcons" class="left-sidebar__tools" :aria-label="'绘图工具'">
       <button
         v-for="tool in tools"
         :key="tool.id"

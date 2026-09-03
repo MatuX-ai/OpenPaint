@@ -20,26 +20,42 @@ type Preset = {
 };
 
 const PRESETS: Preset[] = [
-  { id: 'ios', label: 'iOS 图标', description: 'iPhone / iPad 全套', sizes: [20, 29, 40, 60, 76, 83.5, 1024] },
-  { id: 'android', label: 'Android 图标', description: 'mipmap / xxxhdpi', sizes: [48, 72, 96, 144, 192, 512] },
-  { id: 'web', label: 'Web 图标', description: 'PWA / favicon', sizes: [16, 32, 48, 180, 192, 512] },
+  {
+    id: 'ios',
+    label: 'iOS 图标',
+    description: 'iPhone / iPad 全套',
+    sizes: [20, 29, 40, 60, 76, 83.5, 1024],
+  },
+  {
+    id: 'android',
+    label: 'Android 图标',
+    description: 'mipmap / xxxhdpi',
+    sizes: [48, 72, 96, 144, 192, 512],
+  },
+  {
+    id: 'web',
+    label: 'Web 图标',
+    description: 'PWA / favicon',
+    sizes: [16, 32, 48, 180, 192, 512],
+  },
   { id: 'favicon', label: 'Favicon', description: '经典三尺寸', sizes: [16, 32, 64] },
 ];
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void;
-  (e: 'confirm', v: {
-    sizes: number[];
-    saveToGallery: boolean;
-    tags: string[];
-  }): void;
+  (
+    e: 'confirm',
+    v: {
+      sizes: number[];
+      saveToGallery: boolean;
+      tags: string[];
+    },
+  ): void;
 }>();
 
 const activePreset = ref<Preset['id']>('ios');
-const selected = ref<Set<number>>(
-  new Set(PRESETS.find((p) => p.id === 'ios')?.sizes ?? []),
-);
+const selected = ref<Set<number>>(new Set(PRESETS.find((p) => p.id === 'ios')?.sizes ?? []));
 const saveToGallery = ref(true);
 const tagsInput = ref('');
 const customMode = ref(false);
@@ -134,7 +150,9 @@ function onConfirm(): void {
       </section>
 
       <section>
-        <h3 class="batch-export__label">尺寸勾选（{{ finalSizes.length }} / {{ currentSizes.length }}）</h3>
+        <h3 class="batch-export__label">
+          尺寸勾选（{{ finalSizes.length }} / {{ currentSizes.length }}）
+        </h3>
         <div class="batch-export__sizes">
           <label
             v-for="s in currentSizes"
@@ -142,11 +160,7 @@ function onConfirm(): void {
             class="batch-export__size"
             :class="{ 'is-active': selected.has(s) }"
           >
-            <input
-              type="checkbox"
-              :checked="selected.has(s)"
-              @change="toggleSize(s)"
-            />
+            <input type="checkbox" :checked="selected.has(s)" @change="toggleSize(s)" />
             <span>{{ s }} × {{ s }} px</span>
           </label>
         </div>
@@ -171,11 +185,7 @@ function onConfirm(): void {
 
     <template #footer>
       <AppButton variant="ghost" @click="emit('update:open', false)">取消</AppButton>
-      <AppButton
-        variant="primary"
-        :disabled="finalSizes.length === 0"
-        @click="onConfirm"
-      >
+      <AppButton variant="primary" :disabled="finalSizes.length === 0" @click="onConfirm">
         导出 {{ finalSizes.length }} 张
       </AppButton>
     </template>

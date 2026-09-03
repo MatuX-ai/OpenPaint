@@ -5,11 +5,15 @@ import { resolve as resolvePath } from 'node:path';
 
 // 浏览器端空白模块：用于别名 @open-pencil/core / canvaskit-wasm 中只在 Node
 // 分支使用的 Node.js 内置（被 IS_BROWSER / typeof process 检查守护）。
-const nodeBuiltinShim = resolvePath(fileURLToPath(new URL('./src/shims/empty-node-module.js', import.meta.url)));
+const nodeBuiltinShim = resolvePath(
+  fileURLToPath(new URL('./src/shims/empty-node-module.js', import.meta.url)),
+);
 // 浏览器端 no-op SourceMapGenerator：替换 source-map-js/lib/source-map-generator.js。
 // css-tree 会 import 这个深路径，但走 Vite dev server 的 /@fs/ 路线时，
 // Bable cannot treat CJS as ESM named export，必须重定向到 ESM stub。
-const sourceMapShim = resolvePath(fileURLToPath(new URL('./src/shims/source-map-generator.js', import.meta.url)));
+const sourceMapShim = resolvePath(
+  fileURLToPath(new URL('./src/shims/source-map-generator.js', import.meta.url)),
+);
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -25,10 +29,7 @@ export default defineConfig(async () => ({
       enforce: 'pre',
       transform(code, id) {
         if (!id.includes('@open-pencil/core/dist/')) return null;
-        const out = code.replace(
-          /new URL\(["'](\.\.?\/[^"']+?)\.ts["']/g,
-          'new URL("$1.js"',
-        );
+        const out = code.replace(/new URL\(["'](\.\.?\/[^"']+?)\.ts["']/g, 'new URL("$1.js"');
         if (out === code) return null;
         return {
           code: out,
@@ -47,8 +48,22 @@ export default defineConfig(async () => ({
         const fs = await import('node:fs/promises');
         const path = await import('node:path');
         const srcCandidates = [
-          path.resolve(fileURLToPath(new URL('../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm', import.meta.url))),
-          path.resolve(fileURLToPath(new URL('../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm', import.meta.url))),
+          path.resolve(
+            fileURLToPath(
+              new URL(
+                '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                import.meta.url,
+              ),
+            ),
+          ),
+          path.resolve(
+            fileURLToPath(
+              new URL(
+                '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                import.meta.url,
+              ),
+            ),
+          ),
         ];
         const dest = path.resolve(fileURLToPath(new URL('./dist/canvaskit.wasm', import.meta.url)));
         let copied = false;
@@ -76,8 +91,22 @@ export default defineConfig(async () => ({
           const fs = await import('node:fs/promises');
           const path = await import('node:path');
           const srcCandidates = [
-            path.resolve(fileURLToPath(new URL('../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm', import.meta.url))),
-            path.resolve(fileURLToPath(new URL('../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm', import.meta.url))),
+            path.resolve(
+              fileURLToPath(
+                new URL(
+                  '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                  import.meta.url,
+                ),
+              ),
+            ),
+            path.resolve(
+              fileURLToPath(
+                new URL(
+                  '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                  import.meta.url,
+                ),
+              ),
+            ),
           ];
           for (const src of srcCandidates) {
             try {
@@ -103,8 +132,14 @@ export default defineConfig(async () => ({
     alias: [
       // 业务路径别名
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-      { find: '@components', replacement: fileURLToPath(new URL('./src/components', import.meta.url)) },
-      { find: '@composables', replacement: fileURLToPath(new URL('./src/composables', import.meta.url)) },
+      {
+        find: '@components',
+        replacement: fileURLToPath(new URL('./src/components', import.meta.url)),
+      },
+      {
+        find: '@composables',
+        replacement: fileURLToPath(new URL('./src/composables', import.meta.url)),
+      },
       { find: '@stores', replacement: fileURLToPath(new URL('./src/stores', import.meta.url)) },
       { find: '@api', replacement: fileURLToPath(new URL('./src/api', import.meta.url)) },
       { find: '@types', replacement: fileURLToPath(new URL('./src/types', import.meta.url)) },
@@ -116,8 +151,10 @@ export default defineConfig(async () => ({
       // 使用过于宽松的正则（如 /^[a-z]+$/）会误伤其他单单词 npm 包名
       // （fflate 等），这里列举 Node 内置名单。
       { find: /^node:.+$/, replacement: nodeBuiltinShim },
-      { find: /^(fs|fs\/promises|path|path\/posix|url|os|crypto|stream|util|buffer|events|http|https|http2|net|dns|tls|child_process|cluster|worker_threads|perf_hooks|async_hooks|assert|assert\/strict|querystring|zlib|string_decoder|tty|readline|repl|vm|v8|inspector|module|console|diagnostics_channel|trace_events|punycode|wasi|sqlite|systeminformation)$/,
-        replacement: nodeBuiltinShim },
+      {
+        find: /^(fs|fs\/promises|path|path\/posix|url|os|crypto|stream|util|buffer|events|http|https|http2|net|dns|tls|child_process|cluster|worker_threads|perf_hooks|async_hooks|assert|assert\/strict|querystring|zlib|string_decoder|tty|readline|repl|vm|v8|inspector|module|console|diagnostics_channel|trace_events|punycode|wasi|sqlite|systeminformation)$/,
+        replacement: nodeBuiltinShim,
+      },
       // source-map-js/lib/*.js 是 CJS 深路径，css-tree （被 @open-pencil/core
       // 间接引入）会以 require('source-map-js/lib/source-map-generator.js') 加载
       // 它。Vite 的 deps optimizer 会优化顶级入口，但深路径走 /@fs/ 以原始 CJS
@@ -168,7 +205,11 @@ export default defineConfig(async () => ({
           if (id.includes('@open-pencil/') || id.includes('canvaskit-wasm')) {
             return 'vendor-openpencil';
           }
-          if (id.includes('node_modules/vue/') || id.includes('node_modules/pinia/') || id.includes('node_modules/@vue/')) {
+          if (
+            id.includes('node_modules/vue/') ||
+            id.includes('node_modules/pinia/') ||
+            id.includes('node_modules/@vue/')
+          ) {
             return 'vendor-vue';
           }
           return undefined;

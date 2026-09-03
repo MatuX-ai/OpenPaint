@@ -66,13 +66,23 @@ function setGradients(items: GradientFixture[]): void {
 }
 
 const samplePalettes: PaletteFixture[] = [
-  { id: 'material', nameZh: 'Material', nameEn: 'Material', description: 'd', colors: [
-    { hex: '#ff0000', nameZh: '红', nameEn: 'Red' },
-    { hex: '#00ff00', nameZh: '绿', nameEn: 'Green' },
-  ] },
-  { id: 'tailwind', nameZh: 'Tailwind', nameEn: 'Tailwind', description: 'd', colors: [
-    { hex: '#3b82f6', nameZh: '蓝', nameEn: 'Blue' },
-  ] },
+  {
+    id: 'material',
+    nameZh: 'Material',
+    nameEn: 'Material',
+    description: 'd',
+    colors: [
+      { hex: '#ff0000', nameZh: '红', nameEn: 'Red' },
+      { hex: '#00ff00', nameZh: '绿', nameEn: 'Green' },
+    ],
+  },
+  {
+    id: 'tailwind',
+    nameZh: 'Tailwind',
+    nameEn: 'Tailwind',
+    description: 'd',
+    colors: [{ hex: '#3b82f6', nameZh: '蓝', nameEn: 'Blue' }],
+  },
   { id: 'pastel', nameZh: 'Pastel', nameEn: 'Pastel', description: 'd', colors: [] },
   { id: 'mono', nameZh: 'Mono', nameEn: 'Mono', description: 'd', colors: [] },
 ];
@@ -120,7 +130,9 @@ describe('PalettePanel', () => {
     await flushPromises();
     const swatches = w.findAll('.palette-panel__swatch');
     await swatches[1].trigger('click');
-    expect(mocks.applyPalette).toHaveBeenCalledWith('material', 'replace_color', { replaceHex: '#00ff00' });
+    expect(mocks.applyPalette).toHaveBeenCalledWith('material', 'replace_color', {
+      replaceHex: '#00ff00',
+    });
     expect(w.emitted('palette-applied')).toBeTruthy();
     expect(w.emitted('palette-applied')![0]).toEqual([
       { paletteId: 'material', mode: 'replace_color' },

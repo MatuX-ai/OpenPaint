@@ -28,9 +28,7 @@ function decide(v: 'save' | 'discard' | 'cancel'): void {
     :dismissible="false"
     @update:open="emit('update:open', $event)"
   >
-    <p class="unsaved-dialog__msg">
-      继续关闭将丢失当前的笔触与改动。要保存到图库、丢弃还是取消？
-    </p>
+    <p class="unsaved-dialog__msg">继续关闭将丢失当前的笔触与改动。要保存到图库、丢弃还是取消？</p>
     <template #footer>
       <AppButton variant="ghost" @click="decide('cancel')">取消</AppButton>
       <AppButton variant="danger" @click="decide('discard')">丢弃</AppButton>

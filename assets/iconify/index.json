@@ -67,90 +67,370 @@
     "other"
   ],
   "icons": [
-    {"prefix": "lucide", "name": "search", "category": "ui", "tags": ["search", "find", "magnifier", "查找", "搜索"]},
-    {"prefix": "lucide", "name": "settings", "category": "ui", "tags": ["settings", "gear", "preferences", "设置", "配置"]},
-    {"prefix": "lucide", "name": "home", "category": "navigation", "tags": ["home", "house", "主页", "首页"]},
-    {"prefix": "lucide", "name": "user", "category": "ui", "tags": ["user", "person", "account", "用户", "账户"]},
-    {"prefix": "lucide", "name": "heart", "category": "ui", "tags": ["heart", "like", "favorite", "心", "喜欢"]},
-    {"prefix": "lucide", "name": "star", "category": "ui", "tags": ["star", "favorite", "rating", "星", "收藏"]},
-    {"prefix": "lucide", "name": "check", "category": "ui", "tags": ["check", "tick", "ok", "确认", "对"]},
-    {"prefix": "lucide", "name": "x", "category": "ui", "tags": ["x", "close", "cancel", "关闭", "取消"]},
-    {"prefix": "lucide", "name": "plus", "category": "ui", "tags": ["plus", "add", "new", "加号", "新增"]},
-    {"prefix": "lucide", "name": "minus", "category": "ui", "tags": ["minus", "remove", "subtract", "减号", "删除"]},
-    {"prefix": "lucide", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "modify", "编辑", "修改"]},
-    {"prefix": "lucide", "name": "trash", "category": "ui", "tags": ["trash", "delete", "remove", "删除", "回收"]},
-    {"prefix": "lucide", "name": "download", "category": "file", "tags": ["download", "save", "下载", "保存"]},
-    {"prefix": "lucide", "name": "upload", "category": "file", "tags": ["upload", "send", "上传"]},
-    {"prefix": "lucide", "name": "image", "category": "media", "tags": ["image", "picture", "photo", "图片", "照片"]},
-    {"prefix": "lucide", "name": "mail", "category": "communication", "tags": ["mail", "email", "envelope", "邮件", "信封"]},
-    {"prefix": "lucide", "name": "phone", "category": "communication", "tags": ["phone", "call", "telephone", "电话"]},
-    {"prefix": "lucide", "name": "calendar", "category": "ui", "tags": ["calendar", "date", "schedule", "日历", "日期"]},
+    {
+      "prefix": "lucide",
+      "name": "search",
+      "category": "ui",
+      "tags": ["search", "find", "magnifier", "查找", "搜索"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "settings",
+      "category": "ui",
+      "tags": ["settings", "gear", "preferences", "设置", "配置"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "home",
+      "category": "navigation",
+      "tags": ["home", "house", "主页", "首页"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "user",
+      "category": "ui",
+      "tags": ["user", "person", "account", "用户", "账户"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "heart",
+      "category": "ui",
+      "tags": ["heart", "like", "favorite", "心", "喜欢"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "star",
+      "category": "ui",
+      "tags": ["star", "favorite", "rating", "星", "收藏"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "check",
+      "category": "ui",
+      "tags": ["check", "tick", "ok", "确认", "对"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "x",
+      "category": "ui",
+      "tags": ["x", "close", "cancel", "关闭", "取消"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "plus",
+      "category": "ui",
+      "tags": ["plus", "add", "new", "加号", "新增"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "minus",
+      "category": "ui",
+      "tags": ["minus", "remove", "subtract", "减号", "删除"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "edit",
+      "category": "ui",
+      "tags": ["edit", "pencil", "modify", "编辑", "修改"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "trash",
+      "category": "ui",
+      "tags": ["trash", "delete", "remove", "删除", "回收"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "download",
+      "category": "file",
+      "tags": ["download", "save", "下载", "保存"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "upload",
+      "category": "file",
+      "tags": ["upload", "send", "上传"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "image",
+      "category": "media",
+      "tags": ["image", "picture", "photo", "图片", "照片"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "mail",
+      "category": "communication",
+      "tags": ["mail", "email", "envelope", "邮件", "信封"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "phone",
+      "category": "communication",
+      "tags": ["phone", "call", "telephone", "电话"]
+    },
+    {
+      "prefix": "lucide",
+      "name": "calendar",
+      "category": "ui",
+      "tags": ["calendar", "date", "schedule", "日历", "日期"]
+    },
 
-    {"prefix": "heroicons", "name": "home", "category": "navigation", "tags": ["home", "house", "主页"]},
-    {"prefix": "heroicons", "name": "user", "category": "ui", "tags": ["user", "person", "用户"]},
-    {"prefix": "heroicons", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"]},
-    {"prefix": "heroicons", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"]},
-    {"prefix": "heroicons", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"]},
-    {"prefix": "heroicons", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"]},
-    {"prefix": "heroicons", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"]},
-    {"prefix": "heroicons", "name": "pencil", "category": "ui", "tags": ["edit", "pencil", "编辑"]},
-    {"prefix": "heroicons", "name": "envelope", "category": "communication", "tags": ["mail", "email", "邮件"]},
-    {"prefix": "heroicons", "name": "phone", "category": "communication", "tags": ["phone", "call", "电话"]},
-    {"prefix": "heroicons", "name": "calendar", "category": "ui", "tags": ["calendar", "date", "日历"]},
-    {"prefix": "heroicons", "name": "camera", "category": "media", "tags": ["camera", "photo", "相机"]},
-    {"prefix": "heroicons", "name": "play", "category": "media", "tags": ["play", "video", "播放"]},
-    {"prefix": "heroicons", "name": "pause", "category": "media", "tags": ["pause", "video", "暂停"]},
+    {
+      "prefix": "heroicons",
+      "name": "home",
+      "category": "navigation",
+      "tags": ["home", "house", "主页"]
+    },
+    { "prefix": "heroicons", "name": "user", "category": "ui", "tags": ["user", "person", "用户"] },
+    {
+      "prefix": "heroicons",
+      "name": "search",
+      "category": "ui",
+      "tags": ["search", "find", "搜索"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "heart",
+      "category": "ui",
+      "tags": ["heart", "favorite", "心"]
+    },
+    { "prefix": "heroicons", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"] },
+    { "prefix": "heroicons", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"] },
+    {
+      "prefix": "heroicons",
+      "name": "trash",
+      "category": "ui",
+      "tags": ["trash", "delete", "删除"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "pencil",
+      "category": "ui",
+      "tags": ["edit", "pencil", "编辑"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "envelope",
+      "category": "communication",
+      "tags": ["mail", "email", "邮件"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "phone",
+      "category": "communication",
+      "tags": ["phone", "call", "电话"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "calendar",
+      "category": "ui",
+      "tags": ["calendar", "date", "日历"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "camera",
+      "category": "media",
+      "tags": ["camera", "photo", "相机"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "play",
+      "category": "media",
+      "tags": ["play", "video", "播放"]
+    },
+    {
+      "prefix": "heroicons",
+      "name": "pause",
+      "category": "media",
+      "tags": ["pause", "video", "暂停"]
+    },
 
-    {"prefix": "tabler", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"]},
-    {"prefix": "tabler", "name": "settings", "category": "ui", "tags": ["settings", "gear", "设置"]},
-    {"prefix": "tabler", "name": "home", "category": "navigation", "tags": ["home", "house", "主页"]},
-    {"prefix": "tabler", "name": "user", "category": "ui", "tags": ["user", "person", "用户"]},
-    {"prefix": "tabler", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"]},
-    {"prefix": "tabler", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"]},
-    {"prefix": "tabler", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"]},
-    {"prefix": "tabler", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"]},
-    {"prefix": "tabler", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "编辑"]},
-    {"prefix": "tabler", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"]},
-    {"prefix": "tabler", "name": "download", "category": "file", "tags": ["download", "save", "下载"]},
-    {"prefix": "tabler", "name": "upload", "category": "file", "tags": ["upload", "send", "上传"]},
-    {"prefix": "tabler", "name": "mail", "category": "communication", "tags": ["mail", "email", "邮件"]},
-    {"prefix": "tabler", "name": "calendar", "category": "ui", "tags": ["calendar", "date", "日历"]},
+    { "prefix": "tabler", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"] },
+    {
+      "prefix": "tabler",
+      "name": "settings",
+      "category": "ui",
+      "tags": ["settings", "gear", "设置"]
+    },
+    {
+      "prefix": "tabler",
+      "name": "home",
+      "category": "navigation",
+      "tags": ["home", "house", "主页"]
+    },
+    { "prefix": "tabler", "name": "user", "category": "ui", "tags": ["user", "person", "用户"] },
+    { "prefix": "tabler", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"] },
+    { "prefix": "tabler", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"] },
+    { "prefix": "tabler", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"] },
+    { "prefix": "tabler", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"] },
+    { "prefix": "tabler", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "编辑"] },
+    { "prefix": "tabler", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"] },
+    {
+      "prefix": "tabler",
+      "name": "download",
+      "category": "file",
+      "tags": ["download", "save", "下载"]
+    },
+    {
+      "prefix": "tabler",
+      "name": "upload",
+      "category": "file",
+      "tags": ["upload", "send", "上传"]
+    },
+    {
+      "prefix": "tabler",
+      "name": "mail",
+      "category": "communication",
+      "tags": ["mail", "email", "邮件"]
+    },
+    {
+      "prefix": "tabler",
+      "name": "calendar",
+      "category": "ui",
+      "tags": ["calendar", "date", "日历"]
+    },
 
-    {"prefix": "material-symbols", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"]},
-    {"prefix": "material-symbols", "name": "settings", "category": "ui", "tags": ["settings", "gear", "设置"]},
-    {"prefix": "material-symbols", "name": "home", "category": "navigation", "tags": ["home", "house", "主页"]},
-    {"prefix": "material-symbols", "name": "person", "category": "ui", "tags": ["user", "person", "用户"]},
-    {"prefix": "material-symbols", "name": "favorite", "category": "ui", "tags": ["heart", "favorite", "心"]},
-    {"prefix": "material-symbols", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"]},
-    {"prefix": "material-symbols", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"]},
-    {"prefix": "material-symbols", "name": "close", "category": "ui", "tags": ["x", "close", "关闭"]},
-    {"prefix": "material-symbols", "name": "add", "category": "ui", "tags": ["plus", "add", "加号"]},
-    {"prefix": "material-symbols", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "编辑"]},
-    {"prefix": "material-symbols", "name": "delete", "category": "ui", "tags": ["trash", "delete", "删除"]},
-    {"prefix": "material-symbols", "name": "download", "category": "file", "tags": ["download", "下载"]},
-    {"prefix": "material-symbols", "name": "mail", "category": "communication", "tags": ["mail", "email", "邮件"]},
+    {
+      "prefix": "material-symbols",
+      "name": "search",
+      "category": "ui",
+      "tags": ["search", "find", "搜索"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "settings",
+      "category": "ui",
+      "tags": ["settings", "gear", "设置"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "home",
+      "category": "navigation",
+      "tags": ["home", "house", "主页"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "person",
+      "category": "ui",
+      "tags": ["user", "person", "用户"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "favorite",
+      "category": "ui",
+      "tags": ["heart", "favorite", "心"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "star",
+      "category": "ui",
+      "tags": ["star", "favorite", "星"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "check",
+      "category": "ui",
+      "tags": ["check", "tick", "确认"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "close",
+      "category": "ui",
+      "tags": ["x", "close", "关闭"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "add",
+      "category": "ui",
+      "tags": ["plus", "add", "加号"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "edit",
+      "category": "ui",
+      "tags": ["edit", "pencil", "编辑"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "delete",
+      "category": "ui",
+      "tags": ["trash", "delete", "删除"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "download",
+      "category": "file",
+      "tags": ["download", "下载"]
+    },
+    {
+      "prefix": "material-symbols",
+      "name": "mail",
+      "category": "communication",
+      "tags": ["mail", "email", "邮件"]
+    },
 
-    {"prefix": "phosphor", "name": "magnifying-glass", "category": "ui", "tags": ["search", "find", "搜索"]},
-    {"prefix": "phosphor", "name": "gear", "category": "ui", "tags": ["settings", "gear", "设置"]},
-    {"prefix": "phosphor", "name": "house", "category": "navigation", "tags": ["home", "house", "主页"]},
-    {"prefix": "phosphor", "name": "user", "category": "ui", "tags": ["user", "person", "用户"]},
-    {"prefix": "phosphor", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"]},
-    {"prefix": "phosphor", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"]},
-    {"prefix": "phosphor", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"]},
-    {"prefix": "phosphor", "name": "x", "category": "ui", "tags": ["x", "close", "关闭"]},
-    {"prefix": "phosphor", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"]},
-    {"prefix": "phosphor", "name": "pencil", "category": "ui", "tags": ["edit", "pencil", "编辑"]},
-    {"prefix": "phosphor", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"]},
+    {
+      "prefix": "phosphor",
+      "name": "magnifying-glass",
+      "category": "ui",
+      "tags": ["search", "find", "搜索"]
+    },
+    {
+      "prefix": "phosphor",
+      "name": "gear",
+      "category": "ui",
+      "tags": ["settings", "gear", "设置"]
+    },
+    {
+      "prefix": "phosphor",
+      "name": "house",
+      "category": "navigation",
+      "tags": ["home", "house", "主页"]
+    },
+    { "prefix": "phosphor", "name": "user", "category": "ui", "tags": ["user", "person", "用户"] },
+    {
+      "prefix": "phosphor",
+      "name": "heart",
+      "category": "ui",
+      "tags": ["heart", "favorite", "心"]
+    },
+    { "prefix": "phosphor", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"] },
+    { "prefix": "phosphor", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"] },
+    { "prefix": "phosphor", "name": "x", "category": "ui", "tags": ["x", "close", "关闭"] },
+    { "prefix": "phosphor", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"] },
+    {
+      "prefix": "phosphor",
+      "name": "pencil",
+      "category": "ui",
+      "tags": ["edit", "pencil", "编辑"]
+    },
+    {
+      "prefix": "phosphor",
+      "name": "trash",
+      "category": "ui",
+      "tags": ["trash", "delete", "删除"]
+    },
 
-    {"prefix": "iconoir", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"]},
-    {"prefix": "iconoir", "name": "settings", "category": "ui", "tags": ["settings", "gear", "设置"]},
-    {"prefix": "iconoir", "name": "home", "category": "navigation", "tags": ["home", "house", "主页"]},
-    {"prefix": "iconoir", "name": "user", "category": "ui", "tags": ["user", "person", "用户"]},
-    {"prefix": "iconoir", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"]},
-    {"prefix": "iconoir", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"]},
-    {"prefix": "iconoir", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"]},
-    {"prefix": "iconoir", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"]},
-    {"prefix": "iconoir", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "编辑"]},
-    {"prefix": "iconoir", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"]}
+    { "prefix": "iconoir", "name": "search", "category": "ui", "tags": ["search", "find", "搜索"] },
+    {
+      "prefix": "iconoir",
+      "name": "settings",
+      "category": "ui",
+      "tags": ["settings", "gear", "设置"]
+    },
+    {
+      "prefix": "iconoir",
+      "name": "home",
+      "category": "navigation",
+      "tags": ["home", "house", "主页"]
+    },
+    { "prefix": "iconoir", "name": "user", "category": "ui", "tags": ["user", "person", "用户"] },
+    { "prefix": "iconoir", "name": "heart", "category": "ui", "tags": ["heart", "favorite", "心"] },
+    { "prefix": "iconoir", "name": "star", "category": "ui", "tags": ["star", "favorite", "星"] },
+    { "prefix": "iconoir", "name": "check", "category": "ui", "tags": ["check", "tick", "确认"] },
+    { "prefix": "iconoir", "name": "plus", "category": "ui", "tags": ["plus", "add", "加号"] },
+    { "prefix": "iconoir", "name": "edit", "category": "ui", "tags": ["edit", "pencil", "编辑"] },
+    { "prefix": "iconoir", "name": "trash", "category": "ui", "tags": ["trash", "delete", "删除"] }
   ]
 }

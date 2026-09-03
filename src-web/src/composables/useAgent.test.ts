@@ -150,7 +150,10 @@ describe('useAgent', () => {
   it('isProcessing 时忽略并发 send', async () => {
     let resolveChat: (v: any) => void = () => {};
     vi.mocked(ApiIndex.agentApi.chat).mockImplementationOnce(
-      () => new Promise((r) => { resolveChat = r; }),
+      () =>
+        new Promise((r) => {
+          resolveChat = r;
+        }),
     );
     const a = useAgent();
     const p1 = a.send('first');
@@ -165,7 +168,10 @@ describe('useAgent', () => {
 
   it('sendWithSelection 附加选区信息（来自 canvasToolsApi）', async () => {
     vi.mocked(ApiIndex.canvasToolsApi.getSelectionBounds).mockResolvedValueOnce({
-      x: 10, y: 20, width: 100, height: 50,
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
     });
     mockIsMockRef.value = true;
     const a = useAgent();

@@ -220,9 +220,7 @@ describe('useCanvas', () => {
 
   it('refresh 在 renderCanvasPng 抛错时静默处理', async () => {
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.mocked(ApiIndex.canvasApi.renderCanvasPng).mockRejectedValueOnce(
-      new Error('render boom'),
-    );
+    vi.mocked(ApiIndex.canvasApi.renderCanvasPng).mockRejectedValueOnce(new Error('render boom'));
     let captured: ReturnType<typeof useCanvas> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -290,9 +288,7 @@ describe('useCanvas', () => {
 
   it('clearSelection 在 IPC 失败时不清 store.selection', async () => {
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.mocked(ApiIndex.canvasApi.clearSelection).mockRejectedValueOnce(
-      new Error('boom'),
-    );
+    vi.mocked(ApiIndex.canvasApi.clearSelection).mockRejectedValueOnce(new Error('boom'));
     let captured: ReturnType<typeof useCanvas> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -329,7 +325,17 @@ describe('useCanvas', () => {
   it('pointer getter 在 onPointerMove 后反映位置', async () => {
     let captured: ReturnType<typeof useCanvas> | null = null;
     const fakeCanvas = {
-      getBoundingClientRect: () => ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, x: 0, y: 0, toJSON: () => '' }),
+      getBoundingClientRect: () => ({
+        left: 0,
+        top: 0,
+        right: 100,
+        bottom: 100,
+        width: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
       setPointerCapture: () => {},
       releasePointerCapture: () => {},
       getContext: () => null,

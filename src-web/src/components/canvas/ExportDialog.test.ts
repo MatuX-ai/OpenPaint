@@ -67,6 +67,8 @@ describe('ExportDialog', () => {
     await w.setProps({ open: true });
     await nextTick();
     expect(document.body.querySelector('input[type="range"]')).toBeNull();
-    expect(document.body.querySelectorAll('.export-dialog__format')[0].classList.contains('is-active')).toBe(true);
+    expect(
+      document.body.querySelectorAll('.export-dialog__format')[0].classList.contains('is-active'),
+    ).toBe(true);
   });
 });

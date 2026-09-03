@@ -45,15 +45,15 @@ function renderErrorToDom(label: string, detail: unknown): void {
   try {
     const host = document.getElementById('app') ?? document.body;
     const pre = document.createElement('pre');
-    pre.setAttribute(
-      'data-openpaint-fatal',
-      'true',
-    );
+    pre.setAttribute('data-openpaint-fatal', 'true');
     pre.style.cssText =
       'position:fixed;inset:0;z-index:99999;margin:0;padding:24px;' +
       'background:#1a1a1a;color:#ff6b6b;font:13px/1.5 Consolas,Menlo,monospace;' +
       'white-space:pre-wrap;overflow:auto;';
-    const msg = detail instanceof Error ? `${detail.name}: ${detail.message}\n${detail.stack ?? ''}` : String(detail);
+    const msg =
+      detail instanceof Error
+        ? `${detail.name}: ${detail.message}\n${detail.stack ?? ''}`
+        : String(detail);
     pre.textContent = `[OpenPaint] ${label}\n\n${msg}`;
     host.appendChild(pre);
   } catch {
@@ -63,11 +63,18 @@ function renderErrorToDom(label: string, detail: unknown): void {
 function formatRejection(reason: unknown): string {
   if (reason instanceof Error) return `${reason.name}: ${reason.message}\n${reason.stack ?? ''}`;
   if (typeof reason === 'string') return reason;
-  try { return JSON.stringify(reason); } catch { return String(reason); }
+  try {
+    return JSON.stringify(reason);
+  } catch {
+    return String(reason);
+  }
 }
 
 window.addEventListener('error', (event) => {
-  renderErrorToDom('window.error', `${event.message}\n  at ${event.filename}:${event.lineno}:${event.colno}`);
+  renderErrorToDom(
+    'window.error',
+    `${event.message}\n  at ${event.filename}:${event.lineno}:${event.colno}`,
+  );
 });
 window.addEventListener('unhandledrejection', (event) => {
   renderErrorToDom('unhandledrejection', formatRejection(event.reason));

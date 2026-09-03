@@ -40,12 +40,7 @@ function pick(action: 'new' | 'open' | 'ai' | 'ai-free'): void {
       </div>
 
       <div class="onboarding__actions">
-        <button
-          type="button"
-          class="onboarding__action"
-          aria-label="新建画布"
-          @click="pick('new')"
-        >
+        <button type="button" class="onboarding__action" aria-label="新建画布" @click="pick('new')">
           <Plus :size="20" />
           <div class="onboarding__action-title">新建</div>
           <div class="onboarding__action-desc">1080×1080 等预设</div>

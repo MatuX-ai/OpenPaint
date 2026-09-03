@@ -71,7 +71,8 @@ export function useToast() {
 
   function show(input: ShowToastInput): string {
     const kind = input.kind ?? 'info';
-    const duration = input.durationMs ?? (kind === 'error' ? ERROR_DURATION_MS : DEFAULT_DURATION_MS);
+    const duration =
+      input.durationMs ?? (kind === 'error' ? ERROR_DURATION_MS : DEFAULT_DURATION_MS);
     const id = nextId();
     const toast: Toast = {
       id,

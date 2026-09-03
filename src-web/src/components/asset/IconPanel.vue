@@ -80,21 +80,19 @@ const totalLabel = computed(() => {
         :aria-label="'按图标集过滤'"
         @change="onStyleChange"
       >
-        <option
-          v-for="opt in styleOptions"
-          :key="opt.value"
-          :value="opt.value"
-        >
+        <option v-for="opt in styleOptions" :key="opt.value" :value="opt.value">
           {{ opt.label }}
         </option>
       </select>
     </div>
 
-    <div v-if="assets.isSearching.value" class="icon-panel__status" role="status">
-      搜索中…
-    </div>
+    <div v-if="assets.isSearching.value" class="icon-panel__status" role="status">搜索中…</div>
 
-    <div v-else-if="assets.searchError.value" class="icon-panel__status icon-panel__status--error" role="alert">
+    <div
+      v-else-if="assets.searchError.value"
+      class="icon-panel__status icon-panel__status--error"
+      role="alert"
+    >
       {{ assets.searchError.value }}
     </div>
 
@@ -104,11 +102,7 @@ const totalLabel = computed(() => {
     </div>
 
     <div v-else class="icon-panel__results">
-      <section
-        v-for="group in grouped"
-        :key="group.prefix"
-        class="icon-panel__group"
-      >
+      <section v-for="group in grouped" :key="group.prefix" class="icon-panel__group">
         <h3 class="icon-panel__group-title">{{ group.prefix }} · {{ group.items.length }}</h3>
         <div class="icon-panel__grid">
           <button

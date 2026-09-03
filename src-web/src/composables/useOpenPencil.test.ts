@@ -116,22 +116,18 @@ describe('useOpenPencil', () => {
   it('importSVG 默认 replaceSelection=true（替换当前选区）', async () => {
     const bridge = createOpenPencilBridge();
     await bridge.importSVG('<svg><circle/></svg>');
-    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith(
-      '<svg><circle/></svg>',
-      undefined,
-      { replaceSelection: true },
-    );
+    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith('<svg><circle/></svg>', undefined, {
+      replaceSelection: true,
+    });
     expect(bridge.lastResult.value).toEqual({ svg: '<svg><circle/></svg>' });
   });
 
   it('importSVG 显式 replaceSelection=false 不替换选区', async () => {
     const bridge = createOpenPencilBridge();
     await bridge.importSVG('<svg><rect/></svg>', { replaceSelection: false });
-    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith(
-      '<svg><rect/></svg>',
-      undefined,
-      { replaceSelection: false },
-    );
+    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith('<svg><rect/></svg>', undefined, {
+      replaceSelection: false,
+    });
   });
 
   it('sendImageToAI 调 aiApi.sendToAiEngine 并以 replaceSelection=true 直接 pasteFromHTML', async () => {
@@ -147,17 +143,13 @@ describe('useOpenPencil', () => {
       '画一个圆',
     );
     expect(r?.svg).toBe('<svg><rect/></svg>');
-    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith(
-      '<svg><rect/></svg>',
-      undefined,
-      { replaceSelection: true },
-    );
+    expect(mockEditor.pasteFromHTML).toHaveBeenCalledWith('<svg><rect/></svg>', undefined, {
+      replaceSelection: true,
+    });
   });
 
   it('sendImageToAI 抛错时向上抛', async () => {
-    vi.mocked(ApiIndex.aiApi.sendToAiEngine).mockRejectedValueOnce(
-      new Error('AI boom'),
-    );
+    vi.mocked(ApiIndex.aiApi.sendToAiEngine).mockRejectedValueOnce(new Error('AI boom'));
     const bridge = createOpenPencilBridge();
     await expect(bridge.sendImageToAI('x', 'y')).rejects.toThrow('AI boom');
   });

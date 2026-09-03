@@ -11,7 +11,7 @@
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   provideEditor,
   ToolbarRoot,
@@ -19,11 +19,11 @@ import {
   useCanvasDrop,
   useCanvasInput,
   useEditorEvent,
-} from "@open-pencil/vue";
-import { EDITOR_TOOLS } from "@open-pencil/core/editor";
-import { getOpenPencilBridge } from "@composables/useOpenPencil";
-import OpenPencilToolbar from "./OpenPencilToolbar.vue";
-import MCPStatus from "./MCPStatus.vue";
+} from '@open-pencil/vue';
+import { EDITOR_TOOLS } from '@open-pencil/core/editor';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import OpenPencilToolbar from './OpenPencilToolbar.vue';
+import MCPStatus from './MCPStatus.vue';
 
 const bridge = getOpenPencilBridge();
 const { editor, status, sendImageToAI } = bridge;
@@ -54,12 +54,12 @@ function clearTimers() {
 function startLoadingTimers() {
   clearTimers();
   slowTimer = setTimeout(() => {
-    if (mounted && (status.value === "loading" || status.value === "idle")) {
+    if (mounted && (status.value === 'loading' || status.value === 'idle')) {
       showSlowHint.value = true;
     }
   }, 8000);
   errorTimer = setTimeout(() => {
-    if (mounted && (status.value === "loading" || status.value === "idle")) {
+    if (mounted && (status.value === 'loading' || status.value === 'idle')) {
       showErrorFallback.value = true;
       showSlowHint.value = false;
     }
@@ -70,16 +70,16 @@ function startLoadingTimers() {
 // 后续可在此处把视口、选区、图层状态推送到 Pinia store。
 function wireEditorEvents() {
   unsubscribers.push(
-    useEditorEvent("selection:changed", () => {
+    useEditorEvent('selection:changed', () => {
       // 后续：同步 store.activeLayerId / selection
     }),
-    useEditorEvent("tool:changed", () => {
+    useEditorEvent('tool:changed', () => {
       // 后续：同步 store.activeTool
     }),
-    useEditorEvent("viewport:changed", () => {
+    useEditorEvent('viewport:changed', () => {
       // 后续：同步 store.zoom / pan
     }),
-    useEditorEvent("graph:replaced", () => {
+    useEditorEvent('graph:replaced', () => {
       // 后续：通知图层、属性面板重建
     }),
   );
@@ -91,7 +91,7 @@ onMounted(() => {
   try {
     const canvasCtl = useCanvas(canvasRef, editor, {
       onReady: () => {
-        status.value = "ready";
+        status.value = 'ready';
         clearTimers();
         showSlowHint.value = false;
         showErrorFallback.value = false;
@@ -108,10 +108,10 @@ onMounted(() => {
 
     useCanvasDrop(canvasRef, editor);
   } catch (err) {
-    status.value = "error";
+    status.value = 'error';
     clearTimers();
     showErrorFallback.value = true;
-    console.error("[OpenPencilView] SDK mount failed:", err);
+    console.error('[OpenPencilView] SDK mount failed:', err);
   }
 });
 
@@ -141,11 +141,7 @@ defineExpose({ status, sendImageToAI, editor });
 
 <template>
   <div class="openpencil-view">
-    <ToolbarRoot
-      v-if="status === 'ready'"
-      :tools="EDITOR_TOOLS"
-      class="openpencil-view__tools"
-    />
+    <ToolbarRoot v-if="status === 'ready'" :tools="EDITOR_TOOLS" class="openpencil-view__tools" />
     <OpenPencilToolbar v-else :loading="status === 'loading'" />
     <div class="openpencil-view__body">
       <div

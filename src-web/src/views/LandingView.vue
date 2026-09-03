@@ -155,9 +155,7 @@ const FAQS: { q: string; a: string }[] = [
 
       <!-- Hero -->
       <section class="hero" aria-labelledby="hero-title">
-        <p class="hero__eyebrow">
-          MIT 开源 · 跨平台桌面 · 本地优先 · v{{ DOC_VERSION }}
-        </p>
+        <p class="hero__eyebrow">MIT 开源 · 跨平台桌面 · 本地优先 · v{{ DOC_VERSION }}</p>
         <h1 class="hero__title" id="hero-title">
           轻量设计工具，
           <br />
@@ -165,8 +163,10 @@ const FAQS: { q: string; a: string }[] = [
         </h1>
         <p class="hero__desc">
           OpenPaint 是一款开源、AI 原生的桌面设计工作台。它把像素级画布、AI 副驾驶与
-          <strong>OpenPencil 0.14 SDK</strong> 整合在同一个窗口，9 家大模型随选，
-          <strong>MCP 协议</strong> 编排工具，本地优先、数据不出门。
+          <strong>OpenPencil 0.14 SDK</strong>
+          整合在同一个窗口，9 家大模型随选，
+          <strong>MCP 协议</strong>
+          编排工具，本地优先、数据不出门。
         </p>
         <div class="hero__actions">
           <router-link to="/app" class="hero__cta hero__cta--primary">
@@ -183,9 +183,7 @@ const FAQS: { q: string; a: string }[] = [
             下载桌面版
           </a>
         </div>
-        <p class="hero__meta">
-          支持 Windows 10/11 · macOS 10.15+ · Ubuntu 20.04+ · Fedora 36+
-        </p>
+        <p class="hero__meta">支持 Windows 10/11 · macOS 10.15+ · Ubuntu 20.04+ · Fedora 36+</p>
       </section>
 
       <!-- 信任条：用于 E-E-A-T 信任信号 -->
@@ -246,18 +244,14 @@ const FAQS: { q: string; a: string }[] = [
               <Layers :size="20" />
             </div>
             <h3>中央画布</h3>
-            <p>
-              图层系统、蒙版、混合模式、无限历史，4K+ 画布依然流畅。GPU 加速渲染，秒开即用。
-            </p>
+            <p>图层系统、蒙版、混合模式、无限历史，4K+ 画布依然流畅。GPU 加速渲染，秒开即用。</p>
           </article>
           <article class="feature-card">
             <div class="feature-card__icon">
               <Bot :size="20" />
             </div>
             <h3>AI 副驾驶</h3>
-            <p>
-              右下角常驻对话面板，自然语言驱动 10+ 原子工具。未配置 LLM 时显示引导空状态。
-            </p>
+            <p>右下角常驻对话面板，自然语言驱动 10+ 原子工具。未配置 LLM 时显示引导空状态。</p>
           </article>
           <article class="feature-card">
             <div class="feature-card__icon">
@@ -265,7 +259,9 @@ const FAQS: { q: string; a: string }[] = [
             </div>
             <h3>OpenPencil 右窗</h3>
             <p>
-              真实集成 <strong>@open-pencil/vue 0.14 SDK</strong>，原生工具栏 + 矢量编辑 + AI 图像生成。
+              真实集成
+              <strong>@open-pencil/vue 0.14 SDK</strong>
+              ，原生工具栏 + 矢量编辑 + AI 图像生成。
             </p>
           </article>
           <article class="feature-card">
@@ -273,18 +269,14 @@ const FAQS: { q: string; a: string }[] = [
               <Library :size="20" />
             </div>
             <h3>智能图库</h3>
-            <p>
-              自动归档生成资产，SQLite + 标签索引，渐进式集成 LanceDB 语义召回。
-            </p>
+            <p>自动归档生成资产，SQLite + 标签索引，渐进式集成 LanceDB 语义召回。</p>
           </article>
           <article class="feature-card">
             <div class="feature-card__icon">
               <Brush :size="20" />
             </div>
             <h3>批量导出</h3>
-            <p>
-              一次设计，一键生成 Web / iOS / Android / Favicon 全套图标，自动按平台归档。
-            </p>
+            <p>一次设计，一键生成 Web / iOS / Android / Favicon 全套图标，自动按平台归档。</p>
           </article>
           <article class="feature-card">
             <div class="feature-card__icon">
@@ -302,7 +294,9 @@ const FAQS: { q: string; a: string }[] = [
             </div>
             <h3>完整快捷键</h3>
             <p>
-              30+ 组合快捷键，文件 / 编辑 / 工具 / 视图 / 面板五大分组，按 <kbd>?</kbd> 唤起速查。
+              30+ 组合快捷键，文件 / 编辑 / 工具 / 视图 / 面板五大分组，按
+              <kbd>?</kbd>
+              唤起速查。
             </p>
           </article>
           <article class="feature-card">
@@ -310,9 +304,7 @@ const FAQS: { q: string; a: string }[] = [
               <Sparkles :size="20" />
             </div>
             <h3>首次启动引导</h3>
-            <p>
-              新建 / 打开 / 让 AI 来画 — 三选项引导卡让首次用户 30 秒内进入创作状态。
-            </p>
+            <p>新建 / 打开 / 让 AI 来画 — 三选项引导卡让首次用户 30 秒内进入创作状态。</p>
           </article>
         </div>
       </section>
@@ -320,9 +312,7 @@ const FAQS: { q: string; a: string }[] = [
       <!-- 平替对比 -->
       <section id="compare" class="compare" aria-labelledby="compare-title">
         <h2 class="section-title" id="compare-title">可以平替哪些软件？</h2>
-        <p class="section-subtitle">
-          一个工具，覆盖像素编辑、矢量设计、AI 编排的完整工作流
-        </p>
+        <p class="section-subtitle">一个工具，覆盖像素编辑、矢量设计、AI 编排的完整工作流</p>
 
         <div class="compare__grid">
           <article class="compare-card">
@@ -467,15 +457,14 @@ const FAQS: { q: string; a: string }[] = [
       <!-- 差异化场景 -->
       <section id="scenarios" class="scenarios" aria-labelledby="scenarios-title">
         <h2 class="section-title" id="scenarios-title">不一样的使用场景</h2>
-        <p class="section-subtitle">
-          用自然语言与代码思维驱动设计，减少重复操作
-        </p>
+        <p class="section-subtitle">用自然语言与代码思维驱动设计，减少重复操作</p>
         <div class="scenarios__grid">
           <article class="scenario-card">
             <div class="scenario-card__tag">01 · Logo</div>
             <h3>快速生成 Logo 方案</h3>
             <p>
-              描述想要的风格，AI 副驾驶调用 OpenPencil 生成矢量稿，落回画布后再手动微调，全程 3 分钟。
+              描述想要的风格，AI 副驾驶调用 OpenPencil 生成矢量稿，落回画布后再手动微调，全程 3
+              分钟。
             </p>
           </article>
           <article class="scenario-card">
@@ -488,16 +477,12 @@ const FAQS: { q: string; a: string }[] = [
           <article class="scenario-card">
             <div class="scenario-card__tag">03 · 召回</div>
             <h3>语义召回历史资产</h3>
-            <p>
-              用自然语言描述要找的内容，图库通过向量搜索秒级定位，无需手动翻找文件夹。
-            </p>
+            <p>用自然语言描述要找的内容，图库通过向量搜索秒级定位，无需手动翻找文件夹。</p>
           </article>
           <article class="scenario-card">
             <div class="scenario-card__tag">04 · 离线</div>
             <h3>本地模型，数据不出门</h3>
-            <p>
-              对接本地 Ollama，所有推理在本机完成，设计稿和创意素材完全不上传任何云端。
-            </p>
+            <p>对接本地 Ollama，所有推理在本机完成，设计稿和创意素材完全不上传任何云端。</p>
           </article>
         </div>
       </section>
@@ -506,7 +491,8 @@ const FAQS: { q: string; a: string }[] = [
       <section id="providers" class="providers" aria-labelledby="providers-title">
         <h2 class="section-title" id="providers-title">9 家大模型，随选随用</h2>
         <p class="section-subtitle">
-          国内大模型优先曝光，开箱即用；海外与本地模型一个不少。自配 API Key，调用不经 OpenPaint 中转。
+          国内大模型优先曝光，开箱即用；海外与本地模型一个不少。自配 API Key，调用不经 OpenPaint
+          中转。
         </p>
 
         <div class="providers__groups">
@@ -537,16 +523,17 @@ const FAQS: { q: string; a: string }[] = [
 
         <p class="providers__note">
           所有 Provider 走 OpenAI 兼容 Chat Completions 接口（Claude 走 Messages API），用户可在
-          <code>~/.openpaint/config.yaml</code> 中随时切换或自定义 <code>base_url</code>。
+          <code>~/.openpaint/config.yaml</code>
+          中随时切换或自定义
+          <code>base_url</code>
+          。
         </p>
       </section>
 
       <!-- 技术架构 -->
       <section id="architecture" class="architecture" aria-labelledby="architecture-title">
         <h2 class="section-title" id="architecture-title">技术架构</h2>
-        <p class="section-subtitle">
-          基于 Tauri v2 + Rust + Vue 3 构建，轻量、安全、可扩展
-        </p>
+        <p class="section-subtitle">基于 Tauri v2 + Rust + Vue 3 构建，轻量、安全、可扩展</p>
         <div class="architecture__diagram">
           <div class="arch-layer arch-layer--top">
             <div class="arch-layer__title">前端界面层</div>
@@ -671,7 +658,14 @@ const FAQS: { q: string; a: string }[] = [
         </div>
         <p class="download__hint">
           Windows · macOS · Linux 全平台原生安装包；源码构建见
-          <a href="https://github.com/MatuX-ai/OpenPaint/blob/main/DEVELOPMENT.md" target="_blank" rel="noopener">DEVELOPMENT.md</a>。
+          <a
+            href="https://github.com/MatuX-ai/OpenPaint/blob/main/DEVELOPMENT.md"
+            target="_blank"
+            rel="noopener"
+          >
+            DEVELOPMENT.md
+          </a>
+          。
         </p>
       </section>
     </main>
@@ -683,9 +677,7 @@ const FAQS: { q: string; a: string }[] = [
           <img src="/logo.svg" alt="OpenPaint" class="landing-footer__logo" />
           <span>OpenPaint</span>
           <p class="landing-footer__tagline">开源 AI 原生设计工作台</p>
-          <p class="landing-footer__meta">
-            v{{ DOC_VERSION }} · 更新于 {{ LAST_UPDATED }}
-          </p>
+          <p class="landing-footer__meta">v{{ DOC_VERSION }} · 更新于 {{ LAST_UPDATED }}</p>
         </div>
         <div class="landing-footer__cols">
           <div class="landing-footer__col">

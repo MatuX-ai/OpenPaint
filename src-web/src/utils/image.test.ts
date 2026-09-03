@@ -65,9 +65,7 @@ describe('utils/image', () => {
     });
 
     it('支持 PNG mime blob', async () => {
-      const pngBytes = new Uint8Array([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-      ]);
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
       const blob = new Blob([pngBytes], { type: 'image/png' });
       const result = await blobToBase64(blob);
       expect(result.startsWith('data:image/png;base64,')).toBe(true);
@@ -96,10 +94,7 @@ describe('utils/image', () => {
     it('对未知 URL 不挂死', async () => {
       // happy-dom 的 Image.onerror 行为不稳定，确保 Promise 至少有结果
       const p = base64ToImage('not-a-data-url');
-      await Promise.race([
-        p,
-        new Promise((resolve) => setTimeout(() => resolve('ok'), 200)),
-      ]);
+      await Promise.race([p, new Promise((resolve) => setTimeout(() => resolve('ok'), 200))]);
       expect(true).toBe(true);
     });
   });

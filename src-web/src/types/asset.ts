@@ -94,23 +94,13 @@ export type IconCategory =
 
 /** Icon prefixes we ship in the built-in index. */
 export type IconPrefix =
-  | 'lucide'
-  | 'heroicons'
-  | 'tabler'
-  | 'material-symbols'
-  | 'phosphor'
-  | 'iconoir';
+  'lucide' | 'heroicons' | 'tabler' | 'material-symbols' | 'phosphor' | 'iconoir';
 
 // ============================================================
 // Brush presets (W10-B2)
 // ============================================================
 
-export type BrushCategory =
-  | 'hard'
-  | 'soft'
-  | 'texture'
-  | 'special'
-  | 'mark';
+export type BrushCategory = 'hard' | 'soft' | 'texture' | 'special' | 'mark';
 
 /** Single brush preset (matches Rust `canvas::brush::BrushPreset`). */
 export interface BrushPreset {

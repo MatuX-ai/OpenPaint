@@ -78,7 +78,10 @@ describe('useLlmConfig', () => {
   it('refresh coalesces concurrent calls', async () => {
     let resolveFn: (v: any) => void = () => {};
     vi.mocked(ApiIndex.llmApi.getProviderConfig).mockImplementation(
-      () => new Promise((r) => { resolveFn = r; }),
+      () =>
+        new Promise((r) => {
+          resolveFn = r;
+        }),
     );
     const c = useLlmConfig();
     const p1 = c.refresh();

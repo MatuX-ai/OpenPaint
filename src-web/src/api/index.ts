@@ -242,8 +242,10 @@ export const canvasApi = {
     }),
 
   /** Toggle a layer's blend mode (normal/multiply/screen/overlay). */
-  setLayerBlendMode: (layerId: string, mode: 'normal' | 'multiply' | 'screen' | 'overlay'): Promise<void> =>
-    invoke('set_layer_blend_mode', { args: { layer_id: layerId, mode } }),
+  setLayerBlendMode: (
+    layerId: string,
+    mode: 'normal' | 'multiply' | 'screen' | 'overlay',
+  ): Promise<void> => invoke('set_layer_blend_mode', { args: { layer_id: layerId, mode } }),
 
   /** Undo the last canvas operation. Returns true if anything happened. */
   undo: (): Promise<boolean> => invoke('undo_canvas'),
@@ -674,8 +676,7 @@ export const assetApi = {
   },
 
   /** 当前资产库在线状态（HEAD 探测结果，前端用来决定显示“离线模式”）。 */
-  getAssetState: (): Promise<AssetOnlineState> =>
-    invoke<AssetOnlineState>('get_asset_state'),
+  getAssetState: (): Promise<AssetOnlineState> => invoke<AssetOnlineState>('get_asset_state'),
 };
 
 // Re-export so existing code can keep importing icons from `@/types/asset`.

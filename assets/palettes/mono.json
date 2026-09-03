@@ -5,15 +5,15 @@
   "source": "OpenPaint curated",
   "license": "MIT",
   "colors": [
-    { "name": "Black",       "hex": "#000000", "role": "base" },
-    { "name": "Grey 900",    "hex": "#1F1F1F", "role": "primary" },
-    { "name": "Grey 700",    "hex": "#4D4D4D", "role": "secondary" },
-    { "name": "Grey 500",    "hex": "#808080", "role": "neutral" },
-    { "name": "Grey 400",    "hex": "#A6A6A6", "role": "support" },
-    { "name": "Grey 300",    "hex": "#CCCCCC", "role": "neutral2" },
-    { "name": "Grey 200",    "hex": "#E5E5E5", "role": "accent" },
-    { "name": "Grey 100",    "hex": "#F2F2F2", "role": "accent2" },
-    { "name": "Off-white",   "hex": "#FAFAFA", "role": "warning" },
-    { "name": "White",       "hex": "#FFFFFF", "role": "base2" }
+    { "name": "Black", "hex": "#000000", "role": "base" },
+    { "name": "Grey 900", "hex": "#1F1F1F", "role": "primary" },
+    { "name": "Grey 700", "hex": "#4D4D4D", "role": "secondary" },
+    { "name": "Grey 500", "hex": "#808080", "role": "neutral" },
+    { "name": "Grey 400", "hex": "#A6A6A6", "role": "support" },
+    { "name": "Grey 300", "hex": "#CCCCCC", "role": "neutral2" },
+    { "name": "Grey 200", "hex": "#E5E5E5", "role": "accent" },
+    { "name": "Grey 100", "hex": "#F2F2F2", "role": "accent2" },
+    { "name": "Off-white", "hex": "#FAFAFA", "role": "warning" },
+    { "name": "White", "hex": "#FFFFFF", "role": "base2" }
   ]
 }

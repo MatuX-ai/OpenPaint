@@ -44,10 +44,7 @@ function onSelect(brush: BrushAsset): void {
 }
 
 function onAiGenerateClick(): void {
-  emit(
-    'error',
-    'AI 画刷生成将在 v0.3 落地（当前由 create_brush_from_prompt MCP stub 占位）。',
-  );
+  emit('error', 'AI 画刷生成将在 v0.3 落地（当前由 create_brush_from_prompt MCP stub 占位）。');
 }
 </script>
 
@@ -71,7 +68,11 @@ function onAiGenerateClick(): void {
       加载画刷中…
     </div>
 
-    <div v-else-if="assets.brushError.value" class="brush-panel__status brush-panel__status--error" role="alert">
+    <div
+      v-else-if="assets.brushError.value"
+      class="brush-panel__status brush-panel__status--error"
+      role="alert"
+    >
       {{ assets.brushError.value }}
     </div>
 

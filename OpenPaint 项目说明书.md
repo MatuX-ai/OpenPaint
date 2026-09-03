@@ -47,16 +47,16 @@
 
 ### 3.1 技术栈总览
 
-| 层级            | 技术选型                     | 职责                                  |
-| :-------------- | :--------------------------- | :------------------------------------ |
-| **桌面框架**    | Tauri v2 (Rust + WebView)    | 跨平台打包、高性能后端、系统调用      |
-| **前端框架**    | Vue 3 + TypeScript           | UI 渲染、交互逻辑、状态管理           |
-| **画布引擎**    | OpenPencil (统一中央画布)     | 图层系统、矢量 / 位图混合编辑、AI 直入、历史记录 |
-| **AI 智能体**   | Hermes Agent (Rust 嵌入版)   | 意图理解、工具调度、自主决策          |
-| **AI 生成引擎** | OpenPencil 编辑器内置        | 矢量编辑、AI 图像生成（用户自配 Key） |
-| **本地数据库**  | SQLite (rusqlite)            | 图库元数据、历史记录、标签索引        |
-| **向量搜索**    | LanceDB（渐进式）            | 语义搜图、智能召回                    |
-| **通信协议**    | MCP (Model Context Protocol) | 模块间解耦、工具注册与调用            |
+| 层级            | 技术选型                     | 职责                                             |
+| :-------------- | :--------------------------- | :----------------------------------------------- |
+| **桌面框架**    | Tauri v2 (Rust + WebView)    | 跨平台打包、高性能后端、系统调用                 |
+| **前端框架**    | Vue 3 + TypeScript           | UI 渲染、交互逻辑、状态管理                      |
+| **画布引擎**    | OpenPencil (统一中央画布)    | 图层系统、矢量 / 位图混合编辑、AI 直入、历史记录 |
+| **AI 智能体**   | Hermes Agent (Rust 嵌入版)   | 意图理解、工具调度、自主决策                     |
+| **AI 生成引擎** | OpenPencil 编辑器内置        | 矢量编辑、AI 图像生成（用户自配 Key）            |
+| **本地数据库**  | SQLite (rusqlite)            | 图库元数据、历史记录、标签索引                   |
+| **向量搜索**    | LanceDB（渐进式）            | 语义搜图、智能召回                               |
+| **通信协议**    | MCP (Model Context Protocol) | 模块间解耦、工具注册与调用                       |
 
 ### 3.2 架构图（概念）
 
@@ -117,14 +117,14 @@
 
 ### 4.3 统一中央画布（OpenPencil 内嵌主画布，W14+）
 
-| 功能         | 说明                                                                                                |
-| :----------- | :-------------------------------------------------------------------------------------------------- |
-| 唯一主画布   | OpenPencil 编辑器本身承担中央画布，不再是独立“右窗”；SceneGraph 是项目唯一文档                     |
-| 矢量 / 位图  | OpenPencil 原生 UI 工具（选择 / 画笔 / 文字 / 图形） + 位图栅格图层共存，画笔工具由 ToolbarRoot 暴露 |
-| AI 直入      | AI 返回的 SVG 通过 `pasteFromHTML(svg, undefined, { replaceSelection: true })` 直入中央画布，不栅格化 |
-| 微调闭环     | PreviewModal「在中央画布继续编辑」直接关闭弹窗，用户在同一画布上继续编辑                  |
-| 共享历史     | 撤销 / 重做 / 右键菜单 / 图层操作统一走 OpenPencil `undoAction / redoAction`，与编辑操作共栈     |
-| 兼容路径     | Rust `canvasApi`（画笔 / 橡皮位图操作、旋转 / 文字 / 混合模式、缩放 / 适配窗口）保留作为兼容层 |
+| 功能        | 说明                                                                                                  |
+| :---------- | :---------------------------------------------------------------------------------------------------- |
+| 唯一主画布  | OpenPencil 编辑器本身承担中央画布，不再是独立“右窗”；SceneGraph 是项目唯一文档                        |
+| 矢量 / 位图 | OpenPencil 原生 UI 工具（选择 / 画笔 / 文字 / 图形） + 位图栅格图层共存，画笔工具由 ToolbarRoot 暴露  |
+| AI 直入     | AI 返回的 SVG 通过 `pasteFromHTML(svg, undefined, { replaceSelection: true })` 直入中央画布，不栅格化 |
+| 微调闭环    | PreviewModal「在中央画布继续编辑」直接关闭弹窗，用户在同一画布上继续编辑                              |
+| 共享历史    | 撤销 / 重做 / 右键菜单 / 图层操作统一走 OpenPencil `undoAction / redoAction`，与编辑操作共栈          |
+| 兼容路径    | Rust `canvasApi`（画笔 / 橡皮位图操作、旋转 / 文字 / 混合模式、缩放 / 适配窗口）保留作为兼容层        |
 
 ### 4.4 图库管理系统（历史资产库）
 
@@ -141,37 +141,37 @@
 
 OpenPaint 不硬编码业务场景，而是提供 **10 个原子工具**，由 Hermes Agent 自主编排完成复杂任务。
 
-| 分类         | 工具名称               | 职责                                            |
-| :----------- | :--------------------- | :---------------------------------------------- |
-| **画布交互** | `get_canvas_selection` | 获取当前选区/图层为 Base64                      |
-|              | `get_selection_bounds` | 获取选区坐标与尺寸                              |
-|              | `paste_image_to_layer` | （兼容路径）位图贴入指定图层，AI 同步调用直入 OpenPencil    |
-|              | `get_layer_info`       | 获取 OpenPencil 图层列表及当前活动层（中央画布真理源）   |
-|              | `select_all`           | 调用 OpenPencil editor.selectAll()，选中全部节点          |
-| **AI 生成**  | `send_to_ai_engine`    | 将图源 + Prompt 发送给 OpenPencil，返回 SVG/PNG |
-|              | `render_svg_to_png`    | 将 SVG 按指定尺寸渲染为 PNG                     |
-|              | `get_current_svg`      | 从 OpenPencil 中央画布 SceneGraph 获取当前 SVG 源码（取代原“右窗”）|
-| **图库管理** | `save_to_gallery`      | 保存图片 + 标签 + 分组到图库                    |
-|              | `search_gallery`       | 按标签/文本搜索历史资产                         |
-|              | `get_gallery_image`    | 按 ID 获取图库原图                              |
-| **资产库**   | `search_icons`         | 按关键词搜索图标（6 套 Iconify 集成）           |
-|              | `render_icon_svg`      | 把图标 ID 渲染为指定尺寸/颜色 SVG（带缓存）    |
-|              | `apply_palette`        | 应用调色板到图层（swatch_bar / replace_color）  |
-|              | `apply_gradient`       | 应用渐变预设到图层（16 个 SVG 渐变）            |
-|              | `create_brush_from_prompt` | AI 生成画刷（v0.2 stub，v0.3 实现）         |
+| 分类         | 工具名称                   | 职责                                                                |
+| :----------- | :------------------------- | :------------------------------------------------------------------ |
+| **画布交互** | `get_canvas_selection`     | 获取当前选区/图层为 Base64                                          |
+|              | `get_selection_bounds`     | 获取选区坐标与尺寸                                                  |
+|              | `paste_image_to_layer`     | （兼容路径）位图贴入指定图层，AI 同步调用直入 OpenPencil            |
+|              | `get_layer_info`           | 获取 OpenPencil 图层列表及当前活动层（中央画布真理源）              |
+|              | `select_all`               | 调用 OpenPencil editor.selectAll()，选中全部节点                    |
+| **AI 生成**  | `send_to_ai_engine`        | 将图源 + Prompt 发送给 OpenPencil，返回 SVG/PNG                     |
+|              | `render_svg_to_png`        | 将 SVG 按指定尺寸渲染为 PNG                                         |
+|              | `get_current_svg`          | 从 OpenPencil 中央画布 SceneGraph 获取当前 SVG 源码（取代原“右窗”） |
+| **图库管理** | `save_to_gallery`          | 保存图片 + 标签 + 分组到图库                                        |
+|              | `search_gallery`           | 按标签/文本搜索历史资产                                             |
+|              | `get_gallery_image`        | 按 ID 获取图库原图                                                  |
+| **资产库**   | `search_icons`             | 按关键词搜索图标（6 套 Iconify 集成）                               |
+|              | `render_icon_svg`          | 把图标 ID 渲染为指定尺寸/颜色 SVG（带缓存）                         |
+|              | `apply_palette`            | 应用调色板到图层（swatch_bar / replace_color）                      |
+|              | `apply_gradient`           | 应用渐变预设到图层（16 个 SVG 渐变）                                |
+|              | `create_brush_from_prompt` | AI 生成画刷（v0.2 stub，v0.3 实现）                                 |
 
 ### 4.6 资产库（图标 + 画刷 + 调色板 + 渐变）
 
-| 能力       | 说明                                                                 |
-| :--------- | :------------------------------------------------------------------- |
-| 图标       | 集成 Iconify，6 套 × 4000+ 候选；本地缓存 + 24h 持久化；CDN 镜像可选 |
-| 画刷       | 8 个内置 PNG（硬圆/软笔/粉笔/喷漆/水彩/油画/马克笔/模糊）           |
-| 调色板     | 4 套 10 色（Material / Tailwind / Pastel / Mono）                    |
-| 渐变       | 16 个预设（8 线性 + 5 径向 + 3 锥形），resvg 渲染                    |
-| AI 编排    | Hermes Agent 自动识别「图标/渐变/调色板/画刷」关键词并调用对应 MCP 工具 |
-| 离线策略   | 30s 节流 HEAD 探测 Iconify 可达性，离线时仅显示已缓存资产           |
+| 能力       | 说明                                                                                            |
+| :--------- | :---------------------------------------------------------------------------------------------- |
+| 图标       | 集成 Iconify，6 套 × 4000+ 候选；本地缓存 + 24h 持久化；CDN 镜像可选                            |
+| 画刷       | 8 个内置 PNG（硬圆/软笔/粉笔/喷漆/水彩/油画/马克笔/模糊）                                       |
+| 调色板     | 4 套 10 色（Material / Tailwind / Pastel / Mono）                                               |
+| 渐变       | 16 个预设（8 线性 + 5 径向 + 3 锥形），resvg 渲染                                               |
+| AI 编排    | Hermes Agent 自动识别「图标/渐变/调色板/画刷」关键词并调用对应 MCP 工具                         |
+| 离线策略   | 30s 节流 HEAD 探测 Iconify 可达性，离线时仅显示已缓存资产                                       |
 | 第三方署名 | 设置 → 关于 列出 Lucide / Heroicons / Tabler / Material Symbols / Phosphor / Iconoir 的 License |
-| 本地遥测   | `~/.openpaint/telemetry/assets.json` 累计 6 类资产事件              |
+| 本地遥测   | `~/.openpaint/telemetry/assets.json` 累计 6 类资产事件                                          |
 
 ---
 

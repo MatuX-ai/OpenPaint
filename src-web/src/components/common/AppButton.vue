@@ -27,11 +27,7 @@ withDefaults(
 <template>
   <button
     class="app-btn"
-    :class="[
-      `app-btn--${variant}`,
-      `app-btn--${size}`,
-      { 'is-loading': loading },
-    ]"
+    :class="[`app-btn--${variant}`, `app-btn--${size}`, { 'is-loading': loading }]"
     :type="type"
     :disabled="disabled || loading"
   >

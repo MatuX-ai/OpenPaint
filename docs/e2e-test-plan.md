@@ -32,11 +32,11 @@ US-8 AI 助理未配置引导、US-10 快捷键补齐、US-11 可访问性）转
 
 ## 2. 工具栈候选
 
-| 候选 | 优点 | 缺点 | 决策 |
-| --- | --- | --- | --- |
-| **Playwright（推荐）** | 已被 OpenPaint 的 `vitest` 生态间接依赖；与 Vite HMR 兼容；mock 简单；可单独跑 web preview 路径 | 桌面端截图/窗口控制需 `tauri-driver`，需额外接入 | ✅ 主选 |
-| WebdriverIO + `tauri-driver` | Tauri 官方推荐，可在真实 webview 中跑 | 需要 Rust 端开 `tauri-driver` 子命令；冷启动 ≈ 4-6s | 🔁 作为后续桌面端覆盖 |
-| Cypress | DX 好 | Tauri 支持差；浏览器内嵌 ifrane 与 IPC 难以模拟 | ❌ 不选 |
+| 候选                         | 优点                                                                                            | 缺点                                                | 决策                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------- |
+| **Playwright（推荐）**       | 已被 OpenPaint 的 `vitest` 生态间接依赖；与 Vite HMR 兼容；mock 简单；可单独跑 web preview 路径 | 桌面端截图/窗口控制需 `tauri-driver`，需额外接入    | ✅ 主选               |
+| WebdriverIO + `tauri-driver` | Tauri 官方推荐，可在真实 webview 中跑                                                           | 需要 Rust 端开 `tauri-driver` 子命令；冷启动 ≈ 4-6s | 🔁 作为后续桌面端覆盖 |
+| Cypress                      | DX 好                                                                                           | Tauri 支持差；浏览器内嵌 ifrane 与 IPC 难以模拟     | ❌ 不选               |
 
 **W9+ 步骤**：先在 web preview 跑通 5 个最小场景；待 `tauri-driver` 评审通过后，扩展 2 个桌面端专项（系统剪贴板、文件对话框）。
 
@@ -44,13 +44,13 @@ US-8 AI 助理未配置引导、US-10 快捷键补齐、US-11 可访问性）转
 
 > 用例 ID 前缀 `E2E-*`，命名空间与现有 `TC-*`（[测试用例集.md](./测试用例集.md)）、`ONB-*` 并列。
 
-| ID | 场景 | 关键步骤 | 验收点 |
-| --- | --- | --- | --- |
-| **E2E-001** | 首次启动显示引导卡 | 删除 `localStorage('openpaint:ui-state')` 后刷新 → 等待 `[data-testid="onboarding-card"]` 可见 | 引导卡三选项按钮均可点击 |
-| **E2E-002** | 新建画布向导 | 点 "新建画布" → 选 "Web 横幅 1920×1080" 预设 → 确认 | `canvasApi.getCanvasSummary` 解析返回 `{ width: 1920, height: 1080 }` |
-| **E2E-003** | 快捷键 cheatsheet | 全局按 `?` → 出现速查面板 | 面板含 Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Z / Ctrl+C / Ctrl+V 至少 6 行 |
-| **E2E-004** | AI 助理未配置引导 + 高亮 | 清空 LLM 配置后打开 AI 浮窗 → 点 "打开设置" CTA | 设置弹窗 `.settings-modal__section.is-llm-highlight` 8 秒内可观察脉冲动画 |
-| **E2E-005** | 主工具条五大组可见 | 切到选择工具 → 截屏工具条 | 截图应包含：撤销、重做、新建图层、缩放组（4 按钮 + 100%）、工具名 5 个组；非画笔工具下颜色/粗细不应可见 |
+| ID          | 场景                     | 关键步骤                                                                                       | 验收点                                                                                                  |
+| ----------- | ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **E2E-001** | 首次启动显示引导卡       | 删除 `localStorage('openpaint:ui-state')` 后刷新 → 等待 `[data-testid="onboarding-card"]` 可见 | 引导卡三选项按钮均可点击                                                                                |
+| **E2E-002** | 新建画布向导             | 点 "新建画布" → 选 "Web 横幅 1920×1080" 预设 → 确认                                            | `canvasApi.getCanvasSummary` 解析返回 `{ width: 1920, height: 1080 }`                                   |
+| **E2E-003** | 快捷键 cheatsheet        | 全局按 `?` → 出现速查面板                                                                      | 面板含 Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Z / Ctrl+C / Ctrl+V 至少 6 行                                    |
+| **E2E-004** | AI 助理未配置引导 + 高亮 | 清空 LLM 配置后打开 AI 浮窗 → 点 "打开设置" CTA                                                | 设置弹窗 `.settings-modal__section.is-llm-highlight` 8 秒内可观察脉冲动画                               |
+| **E2E-005** | 主工具条五大组可见       | 切到选择工具 → 截屏工具条                                                                      | 截图应包含：撤销、重做、新建图层、缩放组（4 按钮 + 100%）、工具名 5 个组；非画笔工具下颜色/粗细不应可见 |
 
 > 备注：E2E-001/002/005 直接对应 UX-A09（信息密度）/ONB-§1（首次引导）/ONB-§2（新建向导）。
 > E2E-003 覆盖 US-10；E2E-004 覆盖 UX-A07 与 ONB-§US-8。
@@ -72,7 +72,7 @@ US-8 AI 助理未配置引导、US-10 快捷键补齐、US-11 可访问性）转
   "e2e": "playwright test",
   "e2e:headed": "playwright test --headed",
   "e2e:ui": "playwright test --ui",
-  "e2e:debug": "PWDEBUG=1 playwright test"
+  "e2e:debug": "PWDEBUG=1 playwright test",
 }
 ```
 

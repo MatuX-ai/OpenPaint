@@ -96,10 +96,7 @@ function openQuickPreferences() {
       </div>
 
       <!-- 未配置 LLM：占满聊天区的友好提示。 -->
-      <div
-        v-else-if="!llmReady"
-        class="ai-assistant__empty ai-assistant__empty--unconfigured"
-      >
+      <div v-else-if="!llmReady" class="ai-assistant__empty ai-assistant__empty--unconfigured">
         <Bot :size="28" />
         <p class="ai-assistant__empty-headline">
           嗨，老板，还没有接入 {{ llmLabel }}，我还无法工作

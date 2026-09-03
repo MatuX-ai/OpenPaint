@@ -55,7 +55,9 @@ describe('MenuDropdown', () => {
   });
 
   it('trigger is disabled when disabled=true', () => {
-    const w = mount(MenuDropdown, { props: { label: 'X', open: false, items: ITEMS, disabled: true } });
+    const w = mount(MenuDropdown, {
+      props: { label: 'X', open: false, items: ITEMS, disabled: true },
+    });
     expect(w.find('.menu-dropdown__trigger').attributes('disabled')).toBeDefined();
   });
 

@@ -67,9 +67,7 @@ const GROUPS: Group[] = [
   },
   {
     title: '帮助',
-    items: [
-      { keys: '?', label: '显示此面板' },
-    ],
+    items: [{ keys: '?', label: '显示此面板' }],
   },
 ];
 </script>
@@ -82,11 +80,7 @@ const GROUPS: Group[] = [
         <dl class="cheatsheet__list">
           <div v-for="it in g.items" :key="it.keys" class="cheatsheet__row">
             <dt>
-              <kbd
-                v-for="(k, i) in it.keys.split(' / ')"
-                :key="i"
-                class="cheatsheet__kbd"
-              >
+              <kbd v-for="(k, i) in it.keys.split(' / ')" :key="i" class="cheatsheet__kbd">
                 {{ k }}
               </kbd>
             </dt>

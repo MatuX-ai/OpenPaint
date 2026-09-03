@@ -7,10 +7,10 @@
 
 ## 文件说明
 
-| 文件 | 用途 |
-| --- | --- |
-| `index.json` | 精简版图标元数据（prefix × name × tags × category），启动时一次性加载到内存（~ 12 KB） |
-| `cache/` | 运行时按需缓存的 SVG body（首次访问 Iconify API 后写入，默认目录 `~/.openpaint/icon-cache/`） |
+| 文件         | 用途                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `index.json` | 精简版图标元数据（prefix × name × tags × category），启动时一次性加载到内存（~ 12 KB）        |
+| `cache/`     | 运行时按需缓存的 SVG body（首次访问 Iconify API 后写入，默认目录 `~/.openpaint/icon-cache/`） |
 
 > ⚠️ **本目录不打包 SVG body**。完整 SVG 在用户首次访问时按需下载，
 > 这样安装包只增加 ~ 12 KB，而不是 Iconify 全量 SVG 的 ~ 100 MB。
@@ -20,14 +20,14 @@
 
 `index.json` 中精选了 6 个图标集共 **83 个最常用图标**：
 
-| Prefix | 总数 | 协议 | 说明 |
-| --- | --- | --- | --- |
-| `lucide` | 18 | ISC | 默认推荐，矢量风偏写实，UI 友好 |
-| `heroicons` | 14 | MIT | Tailwind 团队出品，基础风格 |
-| `tabler` | 15 | MIT | 10500+ 图标的大库，线 风格 |
-| `material-symbols` | 14 | Apache-2.0 | Google 官方 Material Design |
-| `phosphor` | 12 | MIT | 6 种粗细分级，弹性强 |
-| `iconoir` | 10 | MIT | French 设计师作品，简洁优雅 |
+| Prefix             | 总数 | 协议       | 说明                            |
+| ------------------ | ---- | ---------- | ------------------------------- |
+| `lucide`           | 18   | ISC        | 默认推荐，矢量风偏写实，UI 友好 |
+| `heroicons`        | 14   | MIT        | Tailwind 团队出品，基础风格     |
+| `tabler`           | 15   | MIT        | 10500+ 图标的大库，线 风格      |
+| `material-symbols` | 14   | Apache-2.0 | Google 官方 Material Design     |
+| `phosphor`         | 12   | MIT        | 6 种粗细分级，弹性强            |
+| `iconoir`          | 10   | MIT        | French 设计师作品，简洁优雅     |
 
 后续 W9+ 阶段会持续扩充到 4000+ 图标（详见 spec §3.1.2）。
 
@@ -67,9 +67,9 @@ node scripts/gen-iconify-index.mjs --prefixes lucide,heroicons,tabler \
 
 `index.json` 中默认 CDN：
 
-| 用途 | URL |
-| --- | --- |
-| 主 CDN | `https://api.iconify.design` |
+| 用途                 | URL                                     |
+| -------------------- | --------------------------------------- |
+| 主 CDN               | `https://api.iconify.design`            |
 | 备用 CDN（国内友好） | `https://cdn.jsdelivr.net/npm/@iconify` |
 
 下载单图标示例：
@@ -86,10 +86,14 @@ GET https://api.iconify.design/{prefix}.json?icons={name1},{name2}
   "icons": {
     "search": {
       "body": "<path d=\"...\"/>",
-      "left": 0, "top": 0, "width": 24, "height": 24
+      "left": 0,
+      "top": 0,
+      "width": 24,
+      "height": 24
     }
   },
-  "width": 24, "height": 24
+  "width": 24,
+  "height": 24
 }
 ```
 
@@ -103,14 +107,14 @@ GET https://api.iconify.design/{prefix}.json?icons={name1},{name2}
 
 ## 协议与署名
 
-| Prefix | License | 是否要求署名 |
-| --- | --- | --- |
-| lucide | ISC | 否 |
-| heroicons | MIT | 否 |
-| tabler | MIT | 否 |
+| Prefix           | License    | 是否要求署名                 |
+| ---------------- | ---------- | ---------------------------- |
+| lucide           | ISC        | 否                           |
+| heroicons        | MIT        | 否                           |
+| tabler           | MIT        | 否                           |
 | material-symbols | Apache-2.0 | 是（已在应用内"关于"页标注） |
-| phosphor | MIT | 否 |
-| iconoir | MIT | 否 |
+| phosphor         | MIT        | 否                           |
+| iconoir          | MIT        | 否                           |
 
 应用首次启动会一次性 Toast 提示：本应用使用 Lucide / Material Symbols 等开源图标，
 详见"设置 → 关于 → 第三方资源"。

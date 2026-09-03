@@ -147,18 +147,11 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
     </div>
 
     <!-- drag-and-drop overlay (US-3) -->
-    <div
-      v-if="isDragOver"
-      class="canvas-view__dropzone"
-      role="status"
-      aria-live="polite"
-    >
+    <div v-if="isDragOver" class="canvas-view__dropzone" role="status" aria-live="polite">
       <div class="canvas-view__dropzone-inner">
         <div class="canvas-view__dropzone-icon">📥</div>
         <div class="canvas-view__dropzone-title">松手导入</div>
-        <div class="canvas-view__dropzone-desc">
-          支持 PNG / JPG / WebP / SVG（≤ 50MB）
-        </div>
+        <div class="canvas-view__dropzone-desc">支持 PNG / JPG / WebP / SVG（≤ 50MB）</div>
       </div>
     </div>
   </main>

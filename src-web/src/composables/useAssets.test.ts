@@ -62,7 +62,7 @@ const {
 }));
 
 vi.mock('@api/index', async () => {
-  const actual = await vi.importActual('@api/index') as typeof ApiIndex;
+  const actual = (await vi.importActual('@api/index')) as typeof ApiIndex;
   return {
     ...actual,
     assetApi: {
@@ -141,20 +141,73 @@ describe('useAssets', () => {
     mockPasteImageToLayer.mockResolvedValue('L1');
     // W10 mocks
     mockListBrushes.mockResolvedValue([
-      { id: 'round-hard', name_zh: '硬边', name_en: 'Round Hard', file_name: 'round-hard.png', category: 'hard', default_radius: 12, falloff: 0.05, description: '默认' },
-      { id: 'round-soft', name_zh: '软边', name_en: 'Round Soft', file_name: 'round-soft.png', category: 'soft', default_radius: 14, falloff: 0.95, description: '软' },
+      {
+        id: 'round-hard',
+        name_zh: '硬边',
+        name_en: 'Round Hard',
+        file_name: 'round-hard.png',
+        category: 'hard',
+        default_radius: 12,
+        falloff: 0.05,
+        description: '默认',
+      },
+      {
+        id: 'round-soft',
+        name_zh: '软边',
+        name_en: 'Round Soft',
+        file_name: 'round-soft.png',
+        category: 'soft',
+        default_radius: 14,
+        falloff: 0.95,
+        description: '软',
+      },
     ]);
     mockListBrushAssets.mockResolvedValue([
-      { id: 'round-hard', name_zh: '硬边', name_en: 'Round Hard', category: 'hard', default_radius: 12, falloff: 0.05, description: '默认', png_base64: 'aA==', byte_size: 1 },
+      {
+        id: 'round-hard',
+        name_zh: '硬边',
+        name_en: 'Round Hard',
+        category: 'hard',
+        default_radius: 12,
+        falloff: 0.05,
+        description: '默认',
+        png_base64: 'aA==',
+        byte_size: 1,
+      },
     ]);
     mockListPalettes.mockResolvedValue([
-      { id: 'material', name_zh: 'Material', name_en: 'Material', description: 'd', colors: [{ hex: '#ff0000', name_zh: '红', name_en: 'Red' }] },
+      {
+        id: 'material',
+        name_zh: 'Material',
+        name_en: 'Material',
+        description: 'd',
+        colors: [{ hex: '#ff0000', name_zh: '红', name_en: 'Red' }],
+      },
     ]);
     mockListGradients.mockResolvedValue([
-      { id: 'sunset', type: 'linear', name_zh: '日落', name_en: 'Sunset', angle: 180, stops: [{ offset: 0, hex: '#000' }, { offset: 1, hex: '#fff' }] },
+      {
+        id: 'sunset',
+        type: 'linear',
+        name_zh: '日落',
+        name_en: 'Sunset',
+        angle: 180,
+        stops: [
+          { offset: 0, hex: '#000' },
+          { offset: 1, hex: '#fff' },
+        ],
+      },
     ]);
-    mockApplyPalette.mockResolvedValue({ applied_colors: ['#ff0000'], stroke_count: 1, mode: 'swatch_bar' });
-    mockApplyGradient.mockResolvedValue({ gradient_id: 'sunset', gradient_type: 'linear', stop_count: 2, bytes_written: 4096 });
+    mockApplyPalette.mockResolvedValue({
+      applied_colors: ['#ff0000'],
+      stroke_count: 1,
+      mode: 'swatch_bar',
+    });
+    mockApplyGradient.mockResolvedValue({
+      gradient_id: 'sunset',
+      gradient_type: 'linear',
+      stop_count: 2,
+      bytes_written: 4096,
+    });
     // W11-B1/B3 default mocks
     mockGetAssetsConfig.mockResolvedValue({
       cdnMirror: 'default',
@@ -217,9 +270,7 @@ describe('useAssets', () => {
     a.searchQuery.value = 'sea';
     await vi.advanceTimersByTimeAsync(500);
     expect(mockSearchIcons).toHaveBeenCalledTimes(1);
-    expect(mockSearchIcons).toHaveBeenLastCalledWith(
-      expect.objectContaining({ query: 'sea' }),
-    );
+    expect(mockSearchIcons).toHaveBeenLastCalledWith(expect.objectContaining({ query: 'sea' }));
   });
 
   it('AST-104: 仅 style 过滤（无 query）也会触发搜索', async () => {
@@ -227,9 +278,7 @@ describe('useAssets', () => {
     a.searchStyle.value = 'lucide';
     await vi.advanceTimersByTimeAsync(500);
     expect(mockSearchIcons).toHaveBeenCalledTimes(1);
-    expect(mockSearchIcons).toHaveBeenCalledWith(
-      expect.objectContaining({ style: 'lucide' }),
-    );
+    expect(mockSearchIcons).toHaveBeenCalledWith(expect.objectContaining({ style: 'lucide' }));
   });
 
   it('AST-105: 三参都为空 → 不触发 search', async () => {
@@ -271,16 +320,15 @@ describe('useAssets', () => {
     const a = await load();
     let resolveFirst!: (v: SearchIconsResult) => void;
     mockSearchIcons.mockImplementationOnce(
-      () => new Promise<SearchIconsResult>((resolve) => {
-        resolveFirst = resolve;
-      }),
+      () =>
+        new Promise<SearchIconsResult>((resolve) => {
+          resolveFirst = resolve;
+        }),
     );
     a.searchQuery.value = 'first';
     await vi.advanceTimersByTimeAsync(500);
     // 第二次查询触发，第一次请求尚未完成
-    mockSearchIcons.mockResolvedValueOnce(
-      makeResult([sampleIcons[2]], 1),
-    );
+    mockSearchIcons.mockResolvedValueOnce(makeResult([sampleIcons[2]], 1));
     a.searchQuery.value = 'second';
     await vi.advanceTimersByTimeAsync(500);
     // 现在让第一次"过期"请求结束
@@ -393,9 +441,10 @@ describe('useAssets', () => {
     const a = await load();
     let resolveFn!: (v: { layerId: string; svg: string }) => void;
     mockImportIconToCanvas.mockImplementationOnce(
-      () => new Promise<{ layerId: string; svg: string }>((resolve) => {
-        resolveFn = resolve;
-      }),
+      () =>
+        new Promise<{ layerId: string; svg: string }>((resolve) => {
+          resolveFn = resolve;
+        }),
     );
     const p = a.importIconToCanvas(sampleIcons[0]);
     await Promise.resolve();
@@ -416,13 +465,17 @@ describe('useAssets', () => {
     const { useGroupedIcons } = await import('@composables/useAssets');
     const grouped = useGroupedIcons(icons);
     expect(grouped.value).toEqual([
-      { prefix: 'lucide', items: [
-        { prefix: 'lucide', name: 'a', category: 'ui', tags: [] },
-        { prefix: 'lucide', name: 'c', category: 'ui', tags: [] },
-      ] },
-      { prefix: 'material-symbols', items: [
-        { prefix: 'material-symbols', name: 'b', category: 'navigation', tags: [] },
-      ] },
+      {
+        prefix: 'lucide',
+        items: [
+          { prefix: 'lucide', name: 'a', category: 'ui', tags: [] },
+          { prefix: 'lucide', name: 'c', category: 'ui', tags: [] },
+        ],
+      },
+      {
+        prefix: 'material-symbols',
+        items: [{ prefix: 'material-symbols', name: 'b', category: 'navigation', tags: [] }],
+      },
     ]);
   });
 

@@ -47,7 +47,10 @@ const KIND_META: Record<'info' | 'success' | 'warn' | 'error', KindMeta> = {
           v-if="t.action"
           type="button"
           class="toast-container__action"
-          @click="t.action.onClick(); toast.dismiss(t.id)"
+          @click="
+            t.action.onClick();
+            toast.dismiss(t.id);
+          "
         >
           {{ t.action.label }}
         </button>

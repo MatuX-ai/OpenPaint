@@ -152,9 +152,7 @@ export function useOnboarding() {
   }
 
   /** W11-B4：首次启动且未 dismiss 资源署名 toast */
-  const shouldShowAttributionToast = computed(
-    () => !state.value.attributionNoticeShown,
-  );
+  const shouldShowAttributionToast = computed(() => !state.value.attributionNoticeShown);
 
   /** W11-B4：dismiss 资源署名 toast（与 markAttributionShown 等价，语义不同）。 */
   function dismissAttributionToast(): void {

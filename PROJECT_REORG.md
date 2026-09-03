@@ -71,18 +71,18 @@
 
 > 把模块按"独立可验证"原则拆分，每块 1 个 Owner + 1 个 Reviewer。
 
-| 编号 | 模块                              | Owner | Reviewer | 当前状态                                   |
-| ---- | --------------------------------- | ----- | -------- | ------------------------------------------ |
-| M-01 | 仓库根 + CI                       | TBD   | TBD      | ✅ 已修：CI yaml 待 `pnpm install` 验证    |
-| M-02 | Tauri 工程脚手架                  | TBD   | TBD      | ✅ 已修：cargo check 通过、图标已生成      |
-| M-03 | 画布引擎（Rust）                  | A     | F        | ✅ 完整                                    |
+| 编号 | 模块                              | Owner | Reviewer | 当前状态                                                                                                                             |
+| ---- | --------------------------------- | ----- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| M-01 | 仓库根 + CI                       | TBD   | TBD      | ✅ 已修：CI yaml 待 `pnpm install` 验证                                                                                              |
+| M-02 | Tauri 工程脚手架                  | TBD   | TBD      | ✅ 已修：cargo check 通过、图标已生成                                                                                                |
+| M-03 | 画布引擎（Rust）                  | A     | F        | ✅ 完整                                                                                                                              |
 | M-04 | OpenPencil 嵌入（Web）            | TBD   | TBD      | ✅ 真实集成：@open-pencil/vue 0.14 SDK + CanvasKit WASM 挂载右窗，exportSVG / sendImageToAI 闭环到位，vue-tsc/lint/vitest/build 全绿 |
-| M-05 | AI 闭环（MCP + 截图 → AI → 落回） | TBD   | TBD      | 🔴 需等 M-04 + Hermes Agent 二进制         |
-| M-06 | 图库管理                          | TBD   | TBD      | ✅ 后端完整，前端 0%                       |
-| M-07 | 配置管理                          | TBD   | TBD      | ✅ 后端完整，前端设置页缺失                |
-| M-08 | 画布原子工具（4 个）              | A     | F        | ✅ 后端完整                                |
-| M-09 | Hermes Agent 集成                 | TBD   | TBD      | 🟡 后端 mock 实现，前端浮窗缺失            |
-| M-10 | 原子工具扩展（6 个）              | TBD   | TBD      | 🟡 后端 mock，前端列表 UI 缺失             |
+| M-05 | AI 闭环（MCP + 截图 → AI → 落回） | TBD   | TBD      | 🔴 需等 M-04 + Hermes Agent 二进制                                                                                                   |
+| M-06 | 图库管理                          | TBD   | TBD      | ✅ 后端完整，前端 0%                                                                                                                 |
+| M-07 | 配置管理                          | TBD   | TBD      | ✅ 后端完整，前端设置页缺失                                                                                                          |
+| M-08 | 画布原子工具（4 个）              | A     | F        | ✅ 后端完整                                                                                                                          |
+| M-09 | Hermes Agent 集成                 | TBD   | TBD      | 🟡 后端 mock 实现，前端浮窗缺失                                                                                                      |
+| M-10 | 原子工具扩展（6 个）              | TBD   | TBD      | 🟡 后端 mock，前端列表 UI 缺失                                                                                                       |
 
 ---
 
@@ -107,16 +107,16 @@
 
 **目标**：用户能在三栏布局里画一条线、做一个矩形选区、撤销一次；右窗加载 OpenPencil 静态页面。
 
-| 任务                                                     | 状态 | 说明                                                                                                                        |
-| -------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------- |
-| `CanvasView.vue` 接入 `<canvas>` 元素                    | ✅   | 渲染后端 `render_canvas_png` 返回的 PNG；pointer 事件转发给 `useCanvas`                                                     |
-| `useCanvas.ts` 完善坐标转换 / 工具切换 / 缩放            | ✅   | 重写：brush/eraser 笔画缓冲 → `apply_brush_stroke`；rect-select 拖拽 → `set_rect_selection`；`refresh()` 同步图层/undo-redo |
-| `CanvasToolbar.vue` / `LayerPanel.vue` / `LayerItem.vue` | ✅   | 画笔粗细滑杆 + 颜色 swatches；图层增删/切换/可见性，`set_active_layer` / `set_layer_visibility`                             |
-| `OpenPencilView.vue` 真实 `@open-pencil/vue` SDK 挂载 | ✅   | `createEditor` + `provideEditor` + `useCanvas/useCanvasInput/useCanvasDrop` + `<ToolbarRoot>`；`useOpenPencil.ts` 改为工厂，提供 `exportSVG / importSVG / sendImageToAI` 与 Rust 闭环 |
-| `SelectionRect.vue` 覆盖层                               | ✅   | 虚线边框 + 尺寸 tag，从 `canvasStore.selection` 读取                                                                        |
-| `TopBar` 撤销/重做                                       | ✅   | 接 `undo_canvas` / `redo_canvas`，按钮根据 `canUndo/canRedo` 亮/灰                                                          |
-| `useShortcuts.ts` / `useResize.ts`                       | ✅   | Ctrl+Z/Y/B/E/M/V/H/T、Ctrl+K/G；ResizeObserver 封装                                                                         |
-| 单元测试                                                 | ✅   | `vue-tsc` 0 error、vitest 7/7、eslint 0 error、stylelint 0 error、vite build 成功                                           |
+| 任务                                                     | 状态 | 说明                                                                                                                                                                                  |
+| -------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CanvasView.vue` 接入 `<canvas>` 元素                    | ✅   | 渲染后端 `render_canvas_png` 返回的 PNG；pointer 事件转发给 `useCanvas`                                                                                                               |
+| `useCanvas.ts` 完善坐标转换 / 工具切换 / 缩放            | ✅   | 重写：brush/eraser 笔画缓冲 → `apply_brush_stroke`；rect-select 拖拽 → `set_rect_selection`；`refresh()` 同步图层/undo-redo                                                           |
+| `CanvasToolbar.vue` / `LayerPanel.vue` / `LayerItem.vue` | ✅   | 画笔粗细滑杆 + 颜色 swatches；图层增删/切换/可见性，`set_active_layer` / `set_layer_visibility`                                                                                       |
+| `OpenPencilView.vue` 真实 `@open-pencil/vue` SDK 挂载    | ✅   | `createEditor` + `provideEditor` + `useCanvas/useCanvasInput/useCanvasDrop` + `<ToolbarRoot>`；`useOpenPencil.ts` 改为工厂，提供 `exportSVG / importSVG / sendImageToAI` 与 Rust 闭环 |
+| `SelectionRect.vue` 覆盖层                               | ✅   | 虚线边框 + 尺寸 tag，从 `canvasStore.selection` 读取                                                                                                                                  |
+| `TopBar` 撤销/重做                                       | ✅   | 接 `undo_canvas` / `redo_canvas`，按钮根据 `canUndo/canRedo` 亮/灰                                                                                                                    |
+| `useShortcuts.ts` / `useResize.ts`                       | ✅   | Ctrl+Z/Y/B/E/M/V/H/T、Ctrl+K/G；ResizeObserver 封装                                                                                                                                   |
+| 单元测试                                                 | ✅   | `vue-tsc` 0 error、vitest 7/7、eslint 0 error、stylelint 0 error、vite build 成功                                                                                                     |
 
 **验收达成**：全部通过（见上方测试结果）。
 

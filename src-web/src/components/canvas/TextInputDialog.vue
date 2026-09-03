@@ -108,12 +108,7 @@ function onKeyDown(e: KeyboardEvent) {
       <div class="text-dialog__panel">
         <header class="text-dialog__header">
           <h2 class="text-dialog__title">文字输入</h2>
-          <button
-            type="button"
-            class="text-dialog__close"
-            aria-label="关闭"
-            @click="onCancel"
-          >
+          <button type="button" class="text-dialog__close" aria-label="关闭" @click="onCancel">
             <X :size="16" />
           </button>
         </header>
@@ -157,31 +152,17 @@ function onKeyDown(e: KeyboardEvent) {
           <div class="text-dialog__row">
             <label class="text-dialog__field">
               <span class="text-dialog__label">X 偏移</span>
-              <input
-                v-model.number="x"
-                type="number"
-                step="1"
-                class="text-dialog__input"
-              />
+              <input v-model.number="x" type="number" step="1" class="text-dialog__input" />
             </label>
             <label class="text-dialog__field">
               <span class="text-dialog__label">Y 偏移</span>
-              <input
-                v-model.number="y"
-                type="number"
-                step="1"
-                class="text-dialog__input"
-              />
+              <input v-model.number="y" type="number" step="1" class="text-dialog__input" />
             </label>
           </div>
         </div>
 
         <footer class="text-dialog__footer">
-          <button
-            type="button"
-            class="text-dialog__btn text-dialog__btn--ghost"
-            @click="onCancel"
-          >
+          <button type="button" class="text-dialog__btn text-dialog__btn--ghost" @click="onCancel">
             取消
           </button>
           <button

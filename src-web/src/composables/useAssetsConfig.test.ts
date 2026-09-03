@@ -21,10 +21,7 @@ vi.mock('@api/index', () => ({
   },
 }));
 
-import {
-  useAssetsConfig,
-  __resetAssetsConfigForTests,
-} from '@composables/useAssetsConfig';
+import { useAssetsConfig, __resetAssetsConfigForTests } from '@composables/useAssetsConfig';
 
 describe('useAssetsConfig (W11-B1)', () => {
   beforeEach(() => {

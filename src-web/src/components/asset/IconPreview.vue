@@ -29,12 +29,7 @@ const tagsText = computed(() => props.icon.tags.join(' · '));
 </script>
 
 <template>
-  <div
-    class="icon-preview"
-    role="dialog"
-    aria-modal="true"
-    :aria-label="`图标预览 ${title}`"
-  >
+  <div class="icon-preview" role="dialog" aria-modal="true" :aria-label="`图标预览 ${title}`">
     <div class="icon-preview__backdrop" @click="emit('close')"></div>
     <div class="icon-preview__panel">
       <header class="icon-preview__header">

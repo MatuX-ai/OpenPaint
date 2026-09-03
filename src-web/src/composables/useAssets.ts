@@ -176,15 +176,12 @@ export function useAssets(): UseAssetsApi {
 
   // 500ms 防抖：用户停下手 0.5s 后才触发搜索。
   let debounceHandle: ReturnType<typeof setTimeout> | null = null;
-  watch(
-    [searchQuery, searchStyle, searchCategory],
-    () => {
-      if (debounceHandle) clearTimeout(debounceHandle);
-      debounceHandle = setTimeout(() => {
-        void runSearch();
-      }, 500);
-    },
-  );
+  watch([searchQuery, searchStyle, searchCategory], () => {
+    if (debounceHandle) clearTimeout(debounceHandle);
+    debounceHandle = setTimeout(() => {
+      void runSearch();
+    }, 500);
+  });
 
   // ---- preview state ----
   const previewedIcon = ref<IconMeta | null>(null);
@@ -254,11 +251,17 @@ export function useAssets(): UseAssetsApi {
       // attribution === 'agent' 时在 chat 流上挂 ToolCallCard（仅占位）
       if (opts?.attribution === 'agent') {
         try {
-          const chat = (window as unknown as {
-            __openpaint_chat?: {
-              recordToolCall?: (toolName: string, args: Record<string, unknown>, result: string) => void;
-            };
-          }).__openpaint_chat;
+          const chat = (
+            window as unknown as {
+              __openpaint_chat?: {
+                recordToolCall?: (
+                  toolName: string,
+                  args: Record<string, unknown>,
+                  result: string,
+                ) => void;
+              };
+            }
+          ).__openpaint_chat;
           chat?.recordToolCall?.(
             'import_icon',
             { prefix: icon.prefix, name: icon.name },
@@ -465,7 +468,9 @@ export function useAssets(): UseAssetsApi {
  * Reactive helper: group an icon array by their `prefix` field.
  * Used by `IconPanel` to render grouped result sections.
  */
-export function useGroupedIcons(icons: Ref<IconMeta[]>): Ref<Array<{ prefix: string; items: IconMeta[] }>> {
+export function useGroupedIcons(
+  icons: Ref<IconMeta[]>,
+): Ref<Array<{ prefix: string; items: IconMeta[] }>> {
   return computed(() => {
     const map = new Map<string, IconMeta[]>();
     for (const icon of icons.value) {

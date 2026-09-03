@@ -40,4 +40,3 @@ export function bodyHtml(): string {
 export function bodyText(): string {
   return document.body.textContent ?? '';
 }
-

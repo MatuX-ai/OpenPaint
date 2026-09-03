@@ -147,10 +147,14 @@ export function useFileActions() {
       for (let i = 0; i < bytes.length; i += chunk) {
         bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
       }
-      const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-        : ext === 'webp' ? 'image/webp'
-        : ext === 'svg' ? 'image/svg+xml'
-        : 'image/png';
+      const mime =
+        ext === 'jpg' || ext === 'jpeg'
+          ? 'image/jpeg'
+          : ext === 'webp'
+            ? 'image/webp'
+            : ext === 'svg'
+              ? 'image/svg+xml'
+              : 'image/png';
       const dataUrl = `data:${mime};base64,${btoa(bin)}`;
       await canvasApi.pasteImage(dataUrl);
       doc.markDirty();
@@ -217,7 +221,11 @@ export function useFileActions() {
     }
   }
 
-  async function batchExport(sizes: number[], saveToGallery: boolean, tags: string[]): Promise<void> {
+  async function batchExport(
+    sizes: number[],
+    saveToGallery: boolean,
+    tags: string[],
+  ): Promise<void> {
     if (!isTauri()) {
       toast.warn('批量导出仅在桌面版可用');
       return;

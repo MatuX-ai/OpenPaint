@@ -22,7 +22,12 @@ interface LlmConfigStub {
 }
 
 function stub(_isMock: boolean, provider: LlmProviderConfig['provider'] = 'mock'): LlmConfigStub {
-  const cfg = ref({ provider, api_key: null, endpoint: '', model: '' }) as Ref<LlmProviderConfig | null>;
+  const cfg = ref({
+    provider,
+    api_key: null,
+    endpoint: '',
+    model: '',
+  }) as Ref<LlmProviderConfig | null>;
   return {
     providerConfig: cfg,
     isReady: ref(true) as Ref<boolean>,

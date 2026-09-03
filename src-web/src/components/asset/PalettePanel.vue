@@ -15,7 +15,10 @@ import { useAssets } from '@/composables/useAssets';
 import type { GradientPreset, Palette } from '@/types/asset';
 
 const emit = defineEmits<{
-  (e: 'palette-applied', payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' }): void;
+  (
+    e: 'palette-applied',
+    payload: { paletteId: string; mode: 'swatch_bar' | 'replace_color' },
+  ): void;
   (e: 'gradient-applied', payload: { gradientId: string }): void;
   (e: 'error', message: string): void;
 }>();
@@ -37,9 +40,7 @@ const gradientPreview = computed<Map<string, string>>(() => {
 });
 
 function buildGradientCss(g: GradientPreset): string {
-  const stops = g.stops
-    .map((s) => `${s.hex} ${Math.round(s.offset * 100)}%`)
-    .join(', ');
+  const stops = g.stops.map((s) => `${s.hex} ${Math.round(s.offset * 100)}%`).join(', ');
   if (g.type === 'radial') {
     const [cx, cy] = g.center ?? [0.5, 0.5];
     return `radial-gradient(circle at ${cx * 100}% ${cy * 100}%, ${stops})`;
@@ -122,14 +123,13 @@ function onPickColor(palette: Palette, hex: string): void {
     <!-- 调色板视图 -->
     <div v-if="viewMode === 'palette'" class="palette-panel__palettes">
       <div v-if="assets.palettesLoading.value" class="palette-panel__status">加载调色板中…</div>
-      <div v-else-if="assets.palettesError.value" class="palette-panel__status palette-panel__status--error">
+      <div
+        v-else-if="assets.palettesError.value"
+        class="palette-panel__status palette-panel__status--error"
+      >
         {{ assets.palettesError.value }}
       </div>
-      <section
-        v-for="palette in palettesView"
-        :key="palette.id"
-        class="palette-panel__palette"
-      >
+      <section v-for="palette in palettesView" :key="palette.id" class="palette-panel__palette">
         <header class="palette-panel__palette-header">
           <h4 class="palette-panel__palette-name">{{ palette.nameZh }}</h4>
           <button
@@ -160,7 +160,10 @@ function onPickColor(palette: Palette, hex: string): void {
     <!-- 渐变视图 -->
     <div v-else class="palette-panel__gradients">
       <div v-if="assets.gradientsLoading.value" class="palette-panel__status">加载渐变中…</div>
-      <div v-else-if="assets.gradientsError.value" class="palette-panel__status palette-panel__status--error">
+      <div
+        v-else-if="assets.gradientsError.value"
+        class="palette-panel__status palette-panel__status--error"
+      >
         {{ assets.gradientsError.value }}
       </div>
       <div v-else class="palette-panel__gradient-grid">

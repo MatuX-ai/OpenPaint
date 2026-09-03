@@ -1,6 +1,6 @@
 # 📄 DEVELOPMENT.md
 
-````markdown
+`````markdown
 # 🔧 开发环境搭建指南
 
 本文档帮助开发者从零搭建 OpenPaint 的开发环境。
@@ -20,7 +20,7 @@
 
 #### Windows
 
-```bash
+````bash
 # 安装 Microsoft Visual Studio C++ 生成工具
 # 下载地址：https://visualstudio.microsoft.com/visual-cpp-build-tools/
 # 确保勾选 "Windows 10/11 SDK" 和 "C++ CMake 工具"
@@ -214,7 +214,8 @@ osslsigncode sign \
   -t "http://timestamp.digicert.com" \
   -in src-tauri/target/release/openpaint.exe \
   -out openpaint-signed.exe
-```
+````
+`````
 
 ### 验证签名
 
@@ -248,5 +249,11 @@ Get-AuthenticodeSignature ".\openpaint.exe" | Format-List
 3. **后续补全**：
    - `CODE_OF_CONDUCT.md`：可直接复制 [Contributor Covenant 官方模板](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
    - `LICENSE`：从 [MIT License 官网](https://opensource.org/licenses/MIT) 复制全文
+
 ```
-````
+
+```
+
+```
+
+```

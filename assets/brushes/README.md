@@ -5,29 +5,29 @@
 本目录包含 OpenPaint 内置的 8 个 PNG 笔刷（v0.2.0 / W10）。
 每个 PNG 是 256×256 RGBA，中心白色 → 边缘 alpha 渐变，作为画笔笔触的 stamp 模板。
 
-| ID | 中文 | English | 类别 | 适用场景 |
-| --- | --- | --- | --- | --- |
-| `round-hard` | 硬边圆头 | Round Hard | Hard | 默认画笔、勾线、UI 设计 |
-| `round-soft` | 软边圆头 | Round Soft | Soft | 通用涂抹、上色 |
-| `chalk` | 粉笔 | Chalk | Texture | 手写粉笔、复古风插画 |
-| `spray` | 喷枪 | Spray | Texture | 阴影、噪点、特殊效果 |
-| `watercolor` | 水彩 | Watercolor | Texture | 柔和水彩边缘、淡彩 |
-| `oil-paint` | 油画厚涂 | Oil Paint | Texture | 厚涂笔触、艺术化处理 |
-| `marker` | 马克笔 | Marker | Mark | 平面插画、概念设计 |
-| `blur` | 模糊 | Blur | Special | 边缘模糊、橡皮变体 |
+| ID           | 中文     | English    | 类别    | 适用场景                |
+| ------------ | -------- | ---------- | ------- | ----------------------- |
+| `round-hard` | 硬边圆头 | Round Hard | Hard    | 默认画笔、勾线、UI 设计 |
+| `round-soft` | 软边圆头 | Round Soft | Soft    | 通用涂抹、上色          |
+| `chalk`      | 粉笔     | Chalk      | Texture | 手写粉笔、复古风插画    |
+| `spray`      | 喷枪     | Spray      | Texture | 阴影、噪点、特殊效果    |
+| `watercolor` | 水彩     | Watercolor | Texture | 柔和水彩边缘、淡彩      |
+| `oil-paint`  | 油画厚涂 | Oil Paint  | Texture | 厚涂笔触、艺术化处理    |
+| `marker`     | 马克笔   | Marker     | Mark    | 平面插画、概念设计      |
+| `blur`       | 模糊     | Blur       | Special | 边缘模糊、橡皮变体      |
 
 > 软边圆头（`round-soft`）是默认 fallback 笔刷；硬边圆头（`round-hard`）是
 > 应用首次启动时 `canvasStore.activeBrushId` 的初始值（与上一版本保持兼容）。
 
 ## 文件规格
 
-| 属性 | 值 |
-| --- | --- |
-| 尺寸 | 256 × 256 |
-| 格式 | PNG-24（RGBA，含 alpha） |
-| 颜色 | 中心 RGB=(255,255,255)；边缘 alpha 渐变到 0 |
-| 单文件大小 | 5 - 31 KB |
-| 总计 | < 130 KB |
+| 属性       | 值                                          |
+| ---------- | ------------------------------------------- |
+| 尺寸       | 256 × 256                                   |
+| 格式       | PNG-24（RGBA，含 alpha）                    |
+| 颜色       | 中心 RGB=(255,255,255)；边缘 alpha 渐变到 0 |
+| 单文件大小 | 5 - 31 KB                                   |
+| 总计       | < 130 KB                                    |
 
 ## 生成方法
 

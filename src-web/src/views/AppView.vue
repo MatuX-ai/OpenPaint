@@ -103,116 +103,199 @@ const unregisters: Array<() => void> = [];
 
 function registerOnce() {
   // File
-  unregisters.push(menu.register('file.new', () => { newCanvasOpen.value = true; }));
-  unregisters.push(menu.register('file.open', () => { void files.openImage(); }));
-  unregisters.push(menu.register('file.save', () => { void files.saveToGallery([]); }));
-  unregisters.push(menu.register('file.saveAs', () => { exportOpen.value = true; }));
-  unregisters.push(menu.register('file.export.png', () => { exportOpen.value = true; }));
-  unregisters.push(menu.register('file.export.jpg', () => { exportOpen.value = true; }));
-  unregisters.push(menu.register('file.export.webp', () => { exportOpen.value = true; }));
-  unregisters.push(menu.register('file.batchExport', () => { batchExportOpen.value = true; }));
-  unregisters.push(menu.register('file.recent', () => { /* TODO: W8+ */ }));
-  unregisters.push(menu.register('file.quit', () => {
-    if (!runningInTauri) {
-      toast.info('在桌面版按 Alt+F4 或关闭窗口');
-      return;
-    }
-    void (async () => {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      await getCurrentWindow().close();
-    })();
-  }));
+  unregisters.push(
+    menu.register('file.new', () => {
+      newCanvasOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.open', () => {
+      void files.openImage();
+    }),
+  );
+  unregisters.push(
+    menu.register('file.save', () => {
+      void files.saveToGallery([]);
+    }),
+  );
+  unregisters.push(
+    menu.register('file.saveAs', () => {
+      exportOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.export.png', () => {
+      exportOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.export.jpg', () => {
+      exportOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.export.webp', () => {
+      exportOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.batchExport', () => {
+      batchExportOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('file.recent', () => {
+      /* TODO: W8+ */
+    }),
+  );
+  unregisters.push(
+    menu.register('file.quit', () => {
+      if (!runningInTauri) {
+        toast.info('在桌面版按 Alt+F4 或关闭窗口');
+        return;
+      }
+      void (async () => {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        await getCurrentWindow().close();
+      })();
+    }),
+  );
 
   // Edit
-  unregisters.push(menu.register('edit.undo', () => { void files.undo(); }));
-  unregisters.push(menu.register('edit.redo', () => { void files.redo(); }));
-  unregisters.push(menu.register('edit.selectAll', async () => {
-    try {
-      const b = await canvasStore; // ensure store
-      void b;
-    } catch { /* ignore */ }
-  }));
-  unregisters.push(menu.register('edit.clearSelection', async () => {
-    try {
-      const { canvasApi } = await import('@api/index');
-      await canvasApi.clearSelection();
-    } catch (e) {
-      toast.error(`取消选区失败：${String((e as Error).message ?? e)}`);
-    }
-  }));
-  unregisters.push(menu.register('edit.copy', async () => {
-    if (!runningInTauri) {
-      toast.info('复制：web preview 未启用系统剪贴板');
-      return;
-    }
-    try {
-      const res = await canvasApi.renderCanvasImage({ format: 'png', quality: 100, targetLongEdge: 0 });
-      const dataUrl = `data:${res.mime};base64,${res.bytesBase64}`;
-      const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
-      await writeImage(dataUrl);
-      toast.success('已复制到剪贴板');
-    } catch (e) {
-      toast.error(`复制失败：${String((e as Error).message ?? e)}`);
-    }
-  }));
-  unregisters.push(menu.register('edit.paste', async () => {
-    if (!runningInTauri) {
-      toast.info('粘贴：web preview 未启用系统剪贴板');
-      return;
-    }
-    try {
-      const { readImage } = await import('@tauri-apps/plugin-clipboard-manager');
-      const img = await readImage();
-      const [rgba, size] = await Promise.all([img.rgba(), img.size()]);
-      const png = await rgbaToPngBase64(rgba, size.width, size.height);
-      await canvasApi.pasteImage(png);
-      doc.markDirty();
-      toast.success('已粘贴到画布');
-    } catch (e) {
-      toast.error(`粘贴失败：${String((e as Error).message ?? e)}`);
-    }
-  }));
+  unregisters.push(
+    menu.register('edit.undo', () => {
+      void files.undo();
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.redo', () => {
+      void files.redo();
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.selectAll', async () => {
+      try {
+        const b = await canvasStore; // ensure store
+        void b;
+      } catch {
+        /* ignore */
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.clearSelection', async () => {
+      try {
+        const { canvasApi } = await import('@api/index');
+        await canvasApi.clearSelection();
+      } catch (e) {
+        toast.error(`取消选区失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.copy', async () => {
+      if (!runningInTauri) {
+        toast.info('复制：web preview 未启用系统剪贴板');
+        return;
+      }
+      try {
+        const res = await canvasApi.renderCanvasImage({
+          format: 'png',
+          quality: 100,
+          targetLongEdge: 0,
+        });
+        const dataUrl = `data:${res.mime};base64,${res.bytesBase64}`;
+        const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
+        await writeImage(dataUrl);
+        toast.success('已复制到剪贴板');
+      } catch (e) {
+        toast.error(`复制失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.paste', async () => {
+      if (!runningInTauri) {
+        toast.info('粘贴：web preview 未启用系统剪贴板');
+        return;
+      }
+      try {
+        const { readImage } = await import('@tauri-apps/plugin-clipboard-manager');
+        const img = await readImage();
+        const [rgba, size] = await Promise.all([img.rgba(), img.size()]);
+        const png = await rgbaToPngBase64(rgba, size.width, size.height);
+        await canvasApi.pasteImage(png);
+        doc.markDirty();
+        toast.success('已粘贴到画布');
+      } catch (e) {
+        toast.error(`粘贴失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
 
   // View
   unregisters.push(menu.register('view.zoom.100', () => canvasStore.setZoom(1)));
   unregisters.push(menu.register('view.zoom.fit', () => canvasStore.resetView()));
-  unregisters.push(menu.register('view.zoom.in', () => canvasStore.setZoom(canvasStore.zoom * 1.2)));
-  unregisters.push(menu.register('view.zoom.out', () => canvasStore.setZoom(canvasStore.zoom / 1.2)));
+  unregisters.push(
+    menu.register('view.zoom.in', () => canvasStore.setZoom(canvasStore.zoom * 1.2)),
+  );
+  unregisters.push(
+    menu.register('view.zoom.out', () => canvasStore.setZoom(canvasStore.zoom / 1.2)),
+  );
   // W14+ 统一画布架构：OpenPencil 已移至中央，不再有 "view.rightPanel.openpencil" 菜单项。
-  unregisters.push(menu.register('view.rightPanel.gallery', () => uiStore.switchRightPanel('gallery')));
+  unregisters.push(
+    menu.register('view.rightPanel.gallery', () => uiStore.switchRightPanel('gallery')),
+  );
   unregisters.push(menu.register('view.rightPanel.none', () => uiStore.switchRightPanel('none')));
   unregisters.push(menu.register('view.theme', () => uiStore.toggleTheme()));
-  unregisters.push(menu.register('view.fullscreen', async () => {
-    if (!runningInTauri) {
-      toast.info('全屏：桌面版可用（按 F11）');
-      return;
-    }
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      const w = getCurrentWindow();
-      const isFs = await w.isFullscreen();
-      await w.setFullscreen(!isFs);
-    } catch (e) {
-      toast.error(`全屏切换失败：${String((e as Error).message ?? e)}`);
-    }
-  }));
+  unregisters.push(
+    menu.register('view.fullscreen', async () => {
+      if (!runningInTauri) {
+        toast.info('全屏：桌面版可用（按 F11）');
+        return;
+      }
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        const w = getCurrentWindow();
+        const isFs = await w.isFullscreen();
+        await w.setFullscreen(!isFs);
+      } catch (e) {
+        toast.error(`全屏切换失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
 
   // Help
-  unregisters.push(menu.register('help.cheatsheet', () => { cheatsheetOpen.value = true; }));
-  unregisters.push(menu.register('help.onboarding', () => { onboarding.reset(); onboarding.consumeForceShow(); }));
-  unregisters.push(menu.register('help.about', () => {
-    toast.info('OpenPaint · MVP · 开源 · MIT');
-  }));
-  unregisters.push(menu.register('help.issues', () => {
-    if (typeof window !== 'undefined') {
-      window.open('https://github.com/MatuX-ai/OpenPaint/issues', '_blank', 'noopener');
-    }
-  }));
-  unregisters.push(menu.register('help.docs', () => {
-    if (typeof window !== 'undefined') {
-      window.open('https://github.com/MatuX-ai/OpenPaint', '_blank', 'noopener');
-    }
-  }));
+  unregisters.push(
+    menu.register('help.cheatsheet', () => {
+      cheatsheetOpen.value = true;
+    }),
+  );
+  unregisters.push(
+    menu.register('help.onboarding', () => {
+      onboarding.reset();
+      onboarding.consumeForceShow();
+    }),
+  );
+  unregisters.push(
+    menu.register('help.about', () => {
+      toast.info('OpenPaint · MVP · 开源 · MIT');
+    }),
+  );
+  unregisters.push(
+    menu.register('help.issues', () => {
+      if (typeof window !== 'undefined') {
+        window.open('https://github.com/MatuX-ai/OpenPaint/issues', '_blank', 'noopener');
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('help.docs', () => {
+      if (typeof window !== 'undefined') {
+        window.open('https://github.com/MatuX-ai/OpenPaint', '_blank', 'noopener');
+      }
+    }),
+  );
 }
 
 // ---- NewCanvasDialog.confirm → useFileActions.newCanvas ----
@@ -234,7 +317,11 @@ async function onExportConfirm(payload: { format: 'png' | 'jpg' | 'webp'; qualit
 }
 
 // ---- BatchExportDialog.confirm ----
-async function onBatchExportConfirm(payload: { sizes: number[]; saveToGallery: boolean; tags: string[] }) {
+async function onBatchExportConfirm(payload: {
+  sizes: number[];
+  saveToGallery: boolean;
+  tags: string[];
+}) {
   batchExportOpen.value = false;
   await files.batchExport(payload.sizes, payload.saveToGallery, payload.tags);
 }
@@ -352,7 +439,11 @@ onBeforeUnmount(() => {
 
   <!-- 同理：以下对话框均为 Teleport 内部 v-if 控制可见性，外层不再加 v-show。
        :open 与 @update:open 双向绑定仍保留，组件契约完整。-->
-  <NewCanvasDialog :open="newCanvasOpen" @update:open="newCanvasOpen = $event" @confirm="onNewCanvasConfirm" />
+  <NewCanvasDialog
+    :open="newCanvasOpen"
+    @update:open="newCanvasOpen = $event"
+    @confirm="onNewCanvasConfirm"
+  />
   <ExportDialog :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
   <BatchExportDialog
     :open="batchExportOpen"

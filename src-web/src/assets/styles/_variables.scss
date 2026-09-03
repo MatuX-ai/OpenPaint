@@ -80,7 +80,7 @@
 
 // 资源面板模式（图标 / 画刷 / 调色板）下加宽侧栏。
 // 由 LeftSidebar 组件根据用户在工具栏与资源面板之间的切换动态切换。
-:root[data-left-sidebar-mode='icons'] {
+:root[data-left-sidebar-mode="icons"] {
   --left-sidebar-width: 280px;
 }
 

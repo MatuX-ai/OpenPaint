@@ -10,7 +10,9 @@ const STORAGE_KEY = 'openpaint:onboarding';
 function clearStorage() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
 }
 
 describe('useOnboarding', () => {

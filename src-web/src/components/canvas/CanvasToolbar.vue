@@ -322,7 +322,8 @@ const activeBlendMode = computed<BlendMode>(() => {
     <!-- 工具名 -->
     <div class="canvas-toolbar__group">
       <span class="canvas-toolbar__tool-label">
-        工具：<strong>{{ toolLabel }}</strong>
+        工具：
+        <strong>{{ toolLabel }}</strong>
       </span>
     </div>
 

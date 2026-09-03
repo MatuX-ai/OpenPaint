@@ -209,8 +209,7 @@ async function save() {
       currentProvider.value = form.provider;
     }
     // 仅在 key 实际变更时调用 set_api_key（避免覆盖成空）
-    const keyChanged =
-      form.apiKey !== '••••••••' && form.apiKey.trim().length > 0;
+    const keyChanged = form.apiKey !== '••••••••' && form.apiKey.trim().length > 0;
     if (requiresKey.value && keyChanged) {
       await llmApi.setApiKey(form.provider, form.apiKey.trim());
     }
@@ -424,7 +423,11 @@ const THIRD_PARTY_ASSETS: ReadonlyArray<ThirdPartyAsset> = [
                   <Eye v-else :size="14" />
                 </button>
               </div>
-              <p class="settings-modal__hint">密钥仅保存在本地 <code>~/.openpaint/config.yaml</code>。</p>
+              <p class="settings-modal__hint">
+                密钥仅保存在本地
+                <code>~/.openpaint/config.yaml</code>
+                。
+              </p>
             </div>
 
             <div class="settings-modal__field">
@@ -486,7 +489,9 @@ const THIRD_PARTY_ASSETS: ReadonlyArray<ThirdPartyAsset> = [
                 </button>
               </div>
               <p class="settings-modal__hint">
-                镜像仅影响远程拉取；本地缓存命中时不再发起网络请求。默认走 <code>api.iconify.design</code>，国内建议 jsDelivr。
+                镜像仅影响远程拉取；本地缓存命中时不再发起网络请求。默认走
+                <code>api.iconify.design</code>
+                ，国内建议 jsDelivr。
               </p>
             </div>
 
@@ -530,12 +535,7 @@ const THIRD_PARTY_ASSETS: ReadonlyArray<ThirdPartyAsset> = [
         </div>
 
         <footer class="settings-modal__footer">
-          <button
-            class="settings-modal__btn"
-            type="button"
-            :disabled="saving"
-            @click="resetForm"
-          >
+          <button class="settings-modal__btn" type="button" :disabled="saving" @click="resetForm">
             <RotateCcw :size="14" />
             重置
           </button>

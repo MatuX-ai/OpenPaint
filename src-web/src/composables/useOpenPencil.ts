@@ -12,12 +12,12 @@
  *  - Rust `canvasApi.pasteImage` 不再作为主编辑路径，只保留为兼容能力。
  */
 
-import { ref, type Ref } from "vue";
-import { createEditor } from "@open-pencil/core/editor";
-import type { Editor } from "@open-pencil/core/editor";
-import { aiApi } from "@api/index";
+import { ref, type Ref } from 'vue';
+import { createEditor } from '@open-pencil/core/editor';
+import type { Editor } from '@open-pencil/core/editor';
+import { aiApi } from '@api/index';
 
-export type OpenPencilStatus = "idle" | "loading" | "ready" | "error";
+export type OpenPencilStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface OpenPencilResult {
   svg?: string;
@@ -40,24 +40,21 @@ export interface OpenPencilBridge {
    * returned SVG directly into the editor so the user can refine it.
    * 不再做 SVG → PNG → pasteImage 回落：直接走 OpenPencil 文档。
    */
-  sendImageToAI: (
-    imageData: string,
-    prompt: string,
-  ) => Promise<OpenPencilResult | null>;
+  sendImageToAI: (imageData: string, prompt: string) => Promise<OpenPencilResult | null>;
   /** Editor 撤销 / 重做（与工具条、快捷键共用）。 */
   undo: () => void;
   redo: () => void;
   /** 返回当前 SceneGraph 的层级树（用于右侧 LayerPanel / 属性）。 */
-  getLayerTree: () => ReturnType<Editor["getLayerTree"]>;
+  getLayerTree: () => ReturnType<Editor['getLayerTree']>;
   /** 返回当前选区节点集合。 */
-  getSelectedNodes: () => ReturnType<Editor["getSelectedNodes"]>;
+  getSelectedNodes: () => ReturnType<Editor['getSelectedNodes']>;
   /** 替换整个 SceneGraph（用于 .pen / 新建文档）。 */
-  replaceDocument: (graph: Parameters<Editor["replaceGraph"]>[0]) => void;
+  replaceDocument: (graph: Parameters<Editor['replaceGraph']>[0]) => void;
   /**
    * 订阅 Editor 事件；返回解绑函数。
    * 当前事件集：selection / tool / page / viewport / graph replaced / render 等。
    */
-  onEditorEvent: Editor["onEditorEvent"];
+  onEditorEvent: Editor['onEditorEvent'];
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +65,7 @@ let singletonEditor: Editor | null = null;
 let singletonBridge: OpenPencilBridge | null = null;
 
 function createSingleton(): OpenPencilBridge {
-  const status = ref<OpenPencilStatus>("loading");
+  const status = ref<OpenPencilStatus>('loading');
   const lastResult = ref<OpenPencilResult | null>(null);
 
   let editor: Editor;
@@ -76,8 +73,8 @@ function createSingleton(): OpenPencilBridge {
     editor = createEditor();
     singletonEditor = editor;
   } catch (err) {
-    status.value = "error";
-    console.error("[useOpenPencil] createEditor failed:", err);
+    status.value = 'error';
+    console.error('[useOpenPencil] createEditor failed:', err);
     throw err;
   }
 
@@ -129,7 +126,7 @@ function createSingleton(): OpenPencilBridge {
   function getSelectedNodes() {
     return editor.getSelectedNodes();
   }
-  function replaceDocument(graph: Parameters<Editor["replaceGraph"]>[0]) {
+  function replaceDocument(graph: Parameters<Editor['replaceGraph']>[0]) {
     editor.replaceGraph(graph);
   }
 

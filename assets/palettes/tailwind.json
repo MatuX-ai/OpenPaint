@@ -5,15 +5,15 @@
   "source": "Tailwind CSS v3 default palette",
   "license": "MIT",
   "colors": [
-    { "name": "Slate 500",  "hex": "#64748B", "role": "neutral" },
-    { "name": "Red 500",    "hex": "#EF4444", "role": "primary" },
+    { "name": "Slate 500", "hex": "#64748B", "role": "neutral" },
+    { "name": "Red 500", "hex": "#EF4444", "role": "primary" },
     { "name": "Orange 500", "hex": "#F97316", "role": "secondary" },
-    { "name": "Amber 500",  "hex": "#F59E0B", "role": "warning" },
+    { "name": "Amber 500", "hex": "#F59E0B", "role": "warning" },
     { "name": "Yellow 500", "hex": "#EAB308", "role": "caution" },
-    { "name": "Lime 500",   "hex": "#84CC16", "role": "success2" },
-    { "name": "Green 500",  "hex": "#22C55E", "role": "success" },
-    { "name": "Blue 500",   "hex": "#3B82F6", "role": "info" },
+    { "name": "Lime 500", "hex": "#84CC16", "role": "success2" },
+    { "name": "Green 500", "hex": "#22C55E", "role": "success" },
+    { "name": "Blue 500", "hex": "#3B82F6", "role": "info" },
     { "name": "Purple 500", "hex": "#A855F7", "role": "accent" },
-    { "name": "Pink 500",   "hex": "#EC4899", "role": "accent2" }
+    { "name": "Pink 500", "hex": "#EC4899", "role": "accent2" }
   ]
 }

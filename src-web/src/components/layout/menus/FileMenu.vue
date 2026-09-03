@@ -36,5 +36,12 @@ function onSelect(id: string): void {
 </script>
 
 <template>
-  <MenuDropdown label="文件" :open="open" :items="items" @toggle="emit('toggle')" @close="emit('close')" @select="onSelect" />
+  <MenuDropdown
+    label="文件"
+    :open="open"
+    :items="items"
+    @toggle="emit('toggle')"
+    @close="emit('close')"
+    @select="onSelect"
+  />
 </template>

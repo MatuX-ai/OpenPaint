@@ -19,13 +19,16 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void;
-  (e: 'confirm', v: {
-    width: number;
-    height: number;
-    unit: 'px' | 'mm';
-    dpi: 72 | 144 | 300;
-    handleLayers: 'crop' | 'discard' | 'cancel';
-  }): void;
+  (
+    e: 'confirm',
+    v: {
+      width: number;
+      height: number;
+      unit: 'px' | 'mm';
+      dpi: 72 | 144 | 300;
+      handleLayers: 'crop' | 'discard' | 'cancel';
+    },
+  ): void;
 }>();
 
 type Preset = {
@@ -39,10 +42,42 @@ type Preset = {
 };
 
 const PRESETS: Preset[] = [
-  { id: 'social-square', label: '社交媒体 1080×1080', description: 'Instagram / 小红书 / 微信封面', width: 1080, height: 1080, unit: 'px', dpi: 72 },
-  { id: 'web-banner', label: 'Web 横幅 1920×1080', description: '网页 hero 区、博客封面', width: 1920, height: 1080, unit: 'px', dpi: 72 },
-  { id: 'a4', label: 'A4 (210×297mm)', description: '打印海报、传单', width: 210, height: 297, unit: 'mm', dpi: 300 },
-  { id: 'ios-icon', label: 'iOS App Icon 1024×1024', description: 'App Store 主图标', width: 1024, height: 1024, unit: 'px', dpi: 72 },
+  {
+    id: 'social-square',
+    label: '社交媒体 1080×1080',
+    description: 'Instagram / 小红书 / 微信封面',
+    width: 1080,
+    height: 1080,
+    unit: 'px',
+    dpi: 72,
+  },
+  {
+    id: 'web-banner',
+    label: 'Web 横幅 1920×1080',
+    description: '网页 hero 区、博客封面',
+    width: 1920,
+    height: 1080,
+    unit: 'px',
+    dpi: 72,
+  },
+  {
+    id: 'a4',
+    label: 'A4 (210×297mm)',
+    description: '打印海报、传单',
+    width: 210,
+    height: 297,
+    unit: 'mm',
+    dpi: 300,
+  },
+  {
+    id: 'ios-icon',
+    label: 'iOS App Icon 1024×1024',
+    description: 'App Store 主图标',
+    width: 1024,
+    height: 1024,
+    unit: 'px',
+    dpi: 72,
+  },
 ];
 
 const canvasStore = useCanvasStore();
@@ -59,7 +94,12 @@ const handleLayers = ref<'crop' | 'discard'>('crop');
 
 const finalDims = computed(() => {
   if (customMode.value) {
-    return { width: customW.value, height: customH.value, unit: customUnit.value, dpi: customDpi.value };
+    return {
+      width: customW.value,
+      height: customH.value,
+      unit: customUnit.value,
+      dpi: customDpi.value,
+    };
   }
   const p = PRESETS.find((x) => x.id === selectedId.value) ?? PRESETS[0];
   return { width: p.width, height: p.height, unit: p.unit, dpi: p.dpi };

@@ -38,9 +38,7 @@ const emit = defineEmits<{
 const store = useCanvasStore();
 const toast = useToast();
 
-const isActive = computed(
-  () => props.layer.isActive || props.layer.id === store.activeLayerId,
-);
+const isActive = computed(() => props.layer.isActive || props.layer.id === store.activeLayerId);
 
 const blendModes: { value: BlendMode; label: string }[] = [
   { value: 'normal', label: '正常' },

@@ -302,19 +302,22 @@ export const useChatStore = defineStore('chat', {
 ```typescript
 // composables/useOpenPencil.ts
 export interface OpenPencilBridge {
-  editor: Editor;                 // 单例 @open-pencil/core editor
+  editor: Editor; // 单例 @open-pencil/core editor
   status: Ref<'loading' | 'ready' | 'error'>;
   lastResult: Ref<{ svg?: string; png?: string } | null>;
 
-  exportSVG(): string | null;         // 获取当前文档 SVG
+  exportSVG(): string | null; // 获取当前文档 SVG
   importSVG(svg: string, opts?: { replaceSelection?: boolean }): Promise<void>;
-  sendImageToAI(image: string, prompt: string): Promise<{ svg: string; png?: string; model?: string }>;
+  sendImageToAI(
+    image: string,
+    prompt: string,
+  ): Promise<{ svg: string; png?: string; model?: string }>;
 
-  undo(): void;                       // editor.undoAction()
-  redo(): void;                       // editor.redoAction()
-  getLayerTree(): unknown[];          // editor.getLayerTree()
-  getSelectedNodes(): unknown[];      // editor.getSelectedNodes()
-  replaceDocument(graph: unknown): void;  // editor.replaceGraph()
+  undo(): void; // editor.undoAction()
+  redo(): void; // editor.redoAction()
+  getLayerTree(): unknown[]; // editor.getLayerTree()
+  getSelectedNodes(): unknown[]; // editor.getSelectedNodes()
+  replaceDocument(graph: unknown): void; // editor.replaceGraph()
   onEditorEvent(type: EditorEventType, handler: (...args: unknown[]) => void): () => void;
 }
 ```
@@ -861,10 +864,10 @@ OpenPaint 同时提供两种分发形态：**桌面端**（Tauri WebView）和 *
 
 ### 15.1 形态定位
 
-| 形态 | 用户场景 | 核心价值 | 限制 |
-| --- | --- | --- | --- |
-| **桌面端**（Tauri） | 主力使用者、设计/开发专业人员 | 完整画布 + 文件系统 + 本地优先 + 系统级集成（剪贴板/菜单/快捷键） | 需下载安装包 |
-| **Web 端**（Vercel） | 首次访客、营销 / SEO / GEO、内容传播 | 0 安装、可被搜索引擎索引、支持 LLM 抓取 `llms.txt` | 无 Tauri IPC，部分高级功能降级 |
+| 形态                 | 用户场景                             | 核心价值                                                          | 限制                           |
+| -------------------- | ------------------------------------ | ----------------------------------------------------------------- | ------------------------------ |
+| **桌面端**（Tauri）  | 主力使用者、设计/开发专业人员        | 完整画布 + 文件系统 + 本地优先 + 系统级集成（剪贴板/菜单/快捷键） | 需下载安装包                   |
+| **Web 端**（Vercel） | 首次访客、营销 / SEO / GEO、内容传播 | 0 安装、可被搜索引擎索引、支持 LLM 抓取 `llms.txt`                | 无 Tauri IPC，部分高级功能降级 |
 
 ### 15.2 共享代码与运行时差异
 
@@ -876,18 +879,18 @@ OpenPaint 同时提供两种分发形态：**桌面端**（Tauri WebView）和 *
 
 ### 15.3 首启引导流差异
 
-| 形态 | 首启引导默认 Provider | 引导语 |
-| --- | --- | --- |
-| **桌面端**（首启） | 模拟模式（`provider: mock`） | 点「先用模拟模式体验」一键进入 |
-| **Web 端**（首启） | 模拟模式（同上） | 顶部横幅提示「Web 预览模式 · 推荐下载桌面端体验完整功能」 |
+| 形态               | 首启引导默认 Provider        | 引导语                                                    |
+| ------------------ | ---------------------------- | --------------------------------------------------------- |
+| **桌面端**（首启） | 模拟模式（`provider: mock`） | 点「先用模拟模式体验」一键进入                            |
+| **Web 端**（首启） | 模拟模式（同上）             | 顶部横幅提示「Web 预览模式 · 推荐下载桌面端体验完整功能」 |
 
 ### 15.4 LLM Provider 在两种形态下的能力
 
-| Provider | 桌面端 | Web 端 |
-| --- | --- | --- |
-| **模拟模式**（mock） | ✅ 本地规则模板 | ✅ 前端规则模板 |
+| Provider                                      | 桌面端            | Web 端                                          |
+| --------------------------------------------- | ----------------- | ----------------------------------------------- |
+| **模拟模式**（mock）                          | ✅ 本地规则模板   | ✅ 前端规则模板                                 |
 | **DeepSeek / 通义千问 / OpenAI / 等云端 API** | ✅ 走用户自配 Key | ✅ 可调用（前端直连，Key 由用户在偏好面板粘贴） |
-| **Ollama**（本地推理） | ✅ | ❌（CORS / 模型文件体积问题，不在 Web 暴露） |
+| **Ollama**（本地推理）                        | ✅                | ❌（CORS / 模型文件体积问题，不在 Web 暴露）    |
 
 > **设计取舍**：Web 形态下默认隐藏 Ollama 选项，避免浏览器跨域限制带来的「调用永远失败」挫败感。
 
@@ -907,10 +910,10 @@ OpenPaint 同时提供两种分发形态：**桌面端**（Tauri WebView）和 *
 
 ## 16. 变更历史
 
-| 版本 | 日期 | 主要变更 |
-| --- | --- | --- |
-| v1.0.0 | 2026-08-18 | 初稿，覆盖 W1-W11 设计要点 |
-| v1.1.0（W12）| 2026-09-01 | 新增第 6.9 节 SettingsModal 拆分（QuickPreferences / AdvancedSettings）；新增第 6.10 节 useAssetsConfig composable；新增第 15 章「桌面 vs Web 双形态」；调整第 12 章响应式设计；新增 OnboardingCard 四选项卡（新建/打开/AI 帮忙画/先用模拟模式）设计说明 |
+| 版本          | 日期       | 主要变更                                                                                                                                                                                                                                                 |
+| ------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0.0        | 2026-08-18 | 初稿，覆盖 W1-W11 设计要点                                                                                                                                                                                                                               |
+| v1.1.0（W12） | 2026-09-01 | 新增第 6.9 节 SettingsModal 拆分（QuickPreferences / AdvancedSettings）；新增第 6.10 节 useAssetsConfig composable；新增第 15 章「桌面 vs Web 双形态」；调整第 12 章响应式设计；新增 OnboardingCard 四选项卡（新建/打开/AI 帮忙画/先用模拟模式）设计说明 |
 
 ---
 

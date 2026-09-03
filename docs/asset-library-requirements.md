@@ -15,26 +15,26 @@
 
 OpenPaint 桌面端 v0.1.0 已通过完整审计（38 Rust + 178 前端测试通过），主流程（选图 → AI 生成 → 落回画布 → 保存）跑通，但**首启动用户的"零资源焦虑"显著**：
 
-| 场景 | paint.net / Photoshop 用户预期 | OpenPaint 现状 |
-| --- | --- | --- |
-| 插入图标 | "工具 → 图标库 → 选一个拖到画布" | ❌ 无任何图标资源 |
-| 切换笔刷 | "工具 → 笔刷 → 100 种纹理" | ⚠️ 仅 1 种默认圆头 |
-| 换色 / 配色 | "调色板 → Material / 主题" | ⚠️ 仅 8 色硬编码色板 |
-| 套用模板 | "文件 → 从模板新建 → 50 种" | ⚠️ 仅空白画布 |
-| AI 辅助 | （无对照） | ✅ 已具备 10 个 MCP 工具 + 多 LLM 接入 |
+| 场景        | paint.net / Photoshop 用户预期   | OpenPaint 现状                         |
+| ----------- | -------------------------------- | -------------------------------------- |
+| 插入图标    | "工具 → 图标库 → 选一个拖到画布" | ❌ 无任何图标资源                      |
+| 切换笔刷    | "工具 → 笔刷 → 100 种纹理"       | ⚠️ 仅 1 种默认圆头                     |
+| 换色 / 配色 | "调色板 → Material / 主题"       | ⚠️ 仅 8 色硬编码色板                   |
+| 套用模板    | "文件 → 从模板新建 → 50 种"      | ⚠️ 仅空白画布                          |
+| AI 辅助     | （无对照）                       | ✅ 已具备 10 个 MCP 工具 + 多 LLM 接入 |
 
 差距的真实含义：**不是"功能数量"少，而是"开箱可玩性"低**。用户首次启动，看不到能用的现成素材，会立刻怀疑"这工具到底能干什么"。
 
 ### 0.2 战略抉择：不要做什么
 
-| 候选方案 | 体积 | AI 杠杆率 | 决策 | 理由 |
-| --- | --- | --- | --- | --- |
-| 100 个 SVG 笔刷 | ~ 5 MB | 中 | ❌ 不做 | SVG 笔刷"质感"远不如 PNG；用户嫌少还是嫌多都尴尬；AI 30 秒可生成 |
-| 100 个 PSD 风格 JSON 模板 | ~ 10 MB | 低 | ❌ 不做 | 用户实际去稿定 / Figma 找模板；静态资源池注定落后 |
-| Iconify **全量 SVG 索引** | ~ 100 MB | 🔥 **极高** | ✅ **做**（精简版 < 2 MB） | 唯一差异化卖点——AI 可调用 |
-| 8 个高质量 PNG 默认画刷 | ~ 500 KB | 中 | ✅ 做 | 兜底即开即用，AI 可扩展 |
-| 4 套调色板 + 16 渐变预设 | ~ 100 KB | 中 | ✅ 做 | 顺手做，零成本，AI 可编排 |
-| **合计安装包增长** | | | **< 3 MB** | 比 paint.net 的资源池小 100 倍 |
+| 候选方案                  | 体积     | AI 杠杆率   | 决策                       | 理由                                                             |
+| ------------------------- | -------- | ----------- | -------------------------- | ---------------------------------------------------------------- |
+| 100 个 SVG 笔刷           | ~ 5 MB   | 中          | ❌ 不做                    | SVG 笔刷"质感"远不如 PNG；用户嫌少还是嫌多都尴尬；AI 30 秒可生成 |
+| 100 个 PSD 风格 JSON 模板 | ~ 10 MB  | 低          | ❌ 不做                    | 用户实际去稿定 / Figma 找模板；静态资源池注定落后                |
+| Iconify **全量 SVG 索引** | ~ 100 MB | 🔥 **极高** | ✅ **做**（精简版 < 2 MB） | 唯一差异化卖点——AI 可调用                                        |
+| 8 个高质量 PNG 默认画刷   | ~ 500 KB | 中          | ✅ 做                      | 兜底即开即用，AI 可扩展                                          |
+| 4 套调色板 + 16 渐变预设  | ~ 100 KB | 中          | ✅ 做                      | 顺手做，零成本，AI 可编排                                        |
+| **合计安装包增长**        |          |             | **< 3 MB**                 | 比 paint.net 的资源池小 100 倍                                   |
 
 ### 0.3 目标与非目标
 
@@ -300,13 +300,13 @@ assets/
 
 #### 3.1.3 图标加载策略
 
-| 阶段 | 行为 | 体积影响 |
-| --- | --- | --- |
-| 启动 | 仅加载 `index.json` | +1.5 MB 内存 |
-| 搜索命中 | 检查 `cache/{prefix}/{name}.json` 是否存在 | 0 |
-| 缓存命中 | 直接读本地 | < 50ms |
+| 阶段       | 行为                                                                    | 体积影响       |
+| ---------- | ----------------------------------------------------------------------- | -------------- |
+| 启动       | 仅加载 `index.json`                                                     | +1.5 MB 内存   |
+| 搜索命中   | 检查 `cache/{prefix}/{name}.json` 是否存在                              | 0              |
+| 缓存命中   | 直接读本地                                                              | < 50ms         |
 | 缓存未命中 | 异步下载 `https://api.iconify.design/{prefix}.json?icons={name}` 写本地 | 1-50 KB / 图标 |
-| 离线模式 | 启动时检测离线 → 仅展示已缓存图标（带 ⚠️ 标记） | 0 |
+| 离线模式   | 启动时检测离线 → 仅展示已缓存图标（带 ⚠️ 标记）                         | 0              |
 
 > **首次启动后搜索任何图标都会自动建立本地缓存，第二次访问离线可用。**
 
@@ -338,13 +338,13 @@ assets/
 
 #### 3.2.2 PNG 规格
 
-| 属性 | 值 |
-| --- | --- |
-| 尺寸 | 256 × 256 |
-| 格式 | PNG-24（含 alpha） |
-| 灰度 | 中心白色 (255,255,255)，边缘渐变到 alpha=0 |
-| 单文件大小 | 30-80 KB |
-| 总计 | < 500 KB |
+| 属性       | 值                                         |
+| ---------- | ------------------------------------------ |
+| 尺寸       | 256 × 256                                  |
+| 格式       | PNG-24（含 alpha）                         |
+| 灰度       | 中心白色 (255,255,255)，边缘渐变到 alpha=0 |
+| 单文件大小 | 30-80 KB                                   |
+| 总计       | < 500 KB                                   |
 
 #### 3.2.3 元信息
 
@@ -388,16 +388,16 @@ assets/
   "source": "Google Material Design 3",
   "license": "Apache-2.0",
   "colors": [
-    { "name": "Red 500",     "hex": "#F44336", "role": "primary" },
-    { "name": "Pink 500",    "hex": "#E91E63", "role": "secondary" },
-    { "name": "Purple 500",  "hex": "#9C27B0", "role": "accent" },
-    { "name": "Blue 500",    "hex": "#2196F3", "role": "info" },
-    { "name": "Green 500",   "hex": "#4CAF50", "role": "success" },
-    { "name": "Yellow 500",  "hex": "#FFEB3B", "role": "warning" },
-    { "name": "Orange 500",  "hex": "#FF9800", "role": "caution" },
-    { "name": "Grey 500",    "hex": "#9E9E9E", "role": "neutral" },
-    { "name": "Blue Grey 500","hex": "#607D8B","role": "support" },
-    { "name": "Black",       "hex": "#000000", "role": "base" }
+    { "name": "Red 500", "hex": "#F44336", "role": "primary" },
+    { "name": "Pink 500", "hex": "#E91E63", "role": "secondary" },
+    { "name": "Purple 500", "hex": "#9C27B0", "role": "accent" },
+    { "name": "Blue 500", "hex": "#2196F3", "role": "info" },
+    { "name": "Green 500", "hex": "#4CAF50", "role": "success" },
+    { "name": "Yellow 500", "hex": "#FFEB3B", "role": "warning" },
+    { "name": "Orange 500", "hex": "#FF9800", "role": "caution" },
+    { "name": "Grey 500", "hex": "#9E9E9E", "role": "neutral" },
+    { "name": "Blue Grey 500", "hex": "#607D8B", "role": "support" },
+    { "name": "Black", "hex": "#000000", "role": "base" }
   ]
 }
 ```
@@ -437,13 +437,13 @@ assets/
       "name_en": "Rainbow",
       "center": [0.5, 0.5],
       "stops": [
-        { "offset": 0.00, "hex": "#FF0000" },
+        { "offset": 0.0, "hex": "#FF0000" },
         { "offset": 0.17, "hex": "#FFFF00" },
         { "offset": 0.33, "hex": "#00FF00" },
-        { "offset": 0.50, "hex": "#00FFFF" },
+        { "offset": 0.5, "hex": "#00FFFF" },
         { "offset": 0.67, "hex": "#0000FF" },
         { "offset": 0.83, "hex": "#FF00FF" },
-        { "offset": 1.00, "hex": "#FF0000" }
+        { "offset": 1.0, "hex": "#FF0000" }
       ]
     }
   ]
@@ -460,13 +460,13 @@ assets/
 
 ### 4.1 新增工具总览
 
-| # | 工具名 | 分类 | 描述 |
-| --- | --- | --- | --- |
-| 11 | `search_icons` | 资产 | 按关键词 + style 搜索图标 |
-| 12 | `render_icon_svg` | 资产 | 把图标 ID 渲染为指定尺寸 / 颜色的 SVG |
-| 13 | `apply_palette` | 资产 | 应用整套调色板到图层 |
-| 14 | `apply_gradient` | 资产 | 应用渐变预设到图层 |
-| 15（v0.3） | `create_brush_from_prompt` | 资产 | AI 生成自定义笔刷 PNG |
+| #          | 工具名                     | 分类 | 描述                                  |
+| ---------- | -------------------------- | ---- | ------------------------------------- |
+| 11         | `search_icons`             | 资产 | 按关键词 + style 搜索图标             |
+| 12         | `render_icon_svg`          | 资产 | 把图标 ID 渲染为指定尺寸 / 颜色的 SVG |
+| 13         | `apply_palette`            | 资产 | 应用整套调色板到图层                  |
+| 14         | `apply_gradient`           | 资产 | 应用渐变预设到图层                    |
+| 15（v0.3） | `create_brush_from_prompt` | 资产 | AI 生成自定义笔刷 PNG                 |
 
 > 工具总数从 10 → 14。AI 编排复杂度指数级上升，但调用语义保持单一职责。
 
@@ -513,10 +513,10 @@ pub async fn search_icons(args: SearchIconsArgs) -> Result<SearchIconsResult, St
   "type": "object",
   "required": ["query"],
   "properties": {
-    "query":     { "type": "string",  "description": "搜索关键词（中英文均可）" },
-    "style":     { "type": "string",  "description": "图标集 prefix（lucide/material-symbols 等）" },
-    "category":  { "type": "string",  "description": "分类（ui/social/media/...）" },
-    "limit":     { "type": "integer", "description": "返回数量上限，默认 30，上限 50" }
+    "query": { "type": "string", "description": "搜索关键词（中英文均可）" },
+    "style": { "type": "string", "description": "图标集 prefix（lucide/material-symbols 等）" },
+    "category": { "type": "string", "description": "分类（ui/social/media/...）" },
+    "limit": { "type": "integer", "description": "返回数量上限，默认 30，上限 50" }
   }
 }
 ```
@@ -621,14 +621,14 @@ pub struct CreateBrushResult {
 
 ### 5.1 新增组件清单
 
-| 组件 | 路径 | 职责 |
-| --- | --- | --- |
-| `IconPanel.vue` | `components/asset/IconPanel.vue` | 图标搜索 + 结果网格 |
-| `IconPreview.vue` | `components/asset/IconPreview.vue` | 单个图标预览 / 颜色 / 尺寸控件 |
-| `BrushPanel.vue` | `components/asset/BrushPanel.vue` | 画刷缩略图网格 + AI 生成入口 |
-| `PalettePanel.vue` | `components/asset/PalettePanel.vue` | 调色板 + 渐变 chip 切换 |
-| `ResourceTabs.vue` | `components/asset/ResourceTabs.vue` | 资源面板的二级 Tab 容器 |
-| `useAssets.ts` | `composables/useAssets.ts` | 资源加载 / 搜索 / 应用的统一封装 |
+| 组件               | 路径                                | 职责                             |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| `IconPanel.vue`    | `components/asset/IconPanel.vue`    | 图标搜索 + 结果网格              |
+| `IconPreview.vue`  | `components/asset/IconPreview.vue`  | 单个图标预览 / 颜色 / 尺寸控件   |
+| `BrushPanel.vue`   | `components/asset/BrushPanel.vue`   | 画刷缩略图网格 + AI 生成入口     |
+| `PalettePanel.vue` | `components/asset/PalettePanel.vue` | 调色板 + 渐变 chip 切换          |
+| `ResourceTabs.vue` | `components/asset/ResourceTabs.vue` | 资源面板的二级 Tab 容器          |
+| `useAssets.ts`     | `composables/useAssets.ts`          | 资源加载 / 搜索 / 应用的统一封装 |
 
 ### 5.2 关键 API
 
@@ -638,22 +638,34 @@ pub struct CreateBrushResult {
 // composables/useAssets.ts
 export interface AssetApi {
   // 图标
-  searchIcons(query: string, options?: { style?: string; category?: string; limit?: number }):
-    Promise<{ icons: IconMeta[]; total: number; hasMore: boolean }>;
-  renderIconSvg(prefix: string, name: string, options?: { color?: string; size?: number }):
-    Promise<{ svg: string; fromCache: boolean }>;
-  importIconToCanvas(prefix: string, name: string, options?: { color?: string; size?: number }):
-    Promise<{ layerId: string }>; // 包装 renderIconSvg + pasteImageToLayer
+  searchIcons(
+    query: string,
+    options?: { style?: string; category?: string; limit?: number },
+  ): Promise<{ icons: IconMeta[]; total: number; hasMore: boolean }>;
+  renderIconSvg(
+    prefix: string,
+    name: string,
+    options?: { color?: string; size?: number },
+  ): Promise<{ svg: string; fromCache: boolean }>;
+  importIconToCanvas(
+    prefix: string,
+    name: string,
+    options?: { color?: string; size?: number },
+  ): Promise<{ layerId: string }>; // 包装 renderIconSvg + pasteImageToLayer
 
   // 调色板
   listPalettes(): Promise<Palette[]>;
-  applyPalette(paletteId: string, options?: { mode?: 'swatch_bar' | 'replace_color' }):
-    Promise<{ appliedColors: string[] }>;
+  applyPalette(
+    paletteId: string,
+    options?: { mode?: 'swatch_bar' | 'replace_color' },
+  ): Promise<{ appliedColors: string[] }>;
 
   // 渐变
   listGradients(): Promise<GradientPreset[]>;
-  applyGradient(gradientId: string, options?: { opacity?: number }):
-    Promise<{ bytesWritten: number }>;
+  applyGradient(
+    gradientId: string,
+    options?: { opacity?: number },
+  ): Promise<{ bytesWritten: number }>;
 
   // 画刷
   listBrushes(): Promise<BrushPreset[]>;
@@ -704,13 +716,13 @@ defineEmits<{
 
 ### 5.3 与现有 store / API 的关系
 
-| 需求项 | 触发的 store action | 触发的 API |
-| --- | --- | --- |
-| US-AST-1 选图标 | `canvasStore.markDirty()` | `assetApi.importIconToCanvas` |
-| US-AST-2 AI 找图标 | `chatStore.pushToolCall()` | `agentApi` → MCP `search_icons` / `render_icon_svg` |
-| US-AST-3 选画刷 | `canvasStore.setActiveBrush()` | `assetApi.listBrushes` |
-| US-AST-5 应用调色板 | `canvasStore.markDirty()` | `assetApi.applyPalette` |
-| US-AST-6 应用渐变 | `canvasStore.markDirty()` | `assetApi.applyGradient` |
+| 需求项              | 触发的 store action            | 触发的 API                                          |
+| ------------------- | ------------------------------ | --------------------------------------------------- |
+| US-AST-1 选图标     | `canvasStore.markDirty()`      | `assetApi.importIconToCanvas`                       |
+| US-AST-2 AI 找图标  | `chatStore.pushToolCall()`     | `agentApi` → MCP `search_icons` / `render_icon_svg` |
+| US-AST-3 选画刷     | `canvasStore.setActiveBrush()` | `assetApi.listBrushes`                              |
+| US-AST-5 应用调色板 | `canvasStore.markDirty()`      | `assetApi.applyPalette`                             |
+| US-AST-6 应用渐变   | `canvasStore.markDirty()`      | `assetApi.applyGradient`                            |
 
 ---
 
@@ -724,19 +736,19 @@ defineEmits<{
 
 ### 6.2 关键文案表
 
-| 场景 | 文案 | 备选（避免） |
-| --- | --- | --- |
-| 资源 Tab 标题 | "资源" | "Assets" / "Library" |
-| 图标搜索框 placeholder | "搜索图标 (Lucide / Material…)" | "Search icons" |
-| 图标分组标题 | "Lucide · 30/1200" | "Icon Set" |
-| 单击图标 tooltip | "点击预览 · 双击插入画布" | "Click to insert" |
-| AI 入口（图标搜索空状态） | "找不到？让 AI 帮你搜" | "Try AI" |
-| 画刷面板空状态 | "暂无画刷" + "[重载默认]" | "No brushes" |
-| 画刷 AI 入口（v0.3） | "+ 让 AI 做一个" | "Generate" |
-| 调色板面板标题 | "配色" | "Colors" |
-| 调色板应用按钮 | "应用到画布" | "Apply" |
-| 渐变模式 chip | "线性 · 径向 · 锥形" | "Linear" |
-| 离线提示 | "离线模式：仅显示已缓存的图标" | "Offline" |
+| 场景                      | 文案                            | 备选（避免）         |
+| ------------------------- | ------------------------------- | -------------------- |
+| 资源 Tab 标题             | "资源"                          | "Assets" / "Library" |
+| 图标搜索框 placeholder    | "搜索图标 (Lucide / Material…)" | "Search icons"       |
+| 图标分组标题              | "Lucide · 30/1200"              | "Icon Set"           |
+| 单击图标 tooltip          | "点击预览 · 双击插入画布"       | "Click to insert"    |
+| AI 入口（图标搜索空状态） | "找不到？让 AI 帮你搜"          | "Try AI"             |
+| 画刷面板空状态            | "暂无画刷" + "[重载默认]"       | "No brushes"         |
+| 画刷 AI 入口（v0.3）      | "+ 让 AI 做一个"                | "Generate"           |
+| 调色板面板标题            | "配色"                          | "Colors"             |
+| 调色板应用按钮            | "应用到画布"                    | "Apply"              |
+| 渐变模式 chip             | "线性 · 径向 · 锥形"            | "Linear"             |
+| 离线提示                  | "离线模式：仅显示已缓存的图标"  | "Offline"            |
 
 ### 6.3 ARIA label 模板
 
@@ -797,13 +809,13 @@ aria-label="颜色 {color_name}，hex {hex}"
 
 ### 7.4 错误状态对照表
 
-| 场景 | 提示文案 | 处理建议 |
-| --- | --- | --- |
-| Iconify API 超时 | "图标服务暂时不可达，已切换到本地缓存" | Toast info，自动降级到缓存 |
-| Iconify API 404 | "图标 {prefix}/{name} 已下架" | Toast warn，从结果中移除 |
-| 画刷文件缺失 | "画刷文件丢失，已切换到默认圆头" | Toast warn，自动 fallback |
-| 调色板 JSON 损坏 | "调色板加载失败，请到 ~/.openpaint/palettes 检查" | Toast error |
-| 渐变 PNG 写入失败 | "渐变应用失败：图层被锁定" | Toast error，保留图层状态 |
+| 场景              | 提示文案                                          | 处理建议                   |
+| ----------------- | ------------------------------------------------- | -------------------------- |
+| Iconify API 超时  | "图标服务暂时不可达，已切换到本地缓存"            | Toast info，自动降级到缓存 |
+| Iconify API 404   | "图标 {prefix}/{name} 已下架"                     | Toast warn，从结果中移除   |
+| 画刷文件缺失      | "画刷文件丢失，已切换到默认圆头"                  | Toast warn，自动 fallback  |
+| 调色板 JSON 损坏  | "调色板加载失败，请到 ~/.openpaint/palettes 检查" | Toast error                |
+| 渐变 PNG 写入失败 | "渐变应用失败：图层被锁定"                        | Toast error，保留图层状态  |
 
 ---
 
@@ -865,68 +877,68 @@ flowchart TD
 
 ### AST-1xx · 资产加载（Rust 后端）
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| AST-101 | 启动时 `assets/iconify/index.json` 可解析 | `serde_json` 解析成功 |
-| AST-102 | 6 套图标集 prefix 均存在 | lucide/heroicons/tabler/material-symbols/phosphor/iconoir |
-| AST-103 | 索引图标总数 ≥ 4000 | `total >= 4000` |
-| AST-104 | `assets/brushes/*.png` 8 个文件齐全 | round-hard/soft/chalk/spray/watercolor/oil-paint/marker/blur |
-| AST-105 | 4 个调色板 JSON 解析成功 | material/tailwind/pastel/mono |
-| AST-106 | 16 个渐变预设 JSON 解析成功 | linear×8 + radial×5 + conic×3 |
+| ID      | 用例                                      | 期望                                                         |
+| ------- | ----------------------------------------- | ------------------------------------------------------------ |
+| AST-101 | 启动时 `assets/iconify/index.json` 可解析 | `serde_json` 解析成功                                        |
+| AST-102 | 6 套图标集 prefix 均存在                  | lucide/heroicons/tabler/material-symbols/phosphor/iconoir    |
+| AST-103 | 索引图标总数 ≥ 4000                       | `total >= 4000`                                              |
+| AST-104 | `assets/brushes/*.png` 8 个文件齐全       | round-hard/soft/chalk/spray/watercolor/oil-paint/marker/blur |
+| AST-105 | 4 个调色板 JSON 解析成功                  | material/tailwind/pastel/mono                                |
+| AST-106 | 16 个渐变预设 JSON 解析成功               | linear×8 + radial×5 + conic×3                                |
 
 ### AST-2xx · `search_icons` MCP 工具
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| AST-201 | 英文查询 "search" | 命中 lucide/search 排第一 |
-| AST-202 | 中文查询 "搜索" | 命中 tags 含"搜索"的图标 |
-| AST-203 | style=lucide 过滤 | 仅返回 lucide prefix |
-| AST-204 | limit=5 | 返回 ≤ 5 个 |
-| AST-205 | 完全无匹配 | 返回空数组，total=0，has_more=false |
-| AST-206 | limit > 50 | clamp 到 50 |
+| ID      | 用例              | 期望                                |
+| ------- | ----------------- | ----------------------------------- |
+| AST-201 | 英文查询 "search" | 命中 lucide/search 排第一           |
+| AST-202 | 中文查询 "搜索"   | 命中 tags 含"搜索"的图标            |
+| AST-203 | style=lucide 过滤 | 仅返回 lucide prefix                |
+| AST-204 | limit=5           | 返回 ≤ 5 个                         |
+| AST-205 | 完全无匹配        | 返回空数组，total=0，has_more=false |
+| AST-206 | limit > 50        | clamp 到 50                         |
 
 ### AST-3xx · `render_icon_svg` MCP 工具
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
+| ID      | 用例                       | 期望                                              |
+| ------- | -------------------------- | ------------------------------------------------- |
 | AST-301 | 渲染 lucide/search size=64 | 返回 svg 字符串，含 viewBox="0 0 24 24"，width=64 |
-| AST-302 | color=#FF0000 | svg 内 fill 或 stroke 替换为红 |
-| AST-303 | color=None | svg 内保留 currentColor |
-| AST-304 | 第二次相同请求 | from_cache=true |
-| AST-305 | 离线 + 未缓存 | 返回错误 "图标未缓存" |
-| AST-306 | 不存在的图标 prefix/name | 返回错误 "图标不存在" |
+| AST-302 | color=#FF0000              | svg 内 fill 或 stroke 替换为红                    |
+| AST-303 | color=None                 | svg 内保留 currentColor                           |
+| AST-304 | 第二次相同请求             | from_cache=true                                   |
+| AST-305 | 离线 + 未缓存              | 返回错误 "图标未缓存"                             |
+| AST-306 | 不存在的图标 prefix/name   | 返回错误 "图标不存在"                             |
 
 ### AST-4xx · `apply_palette` / `apply_gradient`
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| AST-401 | apply_palette material mode swatch_bar | 图层底部新增 32px 色条 |
+| ID      | 用例                                      | 期望                                      |
+| ------- | ----------------------------------------- | ----------------------------------------- |
+| AST-401 | apply_palette material mode swatch_bar    | 图层底部新增 32px 色条                    |
 | AST-402 | apply_palette tailwind mode replace_color | 主像素替换为 #3B82F6（Tailwind Blue 500） |
-| AST-403 | apply_palette 不存在的 id | 返回错误 "调色板不存在" |
-| AST-404 | apply_gradient linear-sunset | 图层替换为橙→黄渐变 |
-| AST-405 | apply_gradient radial-glow opacity=0.5 | 半透明辐射 |
-| AST-406 | apply_gradient 到锁定图层 | 返回错误 "图层被锁定" |
+| AST-403 | apply_palette 不存在的 id                 | 返回错误 "调色板不存在"                   |
+| AST-404 | apply_gradient linear-sunset              | 图层替换为橙→黄渐变                       |
+| AST-405 | apply_gradient radial-glow opacity=0.5    | 半透明辐射                                |
+| AST-406 | apply_gradient 到锁定图层                 | 返回错误 "图层被锁定"                     |
 
 ### AST-5xx · UI 组件（前端 Vitest + @vue/test-utils）
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| AST-501 | IconPanel 输入 "search" 防抖 500ms | 调用 search_icons 1 次（不是 5 次） |
-| AST-502 | IconPanel 双击图标 | 触发 emit('icon-selected') |
-| AST-503 | IconPanel 拖拽到画布 | 触发 importIconToCanvas |
-| AST-504 | BrushPanel 单击画刷 | emit('brush-changed') + canvasStore.setActiveBrush 调用 |
-| AST-505 | PalettePanel 切到渐变 chip | 渐变缩略图渲染 |
-| AST-506 | ResourceTabs 折叠状态持久化 | localStorage 切换后保持 |
-| AST-507 | AI 调用图标时 attribution="agent" | ToolCallCard 显示"AI 插入图标" |
+| ID      | 用例                               | 期望                                                    |
+| ------- | ---------------------------------- | ------------------------------------------------------- |
+| AST-501 | IconPanel 输入 "search" 防抖 500ms | 调用 search_icons 1 次（不是 5 次）                     |
+| AST-502 | IconPanel 双击图标                 | 触发 emit('icon-selected')                              |
+| AST-503 | IconPanel 拖拽到画布               | 触发 importIconToCanvas                                 |
+| AST-504 | BrushPanel 单击画刷                | emit('brush-changed') + canvasStore.setActiveBrush 调用 |
+| AST-505 | PalettePanel 切到渐变 chip         | 渐变缩略图渲染                                          |
+| AST-506 | ResourceTabs 折叠状态持久化        | localStorage 切换后保持                                 |
+| AST-507 | AI 调用图标时 attribution="agent"  | ToolCallCard 显示"AI 插入图标"                          |
 
 ### AST-6xx · Hermes Agent 编排
 
-| ID | 用例 | 期望 |
-| --- | --- | --- |
-| AST-601 | 用户输入"加个搜索图标" | Agent 调用 search_icons query=search |
+| ID      | 用例                                   | 期望                                                      |
+| ------- | -------------------------------------- | --------------------------------------------------------- |
+| AST-601 | 用户输入"加个搜索图标"                 | Agent 调用 search_icons query=search                      |
 | AST-602 | 用户输入"用 Material 风格的 home 图标" | Agent 调用 search_icons style=material-symbols query=home |
-| AST-603 | 用户输入"把背景改成日落色" | Agent 调用 apply_gradient gradient_id=linear-sunset |
-| AST-604 | 用户输入"用 Material 配色" | Agent 调用 apply_palette palette_id=material |
+| AST-603 | 用户输入"把背景改成日落色"             | Agent 调用 apply_gradient gradient_id=linear-sunset       |
+| AST-604 | 用户输入"用 Material 配色"             | Agent 调用 apply_palette palette_id=material              |
 
 ---
 
@@ -934,16 +946,16 @@ flowchart TD
 
 > 全部本地记录到 `~/.openpaint/telemetry/assets.json`，**不外发**。
 
-| 指标 | 定义 | 目标 |
-| --- | --- | --- |
-| 资源面板首启率 | 首次启动后 24h 内点开资源 Tab | ≥60% |
-| 图标插入成功率 | 点开资源 Tab 后 7 天内调 importIconToCanvas 成功 | ≥70% |
-| AI 插入图标占比 | 所有 importIconToCanvas 中 attribution=agent 的比例 | ≥40% |
-| Iconify 离线缓存覆盖 | 30 天后本地缓存图标数 / 总搜索次数 | ≥50% |
-| 渐变应用率 | 7 天内至少 1 次 apply_gradient 的用户 | ≥15% |
-| 调色板应用率 | 7 天内至少 1 次 apply_palette 的用户 | ≥10% |
-| 画刷切换率 | 7 天内切换 ≥3 种画刷的用户 | ≥30% |
-| 资源加载耗时 | search_icons → 结果展示 | P95 ≤300ms |
+| 指标                 | 定义                                                | 目标       |
+| -------------------- | --------------------------------------------------- | ---------- |
+| 资源面板首启率       | 首次启动后 24h 内点开资源 Tab                       | ≥60%       |
+| 图标插入成功率       | 点开资源 Tab 后 7 天内调 importIconToCanvas 成功    | ≥70%       |
+| AI 插入图标占比      | 所有 importIconToCanvas 中 attribution=agent 的比例 | ≥40%       |
+| Iconify 离线缓存覆盖 | 30 天后本地缓存图标数 / 总搜索次数                  | ≥50%       |
+| 渐变应用率           | 7 天内至少 1 次 apply_gradient 的用户               | ≥15%       |
+| 调色板应用率         | 7 天内至少 1 次 apply_palette 的用户                | ≥10%       |
+| 画刷切换率           | 7 天内切换 ≥3 种画刷的用户                          | ≥30%       |
+| 资源加载耗时         | search_icons → 结果展示                             | P95 ≤300ms |
 
 ---
 
@@ -965,14 +977,14 @@ flowchart TD
   - 应用首次启动时弹一次性 Toast："本应用使用 Lucide / Material Symbols 等开源图标，详见设置"。
 - **协议清单**：
 
-| 集 | 协议 | 是否要求署名 |
-| --- | --- | --- |
-| Lucide | ISC | 否 |
-| Heroicons | MIT | 否 |
-| Tabler | MIT | 否 |
+| 集               | 协议       | 是否要求署名           |
+| ---------------- | ---------- | ---------------------- |
+| Lucide           | ISC        | 否                     |
+| Heroicons        | MIT        | 否                     |
+| Tabler           | MIT        | 否                     |
 | Material Symbols | Apache-2.0 | 是（已在 README 标注） |
-| Phosphor | MIT | 否 |
-| Iconoir | MIT | 否 |
+| Phosphor         | MIT        | 否                     |
+| Iconoir          | MIT        | 否                     |
 
 ### R-AST-3：画刷美术质量
 
@@ -1060,19 +1072,19 @@ flowchart TD
 
 ## 14. 变更日志
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
+| 版本   | 日期       | 变更                                                                                                   |
+| ------ | ---------- | ------------------------------------------------------------------------------------------------------ |
 | v0.1.0 | 2026-09-01 | 初稿：4 大模块（Iconify / 画刷 / 调色板 / 渐变）+ 4 个新 MCP 工具 + AST-xxx 测试矩阵 + W9-W11 落地计划 |
 
 ---
 
 > **评审签字**
 
-| 角色 | 签字 | 日期 | 备注 |
-| --- | --- | --- | --- |
+| 角色       | 签字  | 日期  | 备注                                                       |
+| ---------- | ----- | ----- | ---------------------------------------------------------- |
 | 产品 Owner | _____ | _____ | 范围与优先级（Iconify 必做 / 100 笔刷不做 / PSD 模板不做） |
-| 前端 Lead | _____ | _____ | 组件拆分 / 资源 Tab IA |
-| 后端 Lead | _____ | _____ | MCP 工具签名 / Rust 模块拆分 |
-| 设计 Lead | _____ | _____ | 文案 / 空状态 / 配色规范 |
-| AI 产品 | _____ | _____ | Hermes Agent 编排策略（AST-6xx） |
-| 测试 Lead | _____ | _____ | AST-xxx 用例 |
+| 前端 Lead  | _____ | _____ | 组件拆分 / 资源 Tab IA                                     |
+| 后端 Lead  | _____ | _____ | MCP 工具签名 / Rust 模块拆分                               |
+| 设计 Lead  | _____ | _____ | 文案 / 空状态 / 配色规范                                   |
+| AI 产品    | _____ | _____ | Hermes Agent 编排策略（AST-6xx）                           |
+| 测试 Lead  | _____ | _____ | AST-xxx 用例                                               |

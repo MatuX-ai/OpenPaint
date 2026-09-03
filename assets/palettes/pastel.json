@@ -5,15 +5,15 @@
   "source": "OpenPaint curated (color-hex.com reference)",
   "license": "MIT",
   "colors": [
-    { "name": "Cotton Candy",  "hex": "#FFB3BA", "role": "primary" },
-    { "name": "Peach",         "hex": "#FFDFBA", "role": "secondary" },
-    { "name": "Banana",        "hex": "#FFFFBA", "role": "warning" },
-    { "name": "Mint",          "hex": "#BAFFC9", "role": "success" },
-    { "name": "Sky",           "hex": "#BAE1FF", "role": "info" },
-    { "name": "Lilac",         "hex": "#E0BBE4", "role": "accent" },
-    { "name": "Rose Quartz",   "hex": "#FEC8D8", "role": "accent2" },
+    { "name": "Cotton Candy", "hex": "#FFB3BA", "role": "primary" },
+    { "name": "Peach", "hex": "#FFDFBA", "role": "secondary" },
+    { "name": "Banana", "hex": "#FFFFBA", "role": "warning" },
+    { "name": "Mint", "hex": "#BAFFC9", "role": "success" },
+    { "name": "Sky", "hex": "#BAE1FF", "role": "info" },
+    { "name": "Lilac", "hex": "#E0BBE4", "role": "accent" },
+    { "name": "Rose Quartz", "hex": "#FEC8D8", "role": "accent2" },
     { "name": "Lemon Chiffon", "hex": "#FFF1B6", "role": "caution" },
-    { "name": "Sea Foam",      "hex": "#C9E4DE", "role": "support" },
-    { "name": "Mist",          "hex": "#D4E4F7", "role": "neutral" }
+    { "name": "Sea Foam", "hex": "#C9E4DE", "role": "support" },
+    { "name": "Mist", "hex": "#D4E4F7", "role": "neutral" }
   ]
 }

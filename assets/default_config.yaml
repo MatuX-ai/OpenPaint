@@ -37,5 +37,5 @@ mcp:
 
 # 资产库配置（W11 引入）
 assets:
-  cdn_mirror: "default"  # default | jsdelivr | fastly
+  cdn_mirror: "default" # default | jsdelivr | fastly
   attribution_notice_shown: false

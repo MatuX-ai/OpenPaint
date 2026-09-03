@@ -17,20 +17,27 @@ import type * as Runtime from '@api/runtime';
 
 // stub canvasApi / galleryApi
 vi.mock('@api/index', async () => {
-  const actual = await vi.importActual('@api/index') as typeof ApiIndex;
+  const actual = (await vi.importActual('@api/index')) as typeof ApiIndex;
   return {
     ...actual,
     canvasApi: {
       pasteImage: vi.fn(async () => 'layer-1'),
       renderCanvasPng: vi.fn(async () => 'data:image/png;base64,AAA'),
-      renderCanvasImage: vi.fn(async (args: { format: string; quality?: number; targetLongEdge?: number }) => ({
-        format: args.format,
-        mime: args.format === 'jpg' || args.format === 'jpeg' ? 'image/jpeg' : args.format === 'webp' ? 'image/webp' : 'image/png',
-        bytesBase64: 'AAAA',
-        width: args.targetLongEdge || 100,
-        height: args.targetLongEdge || 100,
-        byteSize: 4,
-      })),
+      renderCanvasImage: vi.fn(
+        async (args: { format: string; quality?: number; targetLongEdge?: number }) => ({
+          format: args.format,
+          mime:
+            args.format === 'jpg' || args.format === 'jpeg'
+              ? 'image/jpeg'
+              : args.format === 'webp'
+                ? 'image/webp'
+                : 'image/png',
+          bytesBase64: 'AAAA',
+          width: args.targetLongEdge || 100,
+          height: args.targetLongEdge || 100,
+          byteSize: 4,
+        }),
+      ),
       resizeCanvas: vi.fn(async () => undefined),
       undo: vi.fn(async () => true),
       redo: vi.fn(async () => true),
@@ -53,7 +60,7 @@ vi.mock('@api/index', async () => {
 
 // stub runtime isTauri: 默认 desktop
 vi.mock('@api/runtime', async () => {
-  const actual = await vi.importActual('@api/runtime') as typeof Runtime;
+  const actual = (await vi.importActual('@api/runtime')) as typeof Runtime;
   return {
     ...actual,
     isTauri: () => true,
@@ -113,7 +120,9 @@ describe('useFileActions (Tauri desktop mode)', () => {
 
   it('importFromFiles accepts a supported PNG', async () => {
     const f = await load();
-    const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'a.png', { type: 'image/png' });
+    const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'a.png', {
+      type: 'image/png',
+    });
     // happy-dom 缺 FileReader 实现 — stub 掉
     const frStub = {
       readAsDataURL: vi.fn(),
@@ -123,7 +132,9 @@ describe('useFileActions (Tauri desktop mode)', () => {
       error: null,
     } as unknown as FileReader;
     const origFR = globalThis.FileReader;
-    (globalThis as unknown as { FileReader: unknown }).FileReader = function () { return frStub; };
+    (globalThis as unknown as { FileReader: unknown }).FileReader = function () {
+      return frStub;
+    };
     const promise = f.importFromFiles([png]);
     // 触发 onload
     (frStub as unknown as { onload: () => void }).onload?.();

@@ -17,8 +17,12 @@ describe('useMenuActions', () => {
   it('dispatch invokes the most recently registered handler', async () => {
     const a = await load();
     const order: string[] = [];
-    const off1 = a.register('file.new', () => { order.push('first'); });
-    const off2 = a.register('file.new', () => { order.push('second'); });
+    const off1 = a.register('file.new', () => {
+      order.push('first');
+    });
+    const off2 = a.register('file.new', () => {
+      order.push('second');
+    });
     await a.dispatch('file.new');
     expect(order).toEqual(['second']);
     off1();
@@ -28,7 +32,9 @@ describe('useMenuActions', () => {
   it('register returns an unsubscribe function', async () => {
     const a = await load();
     let called = 0;
-    const off = a.register('file.save', () => { called++; });
+    const off = a.register('file.save', () => {
+      called++;
+    });
     await a.dispatch('file.save');
     expect(called).toBe(1);
     off();
@@ -45,7 +51,9 @@ describe('useMenuActions', () => {
   it('clear wipes all handlers', async () => {
     const a = await load();
     let called = 0;
-    a.register('file.save', () => { called++; });
+    a.register('file.save', () => {
+      called++;
+    });
     a.clear();
     await a.dispatch('file.save');
     expect(called).toBe(0);

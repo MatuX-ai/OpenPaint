@@ -7,10 +7,9 @@ import { computed } from 'vue';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-vue-next';
 import type { ToolCall } from '@/types/agent';
 
-const props = withDefaults(
-  defineProps<{ call: ToolCall; attribution?: 'agent' | 'user' }>(),
-  { attribution: 'user' },
-);
+const props = withDefaults(defineProps<{ call: ToolCall; attribution?: 'agent' | 'user' }>(), {
+  attribution: 'user',
+});
 
 const isAgent = computed(() => props.attribution === 'agent');
 
@@ -43,7 +42,10 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="tool-call-card" :class="[`tool-call-card--${call.status}`, { 'tool-call-card--agent': isAgent }]">
+  <div
+    class="tool-call-card"
+    :class="[`tool-call-card--${call.status}`, { 'tool-call-card--agent': isAgent }]"
+  >
     <div class="tool-call-card__header">
       <span v-if="isAgent" class="tool-call-card__agent-tag" aria-label="AI 调用">🤖 AI</span>
       <component

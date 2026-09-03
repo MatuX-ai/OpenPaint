@@ -61,9 +61,7 @@ function onConfirm(): void {
       </div>
 
       <div v-if="showQuality" class="export-dialog__row">
-        <label class="export-dialog__label" for="export-quality">
-          质量 {{ quality }}
-        </label>
+        <label class="export-dialog__label" for="export-quality">质量 {{ quality }}</label>
         <input
           id="export-quality"
           v-model.number="quality"

@@ -19,8 +19,7 @@ import { STORAGE_KEY } from './webPreviewBannerStorage';
  * 桌面版下载链接。保持 GitHub Releases 单一来源，
  * 与 README、LandingView 的 download 入口一致。
  */
-const DESKTOP_DOWNLOAD_URL =
-  'https://github.com/MatuX-ai/OpenPaint/releases';
+const DESKTOP_DOWNLOAD_URL = 'https://github.com/MatuX-ai/OpenPaint/releases';
 
 const visible = ref(false);
 
@@ -36,8 +35,9 @@ onMounted(() => {
   }
 });
 
-const ariaLabel = computed(() =>
-  'Web 预览模式提示：当前为浏览器端演示，画笔 / 文件 / 剪贴板功能不可用，推荐下载桌面端体验完整能力',
+const ariaLabel = computed(
+  () =>
+    'Web 预览模式提示：当前为浏览器端演示，画笔 / 文件 / 剪贴板功能不可用，推荐下载桌面端体验完整能力',
 );
 
 function dismiss() {
@@ -73,12 +73,10 @@ function trackDownloadClick() {
         <span class="web-preview-banner__sub">Web preview · recommended: download desktop</span>
       </strong>
       <span class="web-preview-banner__hint">
-        画笔 / 文件 / 剪贴板 等系统能力不可用，<a
-          href="/"
-          class="web-preview-banner__link"
-          data-testid="web-preview-banner-learn"
-          >了解桌面版优势</a
-        >
+        画笔 / 文件 / 剪贴板 等系统能力不可用，
+        <a href="/" class="web-preview-banner__link" data-testid="web-preview-banner-learn">
+          了解桌面版优势
+        </a>
       </span>
     </div>
     <div class="web-preview-banner__actions">
