@@ -30,13 +30,13 @@
 
 ## 阶段三 — 模块进度
 
-| 编号 | 模块 | 状态 | 负责人 | 当前分支 | 阻塞项 |
-| ---- | ---- | ---- | ------ | --------- | ------ |
-| M-12 | Iconify 集成 + 资源 Tab IA | ✅ 已完成 | A | `feat/asset-library` | — |
-| M-13 | 默认画刷 + BrushPreset | ✅ 已完成 | A | `feat/asset-library` | — |
-| M-14 | 调色板 / 渐变预设 + MCP 工具 | ✅ 已完成 | F | `feat/asset-library` | — |
-| M-15 | AI 编排增强（图标 / 渐变关键词） | ✅ 已完成 | A | `feat/asset-library` | — |
-| M-16 | 首屏价值密度前置（QuickPreferences + 引导流 + Mock 模式） | 待启动 | A + F | `feat/value-density` | — |
+| 编号 | 模块                                                      | 状态      | 负责人 | 当前分支             | 阻塞项 |
+| ---- | --------------------------------------------------------- | --------- | ------ | -------------------- | ------ |
+| M-12 | Iconify 集成 + 资源 Tab IA                                | ✅ 已完成 | A      | `feat/asset-library` | —      |
+| M-13 | 默认画刷 + BrushPreset                                    | ✅ 已完成 | A      | `feat/asset-library` | —      |
+| M-14 | 调色板 / 渐变预设 + MCP 工具                              | ✅ 已完成 | F      | `feat/asset-library` | —      |
+| M-15 | AI 编排增强（图标 / 渐变关键词）                          | ✅ 已完成 | A      | `feat/asset-library` | —      |
+| M-16 | 首屏价值密度前置（QuickPreferences + 引导流 + Mock 模式） | 待启动    | A + F  | `feat/value-density` | —      |
 
 ---
 
@@ -304,13 +304,13 @@
 
 ## 风险登记
 
-| 编号 | 风险                        | 影响阶段 | 缓解措施                        | 状态   |
-| ---- | --------------------------- | -------- | ------------------------------- | ------ |
-| R-01 | Hermes Agent 二进制获取困难 | 阶段二   | W1 提前下载至 src-tauri/bin/    | 待跟进 |
-| R-02 | OpenPencil Vue SDK 未提供   | 阶段一   | 评估后降级 iframe + postMessage | 待评估 |
-| R-03 | 4K 画布 60fps 难达成        | 阶段一   | W2 做性能基线，必要时升级 Skia  | 待观察 |
-| R-04 | UX 入门体验缺失导致弃用     | W7-W8    | 落地 [`docs/ux-onboarding-requirements.md`](./ux-onboarding-requirements.md) | 已规划 |
-| R-05 | 首屏呈现更像“设置器”而非“AI 设计工作台”，违反非技术用户友好性要求（memory 69dff43a） | W12 | 拆分 SettingsModal · 引导流升级 · 三栏布局落地 · 零配置 Mock 模式（详见 W12） | 待跟进 |
+| 编号 | 风险                                                                                 | 影响阶段 | 缓解措施                                                                      | 状态   |
+| ---- | ------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------- | ------ |
+| R-01 | Hermes Agent 二进制获取困难                                                          | 阶段二   | W1 提前下载至 src-tauri/bin/                                                  | 待跟进 |
+| R-02 | OpenPencil Vue SDK 未提供                                                            | 阶段一   | 评估后降级 iframe + postMessage                                               | 待评估 |
+| R-03 | 4K 画布 60fps 难达成                                                                 | 阶段一   | W2 做性能基线，必要时升级 Skia                                                | 待观察 |
+| R-04 | UX 入门体验缺失导致弃用                                                              | W7-W8    | 落地 [`docs/ux-onboarding-requirements.md`](./ux-onboarding-requirements.md)  | 已规划 |
+| R-05 | 首屏呈现更像“设置器”而非“AI 设计工作台”，违反非技术用户友好性要求（memory 69dff43a） | W12      | 拆分 SettingsModal · 引导流升级 · 三栏布局落地 · 零配置 Mock 模式（详见 W12） | 待跟进 |
 
 ## 会议节奏
 
