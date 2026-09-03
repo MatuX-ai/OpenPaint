@@ -364,9 +364,11 @@ jobs:
 
       - name: List collected assets
         run: |
-          echo "=== Collected assets ==="
+          echo "=== Tree ==="
+          find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.app" \) | sort
+          echo "=== Sizes ==="
           find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" \) -printf "%p  %s bytes\n" | sort
-          echo "=== ARTIFACTS DIR TREE ==="
+          echo "=== Full ARTIFACTS DIR TREE (W15 G6 debug) ==="
           ls -laR artifacts/ || true
 
       - name: Publish draft release
@@ -375,12 +377,13 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: true
           generate_release_notes: false
-          # 用具体路径（避免 globstar 在不同 Node glob lib 行为不一致）。
-          # artifacts/<name>/<original-path> 是 actions/download-artifact@v4 的解压结构。
+          # W15 G6 修复：用 ** 递归匹配，兼容 actions/download-artifact@v4
+          # 解压结构（不依赖具体 artifact 子目录名）。同时把 .deb / .app.zip
+          # 也纳入（mac .app 是目录，需要 zip 包装才能 attach）。
           files: |
-            artifacts/openpaint-windows/*.msi
-            artifacts/openpaint-windows/*.exe
-            artifacts/openpaint-macos/*.dmg
-            artifacts/openpaint-macos/*.deb
+              artifacts/**/*.msi
+              artifacts/**/*.exe
+              artifacts/**/*.dmg
+              artifacts/**/*.deb
           # .app 是目录，不能直接 attach；用 zip 包装（先忽略）
           fail_on_unmatched_files: true
