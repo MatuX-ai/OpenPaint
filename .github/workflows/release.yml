@@ -378,12 +378,12 @@ jobs:
           draft: true
           generate_release_notes: false
           # W15 G6 修复：用 ** 递归匹配，兼容 actions/download-artifact@v4
-          # 解压结构（不依赖具体 artifact 子目录名）。同时把 .deb / .app.zip
-          # 也纳入（mac .app 是目录，需要 zip 包装才能 attach）。
+          # 解压结构（不依赖具体 artifact 子目录名）。
+          # .deb 不列入：Linux 是 conditional job（仅 include_linux=true 跑）
+          # .app 是目录，不能直接 attach；跳过
           files: |
               artifacts/**/*.msi
               artifacts/**/*.exe
               artifacts/**/*.dmg
-              artifacts/**/*.deb
-          # .app 是目录，不能直接 attach；用 zip 包装（先忽略）
+          # .deb / .app 是 conditional / 目录，不能直接 attach；不纳入
           fail_on_unmatched_files: true
