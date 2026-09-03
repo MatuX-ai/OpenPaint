@@ -391,7 +391,10 @@ mod tests {
         item.tags = vec!["new".to_string(), "shared".to_string()];
         db.insert(&item).unwrap();
 
-        assert!(db.search_by_tag("old", 10).unwrap().is_empty(), "old tag should be gone");
+        assert!(
+            db.search_by_tag("old", 10).unwrap().is_empty(),
+            "old tag should be gone"
+        );
         assert_eq!(db.search_by_tag("new", 10).unwrap().len(), 1);
         assert_eq!(db.search_by_tag("shared", 10).unwrap().len(), 1);
     }

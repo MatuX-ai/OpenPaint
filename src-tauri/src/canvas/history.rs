@@ -270,7 +270,11 @@ mod tests {
         // 至少不 panic
         let _ = history.len();
         // 不应无限增长
-        assert!(history.len() <= 1, "max_size=0 不应无限增长，实际 len={}", history.len());
+        assert!(
+            history.len() <= 1,
+            "max_size=0 不应无限增长，实际 len={}",
+            history.len()
+        );
     }
 
     #[test]

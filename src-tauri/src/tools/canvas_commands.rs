@@ -67,7 +67,7 @@ pub struct AddTextArgs {
     pub x: i32,
     pub y: i32,
     pub font_size: f32,
-    pub color: String,        // hex
+    pub color: String, // hex
     pub font_family: Option<String>,
     pub font_weight: Option<String>,
 }
@@ -354,10 +354,7 @@ pub async fn fill_layer(state: State<'_, AppState>, args: FillLayerArgs) -> Resu
 
 /// 旋转图层（以图层中心为支点，正数=顺时针）
 #[tauri::command]
-pub async fn rotate_layer(
-    state: State<'_, AppState>,
-    args: RotateLayerArgs,
-) -> Result<(), String> {
+pub async fn rotate_layer(state: State<'_, AppState>, args: RotateLayerArgs) -> Result<(), String> {
     let mut canvas = state.canvas.write();
     let layer_id =
         Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
@@ -396,7 +393,10 @@ pub async fn add_text(
         .font_family
         .clone()
         .unwrap_or_else(|| "sans-serif".to_string());
-    let font_weight = args.font_weight.clone().unwrap_or_else(|| "normal".to_string());
+    let font_weight = args
+        .font_weight
+        .clone()
+        .unwrap_or_else(|| "normal".to_string());
 
     // 行高 = fontSize * 1.2；根据行数计算画布高；宽按最长行估算
     let lines: Vec<&str> = args.text.split('\n').collect();
@@ -411,7 +411,8 @@ pub async fn add_text(
                     let cp = c as u32;
                     if (0x4E00..=0x9FFF).contains(&cp)              // CJK 统一汉字
                         || (0x3000..=0x303F).contains(&cp)          // CJK 符号
-                        || (0xFF00..=0xFFEF).contains(&cp)          // 全角
+                        || (0xFF00..=0xFFEF).contains(&cp)
+                    // 全角
                     {
                         font_size * 1.0
                     } else if cp < 128 {
@@ -437,10 +438,7 @@ pub async fn add_text(
                 .replace('&', "&amp;")
                 .replace('<', "&lt;")
                 .replace('>', "&gt;");
-            format!(
-                r#"<tspan x="0" y="{:.2}">{}</tspan>"#,
-                ly, escaped
-            )
+            format!(r#"<tspan x="0" y="{:.2}">{}</tspan>"#, ly, escaped)
         })
         .collect::<Vec<_>>()
         .join("");
@@ -456,13 +454,12 @@ pub async fn add_text(
     );
 
     // 渲染 SVG → base64 PNG
-    let png_b64 =
-        render_svg_to_png_internal(&svg, canvas_w, canvas_h).map_err(|e| format!("render: {}", e))?;
+    let png_b64 = render_svg_to_png_internal(&svg, canvas_w, canvas_h)
+        .map_err(|e| format!("render: {}", e))?;
     let png_bytes = base64::engine::general_purpose::STANDARD
         .decode(&png_b64)
         .map_err(|e| format!("decode png: {}", e))?;
-    let img =
-        ::image::load_from_memory(&png_bytes).map_err(|e| format!("decode image: {}", e))?;
+    let img = ::image::load_from_memory(&png_bytes).map_err(|e| format!("decode image: {}", e))?;
     let rgba = img.to_rgba8();
     let (w, h) = (rgba.width(), rgba.height());
     let bitmap = rgba.into_raw();
@@ -500,9 +497,7 @@ pub async fn paste_text_bitmap(
     if args.bitmap_width == 0 || args.bitmap_height == 0 {
         return Err("bitmap_width / bitmap_height must be > 0".to_string());
     }
-    let expected = (args.bitmap_width as usize)
-        * (args.bitmap_height as usize)
-        * 4;
+    let expected = (args.bitmap_width as usize) * (args.bitmap_height as usize) * 4;
     let bitmap = base64::engine::general_purpose::STANDARD
         .decode(&args.bitmap_base64)
         .map_err(|e| format!("decode base64: {}", e))?;
@@ -541,8 +536,8 @@ pub async fn set_layer_blend_mode(
     let mut canvas = state.canvas.write();
     let layer_id =
         Uuid::parse_str(&args.layer_id).map_err(|e| format!("Invalid layer id: {}", e))?;
-    let mode = parse_blend_mode(&args.mode)
-        .ok_or_else(|| format!("Unknown blend mode: {}", args.mode))?;
+    let mode =
+        parse_blend_mode(&args.mode).ok_or_else(|| format!("Unknown blend mode: {}", args.mode))?;
     canvas.push_history("set_layer_blend_mode");
     if let Some(layer) = canvas.layers.iter_mut().find(|l| l.id == layer_id) {
         layer.blend_mode = mode;
@@ -1013,7 +1008,10 @@ mod tests {
         let args: RenderImageArgs = serde_json::from_value(json).unwrap();
         assert_eq!(args.format, "png");
         assert_eq!(args.quality, 90, "quality 默认 90");
-        assert_eq!(args.target_long_edge, 0, "target_long_edge 默认 0 表示保持原尺寸");
+        assert_eq!(
+            args.target_long_edge, 0,
+            "target_long_edge 默认 0 表示保持原尺寸"
+        );
     }
 
     #[test]
@@ -1121,11 +1119,7 @@ mod tests {
             "add_text",
             "paste_text_bitmap",
         ] {
-            assert!(
-                tools.contains(&required),
-                "list_tools 缺少 {}",
-                required
-            );
+            assert!(tools.contains(&required), "list_tools 缺少 {}", required);
         }
         assert!(tools.len() >= 15, "工具数量应 >= 15，当前 {}", tools.len());
         // 不应有重复

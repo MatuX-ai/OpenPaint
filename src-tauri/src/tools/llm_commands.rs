@@ -269,7 +269,8 @@ mod tests {
         for id in &ids {
             assert!(!id.is_empty(), "Provider id 不应为空");
             assert!(
-                id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()),
+                id.chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()),
                 "id '{}' 应保持小写 ASCII 风格，便于序列化",
                 id
             );
@@ -295,7 +296,11 @@ mod tests {
     fn test_provider_label_non_empty() {
         for p in all_providers() {
             let label = p.label();
-            assert!(!label.trim().is_empty(), "Provider {:?} 的 label 不应为空", p);
+            assert!(
+                !label.trim().is_empty(),
+                "Provider {:?} 的 label 不应为空",
+                p
+            );
             assert!(
                 label.chars().count() >= 2,
                 "Provider {:?} 的 label 过短: '{}'",
@@ -312,11 +317,7 @@ mod tests {
             let ep = p.default_endpoint();
             match p {
                 LlmProvider::Mock => {
-                    assert!(
-                        !ep.starts_with("http"),
-                        "Mock 不应该是 URL: {}",
-                        ep
-                    );
+                    assert!(!ep.starts_with("http"), "Mock 不应该是 URL: {}", ep);
                 }
                 _ => {
                     assert!(
@@ -336,7 +337,13 @@ mod tests {
         for p in all_providers() {
             let model = p.default_model();
             assert!(!model.trim().is_empty(), "{:?} 默认模型不能为空", p);
-            assert_eq!(model, model.trim(), "{:?} 默认模型不应有空白: '{}'", p, model);
+            assert_eq!(
+                model,
+                model.trim(),
+                "{:?} 默认模型不应有空白: '{}'",
+                p,
+                model
+            );
         }
     }
 
@@ -373,7 +380,10 @@ mod tests {
             assert_eq!(info.label, p.label());
             assert_eq!(info.default_endpoint, p.default_endpoint());
             assert_eq!(info.default_model, p.default_model());
-            assert_eq!(info.requires_api_key, !matches!(p, LlmProvider::Ollama | LlmProvider::Mock));
+            assert_eq!(
+                info.requires_api_key,
+                !matches!(p, LlmProvider::Ollama | LlmProvider::Mock)
+            );
         }
     }
 
@@ -416,7 +426,11 @@ mod tests {
         let providers = list_providers().await.expect("list_providers 应成功");
         assert_eq!(providers.len(), 10);
         assert_eq!(providers[0].id, "mock", "Mock 应置顶以提示零配置体验");
-        assert_eq!(providers[providers.len() - 1].id, "ollama", "本地离线应压轴");
+        assert_eq!(
+            providers[providers.len() - 1].id,
+            "ollama",
+            "本地离线应压轴"
+        );
         // 所有 Provider id 都应唯一
         let ids: Vec<&str> = providers.iter().map(|p| p.id.as_str()).collect();
         let mut sorted = ids.clone();
@@ -434,7 +448,10 @@ mod tests {
         let anthropic_idx = providers.iter().position(|p| p.id == "anthropic").unwrap();
         let ollama_idx = providers.iter().position(|p| p.id == "ollama").unwrap();
         assert!(deepseek_idx < openai_idx, "DeepSeek 必须在 OpenAI 之前");
-        assert!(deepseek_idx < anthropic_idx, "DeepSeek 必须在 Anthropic 之前");
+        assert!(
+            deepseek_idx < anthropic_idx,
+            "DeepSeek 必须在 Anthropic 之前"
+        );
         assert!(ollama_idx > openai_idx, "Ollama 压轴应在 OpenAI 之后");
     }
 
@@ -525,7 +542,11 @@ mod tests {
     #[test]
     fn test_ollama_is_http_localhost() {
         let ep = LlmProvider::Ollama.default_endpoint();
-        assert!(ep.starts_with("http://localhost"), "Ollama 应默认 localhost: {}", ep);
+        assert!(
+            ep.starts_with("http://localhost"),
+            "Ollama 应默认 localhost: {}",
+            ep
+        );
         assert!(!ep.starts_with("https://"));
     }
 

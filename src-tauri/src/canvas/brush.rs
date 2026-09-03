@@ -333,8 +333,14 @@ mod tests {
             BrushCategory::Mark,
         ] {
             let s = cat.as_str();
-            assert!(!s.contains('_'), "category string must not contain underscore: {}", s);
-            assert!(s.chars().all(|c| c.is_ascii_lowercase() || !c.is_ascii_alphabetic()));
+            assert!(
+                !s.contains('_'),
+                "category string must not contain underscore: {}",
+                s
+            );
+            assert!(s
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || !c.is_ascii_alphabetic()));
         }
     }
 

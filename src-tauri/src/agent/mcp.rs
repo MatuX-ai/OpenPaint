@@ -226,8 +226,7 @@ mod tests {
             assert!(!t.description.is_empty(), "description 不能为空");
             assert!(t.input_schema.is_object(), "input_schema 必须是对象");
             assert_eq!(
-                t.input_schema["type"],
-                "object",
+                t.input_schema["type"], "object",
                 "{}: type 应为 object",
                 t.name
             );

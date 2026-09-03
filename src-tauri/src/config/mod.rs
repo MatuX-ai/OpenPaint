@@ -247,7 +247,10 @@ mod tests {
         let yaml = include_str!("../../../assets/default_config.yaml");
         let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(cfg.llm.provider, "openai");
-        assert_eq!(cfg.llm.base_url.as_deref(), Some("https://api.openai.com/v1"));
+        assert_eq!(
+            cfg.llm.base_url.as_deref(),
+            Some("https://api.openai.com/v1")
+        );
         assert!(cfg.llm.api_key.is_empty(), "默认 api_key 应为空字符串");
         assert_eq!(cfg.llm.local_model.as_deref(), Some("qwen2.5:7b"));
         assert_eq!(cfg.llm.local_url.as_deref(), Some("http://localhost:11434"));

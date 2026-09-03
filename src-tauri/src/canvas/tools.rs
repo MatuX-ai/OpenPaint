@@ -298,7 +298,10 @@ impl CanvasTool for RotateTool {
                 .find(|l| l.id == layer_id)
                 .ok_or_else(|| anyhow::anyhow!("Layer not found"))?;
             Self::rotate_in_place(layer, degrees);
-            debug!("RotateTool applied {} degrees to layer {}", degrees, layer_id);
+            debug!(
+                "RotateTool applied {} degrees to layer {}",
+                degrees, layer_id
+            );
             Ok(())
         } else {
             Err(anyhow::anyhow!("Invalid input for RotateTool"))
@@ -583,7 +586,7 @@ mod tests {
         assert!(Color::from_hex("#fffff").is_none()); // 5 位
         assert!(Color::from_hex("#fffffff").is_none()); // 7 位
         assert!(Color::from_hex("#zzzzzz").is_none()); // 非法字符
-        // 注：实现使用 trim_start_matches('#')，所以不写 # 也是合法
+                                                       // 注：实现使用 trim_start_matches('#')，所以不写 # 也是合法
         assert!(Color::from_hex("ff8040").is_some());
         assert!(Color::from_hex("ff804080").is_some());
         // 0 / O 之类是合法 16 进制数字
@@ -610,9 +613,33 @@ mod tests {
 
     #[test]
     fn test_color_constants() {
-        assert_eq!((Color::TRANSPARENT.r, Color::TRANSPARENT.g, Color::TRANSPARENT.b, Color::TRANSPARENT.a), (0, 0, 0, 0));
-        assert_eq!((Color::BLACK.r, Color::BLACK.g, Color::BLACK.b, Color::BLACK.a), (0, 0, 0, 255));
-        assert_eq!((Color::WHITE.r, Color::WHITE.g, Color::WHITE.b, Color::WHITE.a), (255, 255, 255, 255));
+        assert_eq!(
+            (
+                Color::TRANSPARENT.r,
+                Color::TRANSPARENT.g,
+                Color::TRANSPARENT.b,
+                Color::TRANSPARENT.a
+            ),
+            (0, 0, 0, 0)
+        );
+        assert_eq!(
+            (
+                Color::BLACK.r,
+                Color::BLACK.g,
+                Color::BLACK.b,
+                Color::BLACK.a
+            ),
+            (0, 0, 0, 255)
+        );
+        assert_eq!(
+            (
+                Color::WHITE.r,
+                Color::WHITE.g,
+                Color::WHITE.b,
+                Color::WHITE.a
+            ),
+            (255, 255, 255, 255)
+        );
     }
 
     #[test]
@@ -665,7 +692,11 @@ mod tests {
         // 中心点 (15,15) 应被画上
         let layer = state.layers.iter().find(|l| l.id == layer_id).unwrap();
         let idx = ((15 * 32 + 15) * 4) as usize;
-        assert_eq!(layer.image_data[idx + 3], 255, "center pixel should be opaque");
+        assert_eq!(
+            layer.image_data[idx + 3],
+            255,
+            "center pixel should be opaque"
+        );
     }
 
     #[test]
@@ -687,7 +718,12 @@ mod tests {
         let layer = state.layers.iter().find(|l| l.id == layer_id).unwrap();
         let center_a = layer.image_data[((15 * 32 + 15) * 4 + 3) as usize];
         let edge_a = layer.image_data[((15 * 32 + 21) * 4 + 3) as usize];
-        assert!(center_a > edge_a, "edge alpha {} should be less than center {}", edge_a, center_a);
+        assert!(
+            center_a > edge_a,
+            "edge alpha {} should be less than center {}",
+            edge_a,
+            center_a
+        );
     }
 
     #[test]
@@ -878,7 +914,12 @@ mod tests {
                 &mut state,
                 ToolInput::FillLayer {
                     layer_id,
-                    color: Color { r: 255, g: 0, b: 0, a: 255 },
+                    color: Color {
+                        r: 255,
+                        g: 0,
+                        b: 0,
+                        a: 255,
+                    },
                 },
             )
             .unwrap();
@@ -888,7 +929,12 @@ mod tests {
                 &mut state,
                 ToolInput::FillLayer {
                     layer_id,
-                    color: Color { r: 0, g: 0, b: 255, a: 255 },
+                    color: Color {
+                        r: 0,
+                        g: 0,
+                        b: 255,
+                        a: 255,
+                    },
                 },
             )
             .unwrap();
@@ -923,7 +969,13 @@ mod tests {
         layer.image_data[((1 * 8 + 1) * 4) as usize] = 255;
         layer.image_data[((1 * 8 + 1) * 4 + 3) as usize] = 255;
         RotateTool
-            .apply(&mut state, ToolInput::RotateLayer { layer_id, degrees: 0.0 })
+            .apply(
+                &mut state,
+                ToolInput::RotateLayer {
+                    layer_id,
+                    degrees: 0.0,
+                },
+            )
             .unwrap();
         let layer = state.layers.iter().find(|l| l.id == layer_id).unwrap();
         // 像素位置应不变
@@ -1059,7 +1111,12 @@ mod tests {
                 &mut state,
                 ToolInput::FillLayer {
                     layer_id,
-                    color: Color { r: 0, g: 255, b: 0, a: 255 },
+                    color: Color {
+                        r: 0,
+                        g: 255,
+                        b: 0,
+                        a: 255,
+                    },
                 },
             )
             .unwrap();
@@ -1126,7 +1183,10 @@ mod tests {
         let idx = ((11 * 64 + 11) * 4) as usize;
         // 合成公式：out_R = (255*128 + 0*255*(255-128)/255) / out_a
         // 不直接断言具体数值，只确认 R 通道小于 255（半透明没完全覆盖）
-        assert!(layer.image_data[idx] < 255, "半透明红色像素不应完全覆盖底色");
+        assert!(
+            layer.image_data[idx] < 255,
+            "半透明红色像素不应完全覆盖底色"
+        );
         assert!(layer.image_data[idx + 3] > 0, "合成后 alpha 仍 > 0");
     }
 }

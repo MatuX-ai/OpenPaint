@@ -517,7 +517,11 @@ mod tests {
         // src (5,5) → dst (25,5)
         let composed = CanvasRenderer::composite(&state).expect("composite");
         let dst_idx = ((5 * 64 + 25) * 4) as usize;
-        assert_eq!(composed.as_raw()[dst_idx], 255, "red channel moved to (25,5)");
+        assert_eq!(
+            composed.as_raw()[dst_idx],
+            255,
+            "red channel moved to (25,5)"
+        );
         assert_eq!(composed.as_raw()[dst_idx + 3], 255, "alpha preserved");
         // 原位置不应有红色（背景已透明）
         let src_idx = ((5 * 64 + 5) * 4) as usize;
@@ -665,7 +669,9 @@ mod tests {
         let b64 = CanvasRenderer::to_base64_png(&img).unwrap();
         // 解码 base64 后前 8 字节必须是 PNG signature
         use base64::Engine;
-        let bytes = base64::engine::general_purpose::STANDARD.decode(&b64).unwrap();
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(&b64)
+            .unwrap();
         assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
     }
 

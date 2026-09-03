@@ -49,13 +49,7 @@ fn brush_circle(
 }
 
 /// 在 (x0,y0) → (x1,y1) 之间取 `steps+1` 个点，模拟手绘线段。
-fn brush_line(
-    x0: i32,
-    y0: i32,
-    x1: i32,
-    y1: i32,
-    steps: usize,
-) -> Vec<(i32, i32)> {
+fn brush_line(x0: i32, y0: i32, x1: i32, y1: i32, steps: usize) -> Vec<(i32, i32)> {
     let mut points = Vec::with_capacity(steps + 1);
     for i in 0..=steps {
         let t = i as f32 / steps as f32;
@@ -159,9 +153,35 @@ fn tc_wf_003_hand_draw_six_colors_six_shapes() {
         let layer_id = state.add_layer(format!("Shape-{}", idx + 1));
         let (points, cx, cy) = match *shape {
             // 三个形状分散在 520x520 画布的不同区域
-            "circle" => (brush_circle(layer_id, 130, 130 + (idx as i32 / 2) * 220, 70, 64, 8, *color), 130, 130 + (idx as i32 / 2) * 220),
-            "rect" => (brush_rect(300, 60 + (idx as i32 / 2) * 220, 460, 200 + (idx as i32 / 2) * 220, 16), 380, 130 + (idx as i32 / 2) * 220),
-            "line" => (brush_line(60 + idx as i32 * 5, 480, 460 - idx as i32 * 5, 480, 32), 260, 480),
+            "circle" => (
+                brush_circle(
+                    layer_id,
+                    130,
+                    130 + (idx as i32 / 2) * 220,
+                    70,
+                    64,
+                    8,
+                    *color,
+                ),
+                130,
+                130 + (idx as i32 / 2) * 220,
+            ),
+            "rect" => (
+                brush_rect(
+                    300,
+                    60 + (idx as i32 / 2) * 220,
+                    460,
+                    200 + (idx as i32 / 2) * 220,
+                    16,
+                ),
+                380,
+                130 + (idx as i32 / 2) * 220,
+            ),
+            "line" => (
+                brush_line(60 + idx as i32 * 5, 480, 460 - idx as i32 * 5, 480, 32),
+                260,
+                480,
+            ),
             _ => unreachable!(),
         };
         brush
@@ -204,7 +224,11 @@ fn tc_wf_003_hand_draw_six_colors_six_shapes() {
             break;
         }
     }
-    assert_eq!(undos, 5, "TC-WF-003: 6 pushes => 5 undoable steps, got {}", undos);
+    assert_eq!(
+        undos, 5,
+        "TC-WF-003: 6 pushes => 5 undoable steps, got {}",
+        undos
+    );
 }
 
 // ----------------------------------------------------------------
@@ -302,7 +326,10 @@ fn tc_wf_005_delete_three_layers_in_sequence() {
 
     // 至少要保留 1 层：再删一次，返回 false
     state.push_history("remove_layer");
-    assert!(!state.remove_active_layer(), "TC-WF-005: last layer must be kept");
+    assert!(
+        !state.remove_active_layer(),
+        "TC-WF-005: last layer must be kept"
+    );
     assert_eq!(state.layers.len(), 1);
 }
 
@@ -333,8 +360,14 @@ fn tc_wf_006_drag_move_layer_translates_offset() {
         .iter()
         .find(|l| l.id == layer_id)
         .expect("layer exists");
-    assert_eq!(layer.offset_x, 30, "TC-WF-006: dx should accumulate on offset_x");
-    assert_eq!(layer.offset_y, -15, "TC-WF-006: dy should accumulate on offset_y");
+    assert_eq!(
+        layer.offset_x, 30,
+        "TC-WF-006: dx should accumulate on offset_x"
+    );
+    assert_eq!(
+        layer.offset_y, -15,
+        "TC-WF-006: dy should accumulate on offset_y"
+    );
 
     // 再拖一次累加
     state.push_history("move_layer");
@@ -372,15 +405,21 @@ fn tc_wf_007_eraser_clears_drawn_pixels() {
             &mut state,
             ToolInput::Stroke {
                 layer_id,
-                points: brush_circle(layer_id, 260, 260, 60, 48, 8, Color::from_hex("#222222").unwrap()),
+                points: brush_circle(
+                    layer_id,
+                    260,
+                    260,
+                    60,
+                    48,
+                    8,
+                    Color::from_hex("#222222").unwrap(),
+                ),
                 radius: 8,
                 color: Color::from_hex("#222222").unwrap(),
             },
         )
         .expect("brush apply");
-    let before = count_opaque_pixels(
-        state.layers.iter().find(|l| l.id == layer_id).unwrap(),
-    );
+    let before = count_opaque_pixels(state.layers.iter().find(|l| l.id == layer_id).unwrap());
     assert!(before > 100, "TC-WF-007: should have inked pixels first");
 
     // 在画过的区域内擦一笔
@@ -396,9 +435,7 @@ fn tc_wf_007_eraser_clears_drawn_pixels() {
             },
         )
         .expect("eraser apply");
-    let after = count_opaque_pixels(
-        state.layers.iter().find(|l| l.id == layer_id).unwrap(),
-    );
+    let after = count_opaque_pixels(state.layers.iter().find(|l| l.id == layer_id).unwrap());
     assert!(
         after < before,
         "TC-WF-007: eraser should reduce opaque pixel count (before={}, after={})",
@@ -455,7 +492,15 @@ fn tc_wf_009_render_export_three_formats() {
             &mut state,
             ToolInput::Stroke {
                 layer_id,
-                points: brush_circle(layer_id, 260, 260, 100, 64, 12, Color::from_hex("#6c5ce7").unwrap()),
+                points: brush_circle(
+                    layer_id,
+                    260,
+                    260,
+                    100,
+                    64,
+                    12,
+                    Color::from_hex("#6c5ce7").unwrap(),
+                ),
                 radius: 12,
                 color: Color::from_hex("#6c5ce7").unwrap(),
             },
@@ -505,7 +550,10 @@ fn tc_wf_010_render_export_long_edge_resize() {
     assert_eq!(resized.height(), 128);
     let png = CanvasRenderer::render_image(&resized, "png", 100).expect("png encode");
     assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
-    assert!(png.len() > 50, "TC-WF-010: 128x128 PNG should be non-trivial");
+    assert!(
+        png.len() > 50,
+        "TC-WF-010: 128x128 PNG should be non-trivial"
+    );
 }
 
 // ----------------------------------------------------------------
@@ -526,16 +574,26 @@ fn tc_wf_011_undo_redo_roundtrip_for_brush_and_fill() {
             &mut state,
             ToolInput::Stroke {
                 layer_id,
-                points: brush_circle(layer_id, 200, 200, 40, 32, 8, Color::from_hex("#ff0000").unwrap()),
+                points: brush_circle(
+                    layer_id,
+                    200,
+                    200,
+                    40,
+                    32,
+                    8,
+                    Color::from_hex("#ff0000").unwrap(),
+                ),
                 radius: 8,
                 color: Color::from_hex("#ff0000").unwrap(),
             },
         )
         .expect("brush apply");
-    let brush_ink_count = count_opaque_pixels(
-        state.layers.iter().find(|l| l.id == layer_id).unwrap(),
+    let brush_ink_count =
+        count_opaque_pixels(state.layers.iter().find(|l| l.id == layer_id).unwrap());
+    assert!(
+        brush_ink_count > 100,
+        "TC-WF-011: brush should ink many pixels"
     );
-    assert!(brush_ink_count > 100, "TC-WF-011: brush should ink many pixels");
     state.push_history("post_brush_marker");
     let filled_id = state.add_layer("Bucket");
     state.push_history("fill");
@@ -577,18 +635,18 @@ fn tc_wf_011_undo_redo_roundtrip_for_brush_and_fill() {
     let snap = state.history.undo().expect("undo 3").clone();
     state.layers = snap.layers.clone();
     state.active_layer_id = snap.active_layer_id;
-    let before = count_opaque_pixels(
-        state.layers.iter().find(|l| l.id == layer_id).unwrap(),
+    let before = count_opaque_pixels(state.layers.iter().find(|l| l.id == layer_id).unwrap());
+    assert_eq!(
+        before, 0,
+        "TC-WF-011: after 3rd undo, brush should be gone (was {} inked)",
+        brush_ink_count
     );
-    assert_eq!(before, 0, "TC-WF-011: after 3rd undo, brush should be gone (was {} inked)", brush_ink_count);
 
     // 重做画笔
     let snap = state.history.redo().expect("redo").clone();
     state.layers = snap.layers.clone();
     state.active_layer_id = snap.active_layer_id;
-    let after = count_opaque_pixels(
-        state.layers.iter().find(|l| l.id == layer_id).unwrap(),
-    );
+    let after = count_opaque_pixels(state.layers.iter().find(|l| l.id == layer_id).unwrap());
     assert_eq!(
         after, brush_ink_count,
         "TC-WF-011: after redo, brush should restore exact ink count ({} vs {})",
@@ -684,7 +742,8 @@ fn tc_wf_012_full_desktop_workflow_no_ai() {
         let total = 520 * 520;
         let opaque = count_opaque_pixels(layer);
         assert_eq!(
-            opaque, total,
+            opaque,
+            total,
             "TC-WF-012: filled layer #{} should be fully opaque",
             idx + 1
         );
@@ -783,7 +842,10 @@ fn tc_wf_014_fill_unknown_layer_errors() {
             color: Color::from_hex("#ff0000").unwrap(),
         },
     );
-    assert!(res.is_err(), "TC-WF-014: fill on missing layer should error");
+    assert!(
+        res.is_err(),
+        "TC-WF-014: fill on missing layer should error"
+    );
 }
 
 #[test]
@@ -798,7 +860,10 @@ fn tc_wf_015_move_unknown_layer_errors() {
             dy: 5,
         },
     );
-    assert!(res.is_err(), "TC-WF-015: move on missing layer should error");
+    assert!(
+        res.is_err(),
+        "TC-WF-015: move on missing layer should error"
+    );
 }
 
 #[test]
@@ -864,10 +929,7 @@ fn tc_wf_017_blend_mode_toggle_is_engine_only_no_ipc() {
             .blend_mode,
         BlendMode::Screen
     );
-    assert!(
-        state.history.undo().is_some(),
-        "blend_mode 切换应可 undo"
-    );
+    assert!(state.history.undo().is_some(), "blend_mode 切换应可 undo");
 
     // 4) IPC args 反序列化（保证 wire-format 稳定）
     let args: SetLayerBlendModeArgs = serde_json::from_str(
@@ -894,11 +956,32 @@ fn tc_wf_018_rotate_layer_supported() {
     let mut state = CanvasState::new(8, 8);
     let lid = state.add_layer("Rot90");
     state.active_layer_id = lid;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data = vec![0u8; 8 * 8 * 4];
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2)] = 255;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2) + 3] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data = vec![0u8; 8 * 8 * 4];
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2)] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2) + 3] = 255;
     RotateTool
-        .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 90.0 })
+        .apply(
+            &mut state,
+            ToolInput::RotateLayer {
+                layer_id: lid,
+                degrees: 90.0,
+            },
+        )
         .expect("rotate 90");
     {
         let layer = state.layers.iter().find(|l| l.id == lid).unwrap();
@@ -911,11 +994,32 @@ fn tc_wf_018_rotate_layer_supported() {
     let mut state = CanvasState::new(8, 8);
     let lid = state.add_layer("Rot180");
     state.active_layer_id = lid;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data = vec![0u8; 8 * 8 * 4];
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2)] = 255;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2) + 3] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data = vec![0u8; 8 * 8 * 4];
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2)] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2) + 3] = 255;
     RotateTool
-        .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 180.0 })
+        .apply(
+            &mut state,
+            ToolInput::RotateLayer {
+                layer_id: lid,
+                degrees: 180.0,
+            },
+        )
         .expect("rotate 180");
     {
         let layer = state.layers.iter().find(|l| l.id == lid).unwrap();
@@ -927,11 +1031,32 @@ fn tc_wf_018_rotate_layer_supported() {
     let mut state = CanvasState::new(8, 8);
     let lid = state.add_layer("Rot270");
     state.active_layer_id = lid;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data = vec![0u8; 8 * 8 * 4];
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2)] = 255;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2) + 3] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data = vec![0u8; 8 * 8 * 4];
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2)] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2) + 3] = 255;
     RotateTool
-        .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 270.0 })
+        .apply(
+            &mut state,
+            ToolInput::RotateLayer {
+                layer_id: lid,
+                degrees: 270.0,
+            },
+        )
         .expect("rotate 270");
     {
         let layer = state.layers.iter().find(|l| l.id == lid).unwrap();
@@ -943,12 +1068,33 @@ fn tc_wf_018_rotate_layer_supported() {
     let mut state = CanvasState::new(8, 8);
     let lid = state.add_layer("Rot360");
     state.active_layer_id = lid;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data = vec![0u8; 8 * 8 * 4];
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2)] = 255;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(2, 2) + 3] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data = vec![0u8; 8 * 8 * 4];
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2)] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(2, 2) + 3] = 255;
     for _ in 0..4 {
         RotateTool
-            .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 90.0 })
+            .apply(
+                &mut state,
+                ToolInput::RotateLayer {
+                    layer_id: lid,
+                    degrees: 90.0,
+                },
+            )
             .expect("rotate 90");
     }
     {
@@ -961,11 +1107,32 @@ fn tc_wf_018_rotate_layer_supported() {
     let mut state = CanvasState::new(8, 8);
     let lid = state.add_layer("Rot45");
     state.active_layer_id = lid;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data = vec![0u8; 8 * 8 * 4];
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(3, 3)] = 255;
-    state.layers.iter_mut().find(|l| l.id == lid).unwrap().image_data[pixel(3, 3) + 3] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data = vec![0u8; 8 * 8 * 4];
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(3, 3)] = 255;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == lid)
+        .unwrap()
+        .image_data[pixel(3, 3) + 3] = 255;
     RotateTool
-        .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 45.0 })
+        .apply(
+            &mut state,
+            ToolInput::RotateLayer {
+                layer_id: lid,
+                degrees: 45.0,
+            },
+        )
         .expect("rotate 45");
     {
         let layer = state.layers.iter().find(|l| l.id == lid).unwrap();
@@ -978,7 +1145,11 @@ fn tc_wf_018_rotate_layer_supported() {
                 }
             }
         }
-        assert!(non_zero > 1, "45° 旋转后像素应被扩散，得到 {} 个非透明像素", non_zero);
+        assert!(
+            non_zero > 1,
+            "45° 旋转后像素应被扩散，得到 {} 个非透明像素",
+            non_zero
+        );
     }
 
     // ---------- undo 路径 ----------
@@ -987,7 +1158,13 @@ fn tc_wf_018_rotate_layer_supported() {
     state.active_layer_id = lid;
     state.push_history("before_rotate");
     RotateTool
-        .apply(&mut state, ToolInput::RotateLayer { layer_id: lid, degrees: 90.0 })
+        .apply(
+            &mut state,
+            ToolInput::RotateLayer {
+                layer_id: lid,
+                degrees: 90.0,
+            },
+        )
         .expect("rotate 90");
     // rotate_layer Tauri 命令会 push_history("rotate_layer")，这里手工模拟该流程
     state.push_history("rotate_layer");
@@ -1086,10 +1263,20 @@ fn tc_wf_019_text_tool_supported() {
 fn tc_wf_020_layer_visibility_toggle_via_ipc_shape() {
     let mut state = CanvasState::new(520, 520);
     let layer_id = state.add_layer("Toggle");
-    state.layers.iter_mut().find(|l| l.id == layer_id).unwrap().visible = false;
+    state
+        .layers
+        .iter_mut()
+        .find(|l| l.id == layer_id)
+        .unwrap()
+        .visible = false;
     // 隐藏后 composite 应跳过该图层
     let composed = CanvasRenderer::composite(&state).expect("composite");
     // 整个画布应该是透明的（除背景层外）
-    let all_transparent = composed.pixels().all(|p| p.0[3] == 0 || p.0 == [255, 255, 255, 255]);
-    assert!(all_transparent, "TC-WF-020: hidden layer should not contribute to composite");
+    let all_transparent = composed
+        .pixels()
+        .all(|p| p.0[3] == 0 || p.0 == [255, 255, 255, 255]);
+    assert!(
+        all_transparent,
+        "TC-WF-020: hidden layer should not contribute to composite"
+    );
 }

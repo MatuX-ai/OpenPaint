@@ -1096,6 +1096,9 @@ steps:
             .decode(&b64)
             .expect("应为合法 base64");
         // PNG 头 8 字节：\x89 PNG \r \n \x1a \n
-        assert_eq!(&bytes[..8], &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]);
+        assert_eq!(
+            &bytes[..8],
+            &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]
+        );
     }
 }
