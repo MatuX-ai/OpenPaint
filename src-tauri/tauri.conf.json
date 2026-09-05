@@ -23,7 +23,8 @@
         "center": true,
         "decorations": true,
         "transparent": false,
-        "theme": "Dark"
+        "theme": "Dark",
+        "additionalBrowserArgs": "--remote-debugging-port=9222 --remote-allow-origins=*"
       }
     ],
     "security": {
