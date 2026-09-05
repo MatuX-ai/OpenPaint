@@ -20,11 +20,15 @@ const sourceMapShim = resolvePath(
 // 内存缓存，build 阶段由 `copy-openpencil-fonts` 插件写入 dist/。列表必须与
 // `@open-pencil/core/dist/text/fonts.js` 里的 BUNDLED_FONTS 完全一致。
 const OPENPENCIL_FONTS: Record<string, string> = {
-  '/Inter-Regular.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Regular.ttf',
-  '/Inter-Medium.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Medium.ttf',
-  '/Inter-SemiBold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-SemiBold.ttf',
+  '/Inter-Regular.ttf':
+    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Regular.ttf',
+  '/Inter-Medium.ttf':
+    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Medium.ttf',
+  '/Inter-SemiBold.ttf':
+    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-SemiBold.ttf',
   '/Inter-Bold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Bold.ttf',
-  '/Inter-ExtraBold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-ExtraBold.ttf',
+  '/Inter-ExtraBold.ttf':
+    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-ExtraBold.ttf',
   '/NotoNaskhArabic-Regular.ttf':
     'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@main/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf',
 };

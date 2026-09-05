@@ -28,9 +28,7 @@ describe('isLlmConfigured — LLM 可用性判定', () => {
   });
 
   it('CFG-02: provider=ollama 且无 api_key 返回 true（本地部署免 Key）', () => {
-    expect(
-      isLlmConfigured(cfg({ provider: 'ollama', api_key: null })),
-    ).toBe(true);
+    expect(isLlmConfigured(cfg({ provider: 'ollama', api_key: null }))).toBe(true);
   });
 
   it('CFG-03: provider=mock（W12 模拟模式）且无 api_key 返回 true', () => {

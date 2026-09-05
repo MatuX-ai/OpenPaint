@@ -162,9 +162,7 @@ const CANVASKIT_ERROR_HINTS = ['canvaskit', 'CanvasKit', 'wasm', 'open-pencil'];
 function handleUnhandledRejection(event: PromiseRejectionEvent) {
   if (!mounted) return;
   if (status.value === 'ready' || status.value === 'error') return;
-  const reasonText = String(
-    (event.reason as Error | undefined)?.message ?? event.reason ?? '',
-  );
+  const reasonText = String((event.reason as Error | undefined)?.message ?? event.reason ?? '');
   if (CANVASKIT_ERROR_HINTS.some((hint) => reasonText.includes(hint))) {
     event.preventDefault();
     markError(`OpenPencil SDK 初始化失败：${reasonText || '未知错误'}`);
@@ -195,9 +193,7 @@ onMounted(async () => {
   //    `serve-canvaskit-wasm-dev` middleware）。
   void preloadCanvasKit().catch((err) => {
     if (mounted) {
-      markError(
-        `canvaskit.wasm 资源不可用：${String((err as Error)?.message ?? err)}`,
-      );
+      markError(`canvaskit.wasm 资源不可用：${String((err as Error)?.message ?? err)}`);
     }
   });
 });
@@ -231,10 +227,7 @@ async function handleRefresh() {
   try {
     await preloadCanvasKit();
   } catch (err) {
-    markError(
-      `canvaskit.wasm 重试仍不可用：${String((err as Error)?.message ?? err)}`,
-      true,
-    );
+    markError(`canvaskit.wasm 重试仍不可用：${String((err as Error)?.message ?? err)}`, true);
     return;
   }
   editor.requestRepaint();
@@ -262,9 +255,14 @@ defineExpose({ status, sendImageToAI, editor });
       >
         <h3 class="openpencil-view__fallback-title">OpenPencil 加载失败</h3>
         <p class="openpencil-view__fallback-text">
-          已重试 {{ retryCount }} 次仍未能初始化。可能原因：canvaskit.wasm 资源不可用、Worker 被 CSP 拦截，或 WebView2 版本过旧。
+          已重试 {{ retryCount }} 次仍未能初始化。可能原因：canvaskit.wasm 资源不可用、Worker 被 CSP
+          拦截，或 WebView2 版本过旧。
         </p>
-        <p v-if="errorMessage" class="openpencil-view__fallback-detail" data-testid="openpencil-error-detail">
+        <p
+          v-if="errorMessage"
+          class="openpencil-view__fallback-detail"
+          data-testid="openpencil-error-detail"
+        >
           {{ errorMessage }}
         </p>
         <div class="openpencil-view__fallback-actions">
