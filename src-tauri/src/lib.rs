@@ -17,8 +17,6 @@ pub mod tools;
 
 pub use agent::mcp;
 
-use std::sync::Arc;
-
 use tauri::Manager;
 use tracing::{info, warn};
 
@@ -64,8 +62,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Initialize application state
+            // 注意：Tauri 2 的 `manage<T>` 按 `TypeId::of::<T>()` 严格匹配；
+            // 如果包了 `Arc<AppState>`，TypeId 会变成 `Arc<AppState>`，
+            // 而命令签名 `State<'_, AppState>` 查的是 `AppState` 的 TypeId，
+            // 导致运行时 `state not managed for field 'state' on command ...` 错误。
+            // Tauri 内部已保证 manage 的 T: Send + Sync + 'static，AppState 自身满足，
+            // 因此不要包 Arc，直接 move 进去。
             let app_state = AppState::new(app.handle().clone())?;
-            app.manage(Arc::new(app_state));
+            app.manage(app_state);
 
             // First-launch initialization (creates ~/.openpaint/ and default config)
             if let Err(e) = config::ensure_initialized() {
