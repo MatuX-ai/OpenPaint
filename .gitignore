@@ -10,6 +10,8 @@ node_modules/
 dist/
 build/
 out/
+RELEASE/
+# RELEASE/                本地发布产物暂存（CI 产物上传到 GitHub Releases）
 *.tsbuildinfo
 
 # Rust / Cargo
