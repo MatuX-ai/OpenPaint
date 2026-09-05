@@ -52,6 +52,7 @@ async function preloadCanvasKit(): Promise<void> {
 
 const bridge = getOpenPencilBridge();
 const { editor, status, sendImageToAI } = bridge;
+console.log('[OpenPencilView] setup start, editor type:', editor?.constructor?.name);
 
 provideEditor(editor);
 
@@ -60,6 +61,33 @@ const retryCount = ref(0);
 const showSlowHint = ref(false);
 const showErrorFallback = ref(false);
 const errorMessage = ref<string>('');
+
+// 同步让 SDK 把 CanvasKit 调起来，不依赖 onMounted。在 setup 顶层同步调
+// useCanvas，确保 SDK 内部 onMounted(() => init()) 能拿到 active instance。
+console.log('[OpenPencilView] before useCanvas');
+const canvasCtl = useCanvas(canvasRef, editor, {
+  onReady: () => {
+    console.log('[OpenPencilView] onReady fired');
+    status.value = 'ready';
+    clearTimers();
+    showSlowHint.value = false;
+    showErrorFallback.value = false;
+    errorMessage.value = '';
+  },
+});
+console.log('[OpenPencilView] after useCanvas, canvasCtl keys:', Object.keys(canvasCtl ?? {}));
+
+useCanvasInput(
+  canvasRef,
+  editor,
+  canvasCtl.hitTestSectionTitle,
+  canvasCtl.hitTestComponentLabel,
+  canvasCtl.hitTestFrameTitle,
+);
+console.log('[OpenPencilView] after useCanvasInput');
+
+useCanvasDrop(canvasRef, editor);
+console.log('[OpenPencilView] after useCanvasDrop');
 
 let slowTimer: ReturnType<typeof setTimeout> | null = null;
 let errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -162,40 +190,16 @@ onMounted(async () => {
   window.addEventListener('error', handleWindowError);
 
   // 1) 主动预加载 canvaskit.wasm：HEAD 探测失败时直接 error，不再走 SDK。
-  try {
-    await preloadCanvasKit();
-  } catch (err) {
-    markError(
-      `canvaskit.wasm 资源不可用：${String((err as Error)?.message ?? err)}`,
-    );
-    return;
-  }
-
-  // 2) 预加载通过后再挂 SDK。即便后续 init 内部逃逸错误，
-  //    unhandledrejection 监听也会兜底。
-  try {
-    const canvasCtl = useCanvas(canvasRef, editor, {
-      onReady: () => {
-        status.value = 'ready';
-        clearTimers();
-        showSlowHint.value = false;
-        showErrorFallback.value = false;
-        errorMessage.value = '';
-      },
-    });
-
-    useCanvasInput(
-      canvasRef,
-      editor,
-      canvasCtl.hitTestSectionTitle,
-      canvasCtl.hitTestComponentLabel,
-      canvasCtl.hitTestFrameTitle,
-    );
-
-    useCanvasDrop(canvasRef, editor);
-  } catch (err) {
-    markError(`OpenPencil SDK 挂载失败：${String((err as Error)?.message ?? err)}`);
-  }
+  //    不阻塞 SDK 的 onReady —— SDK 内部会自己 locateFile('/canvaskit.wasm')，
+  //    与这里的预加载走同一条 vite 中间件路径（vite.config.ts 中
+  //    `serve-canvaskit-wasm-dev` middleware）。
+  void preloadCanvasKit().catch((err) => {
+    if (mounted) {
+      markError(
+        `canvaskit.wasm 资源不可用：${String((err as Error)?.message ?? err)}`,
+      );
+    }
+  });
 });
 
 onBeforeUnmount(() => {
@@ -221,7 +225,9 @@ async function handleRefresh() {
   status.value = 'loading';
   startLoadingTimers();
 
-  // 重试时同步重跑预加载；如果资源仍不可达，立即回到 error。
+  // 重试时同步探测资源；如果不可达，立即回到 error。
+  // 不再调用 resetOpenPencilBridge() —— editor 是单例，
+  // useCanvas 已经在 setup 顶层挂好，重新走 init 即可（SDK 自带该能力）。
   try {
     await preloadCanvasKit();
   } catch (err) {

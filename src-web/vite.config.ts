@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
@@ -15,8 +16,21 @@ const sourceMapShim = resolvePath(
   fileURLToPath(new URL('./src/shims/source-map-generator.js', import.meta.url)),
 );
 
+// OpenPencil 的字体资源（BUNDLED_FONTS）：dev 阶段通过中间件从 jsdelivr 拉取并
+// 内存缓存，build 阶段由 `copy-openpencil-fonts` 插件写入 dist/。列表必须与
+// `@open-pencil/core/dist/text/fonts.js` 里的 BUNDLED_FONTS 完全一致。
+const OPENPENCIL_FONTS: Record<string, string> = {
+  '/Inter-Regular.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Regular.ttf',
+  '/Inter-Medium.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Medium.ttf',
+  '/Inter-SemiBold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-SemiBold.ttf',
+  '/Inter-Bold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Bold.ttf',
+  '/Inter-ExtraBold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-ExtraBold.ttf',
+  '/NotoNaskhArabic-Regular.ttf':
+    'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@main/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf',
+};
+
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [
     vue(),
     // 修包名插入：@open-pencil/core 里有几处 new Worker(new URL(".../*.ts", ...))
@@ -27,7 +41,7 @@ export default defineConfig(async () => ({
     {
       name: 'open-pencil-fix-worker-url',
       enforce: 'pre',
-      transform(code, id) {
+      transform(code: string, id: string) {
         if (!id.includes('@open-pencil/core/dist/')) return null;
         const out = code.replace(/new URL\(["'](\.\.?\/[^"']+?)\.ts["']/g, 'new URL("$1.js"');
         if (out === code) return null;
@@ -35,6 +49,36 @@ export default defineConfig(async () => ({
           code: out,
           map: { mappings: '' },
         };
+      },
+    },
+    // SDK init 补丁：@open-pencil/vue 的 useCanvasKitLoader.init() 在
+    // `setCanvasKit(await getCanvasKit())` 之后会用
+    //   await new Promise((resolve) => { requestAnimationFrame(resolve); });
+    // 等待一帧再 createSurface。在以下场景这会**永远不 resolve**：
+    //   - WebView2 / 嵌入式浏览器 visibilityState=hidden（requestAnimationFrame
+    //     被节流到 0）。
+    //   - Tauri 桌面窗口最小化 / 后台状态。
+    //   - 某些 Chromium 版本对后台标签 rAF 直接不发。
+    // 改为 setTimeout(resolve, 0) 之后 createSurface 不依赖 rAF，能在所有
+    // 环境下推进 createSurface。setTimeout(0) ≈ macrotask，足够让 Vue 把
+    // canvas DOM 节点 layout/attach 完成。
+    //
+    // 注意：Vite 的 transform 钩子不作用于 optimizeDeps 预打包阶段，
+    // 这里必须用 esbuild plugin 才能把 patch 写进 @open-pencil_vue.js chunk。
+    {
+      name: 'open-pencil-fix-raf-hang-esbuild',
+      enforce: 'pre',
+      transform(code: string, id: string) {
+        // 宽松匹配：既兼容开发期原始模块路径，也兼容 optimizeDeps 预打包的
+        // @open-pencil_vue.js 聚合 chunk（id 可能为任何包含 canvas/CanvasRoot
+        // 的绝对路径，包括 windows 反斜杠与 .pnpm 中转哈希）。
+        if (!/canvas[/\\]CanvasRoot\.js/.test(id)) return null;
+        const out = code.replace(
+          /await new Promise\(\(resolve\) => \{\s*requestAnimationFrame\(resolve\);\s*\}\);/g,
+          'await new Promise((resolve) => { setTimeout(resolve, 0); });',
+        );
+        if (out === code) return null;
+        return { code: out, map: { mappings: '' } };
       },
     },
     // canvaskit-wasm 的 WASM 二进制需要从 @open-pencil/core 内部被运行时
@@ -48,10 +92,18 @@ export default defineConfig(async () => ({
         const fs = await import('node:fs/promises');
         const path = await import('node:path');
         const srcCandidates = [
+          // 顺序很关键：与 vite pre-bundle 实际选用的 canvaskit-wasm
+          // 版本对齐。@open-pencil/core 的 dep 声明是
+          // "canvaskit-wasm": "^0.40.0"，所以 vite 在 optimizeDeps 阶段会把
+          // 0.40.0 的 JS 预打包到 .vite/deps 里；运行时 defaultLocate 会
+          // 请求 /canvaskit.wasm。如果这里先返回了 0.39.1 的 wasm，就会
+          // 出现 JS ABI 与 wasm 内部函数表对不上的问题（表现为
+          // `RuntimeError: null function` 在 wasm-function[…]:0x…）。
+          // 必须把 0.40.0 放在 0.39.1 之前。
           path.resolve(
             fileURLToPath(
               new URL(
-                '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
                 import.meta.url,
               ),
             ),
@@ -59,7 +111,7 @@ export default defineConfig(async () => ({
           path.resolve(
             fileURLToPath(
               new URL(
-                '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
                 import.meta.url,
               ),
             ),
@@ -82,6 +134,38 @@ export default defineConfig(async () => ({
         }
       },
     },
+    // 生产构建同步下载 OpenPencil BUNDLED_FONTS 到 dist/ 根目录，让 tauri
+    // 打包 / vite preview 能直接 serve。fetch 失败时跳过该字体（OpenPencil
+    // 的 fonts.js 会回退到 warn + null，不会阻塞主路径）。
+    {
+      name: 'copy-openpencil-fonts',
+      apply: 'build',
+      async closeBundle() {
+        const fs = await import('node:fs/promises');
+        const path = await import('node:path');
+        const dist = path.resolve(fileURLToPath(new URL('./dist', import.meta.url)));
+        await fs.mkdir(dist, { recursive: true });
+        await Promise.all(
+          Object.entries(OPENPENCIL_FONTS).map(async ([relPath, url]) => {
+            const dest = path.join(dist, relPath.replace(/^\//, ''));
+            try {
+              const res = await fetch(url);
+              if (!res.ok) {
+                console.warn(`[copy-openpencil-fonts] ${relPath} HTTP ${res.status} — skip`);
+                return;
+              }
+              const buf = Buffer.from(await res.arrayBuffer());
+              await fs.writeFile(dest, buf);
+              console.log(`[copy-openpencil-fonts] ${relPath} -> ${buf.length} bytes`);
+            } catch (err) {
+              console.warn(
+                `[copy-openpencil-fonts] ${relPath} fetch failed: ${String((err as Error)?.message ?? err)} — skip`,
+              );
+            }
+          }),
+        );
+      },
+    },
     // 开发服务器上也从 node_modules 提供 canvaskit.wasm（不走构建产物路径）。
     {
       name: 'serve-canvaskit-wasm-dev',
@@ -91,10 +175,11 @@ export default defineConfig(async () => ({
           const fs = await import('node:fs/promises');
           const path = await import('node:path');
           const srcCandidates = [
+            // 与 `copy-canvaskit-wasm` 保持完全一致的顺序：0.40.0 先。
             path.resolve(
               fileURLToPath(
                 new URL(
-                  '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                  '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
                   import.meta.url,
                 ),
               ),
@@ -102,7 +187,7 @@ export default defineConfig(async () => ({
             path.resolve(
               fileURLToPath(
                 new URL(
-                  '../node_modules/.pnpm/canvaskit-wasm@0.40.0/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
+                  '../node_modules/.pnpm/canvaskit-wasm@0.39.1/node_modules/canvaskit-wasm/bin/canvaskit.wasm',
                   import.meta.url,
                 ),
               ),
@@ -112,7 +197,14 @@ export default defineConfig(async () => ({
             try {
               await fs.access(src);
               const buf = await fs.readFile(src);
+              // 完整 headers：WebAssembly.instantiateStreaming 需要
+              // Content-Type=application/wasm 且无 Content-Encoding 干扰。
+              // 显式带 cache-control 防止多并发请求时被 vite 中间件阻塞。
               res.setHeader('Content-Type', 'application/wasm');
+              res.setHeader('Content-Length', String(buf.length));
+              res.setHeader('Cache-Control', 'public, max-age=3600');
+              res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+              res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
               res.statusCode = 200;
               res.end(buf);
               return;
@@ -122,6 +214,66 @@ export default defineConfig(async () => ({
           }
           res.statusCode = 404;
           res.end('canvaskit.wasm not found');
+        });
+      },
+    },
+    // 开发服务器提供 OpenPencil BUNDLED_FONTS：从 jsdelivr 拉取并内存缓存。
+    // 第一次访问某字体时发起 HTTP GET（jsdelivr 永久缓存），后续请求直接
+    // 返回内存 buffer。CDN 失败返回 404，由 OpenPencil 字体加载逻辑兜底。
+    {
+      name: 'serve-openpencil-fonts-dev',
+      apply: 'serve',
+      configureServer(server: {
+        middlewares: {
+          use: (handler: (req: { url?: string }, res: any, next: () => void) => void) => void;
+        };
+      }) {
+        const cache = new Map<string, Buffer>();
+        const inflight = new Map<string, Promise<Buffer | null>>();
+        server.middlewares.use(async (req, res, next) => {
+          const url = req.url ?? '';
+          if (!OPENPENCIL_FONTS[url]) {
+            next();
+            return;
+          }
+          const cached = cache.get(url);
+          if (cached) {
+            res.setHeader('Content-Type', 'font/ttf');
+            res.setHeader('Content-Length', String(cached.length));
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.statusCode = 200;
+            res.end(cached);
+            return;
+          }
+          let pending = inflight.get(url);
+          if (!pending) {
+            pending = (async () => {
+              try {
+                const upstream = await fetch(OPENPENCIL_FONTS[url]);
+                if (!upstream.ok) return null;
+                const ab = await upstream.arrayBuffer();
+                const buf = Buffer.from(ab);
+                cache.set(url, buf);
+                return buf;
+              } catch {
+                return null;
+              } finally {
+                inflight.delete(url);
+              }
+            })();
+            inflight.set(url, pending);
+          }
+          const buf = await pending;
+          if (!buf) {
+            res.statusCode = 404;
+            res.end('font not found');
+            return;
+          }
+          res.setHeader('Content-Type', 'font/ttf');
+          res.setHeader('Content-Length', String(buf.length));
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.statusCode = 200;
+          res.end(buf);
         });
       },
     },
@@ -176,6 +328,14 @@ export default defineConfig(async () => ({
     host: 'localhost',
     watch: {
       ignored: ['**/src-tauri/**'],
+    },
+    // 强制让浏览器的 WebAssembly.instantiateStreaming 工作正常：需要
+    // Cross-Origin-Opener-Policy: same-origin 与
+    // Cross-Origin-Embedder-Policy: require-corp 双开。注意 canvaskit.wasm
+    // 的中间件单独再加一遍，避免 dev middleware 顺序问题。
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
 
@@ -243,6 +403,28 @@ export default defineConfig(async () => ({
     esbuildOptions: {
       target: 'esnext',
       supported: { 'top-level-await': true },
+      // 把 open-pencil-fix-raf-hang-esbuild 的逻辑也注入到 esbuild 预打包
+      // 阶段，esbuild plugin 在 onLoad 阶段按文件路径对 SDK CanvasRoot.js
+      // 应用 patch。
+      plugins: [
+        {
+          name: 'open-pencil-fix-raf-hang-esbuild-deps',
+          setup(build) {
+            const filter = /[\\/]canvas[\\/]CanvasRoot\.js$/;
+            build.onLoad({ filter: /\.js$/ }, async (args) => {
+              if (!filter.test(args.path)) return null;
+              const fs = await import('node:fs/promises');
+              const src = await fs.readFile(args.path, 'utf8');
+              const patched = src.replace(
+                /await new Promise\(\(resolve\) => \{\s*requestAnimationFrame\(resolve\);\s*\}\);/g,
+                'await new Promise((resolve) => { setTimeout(resolve, 0); });',
+              );
+              if (patched === src) return null;
+              return { contents: patched, loader: 'js' };
+            });
+          },
+        },
+      ],
     },
   },
 
@@ -262,4 +444,4 @@ export default defineConfig(async () => ({
     environment: 'happy-dom',
     include: ['src/**/*.{test,spec}.{ts,vue}'],
   },
-}));
+});
