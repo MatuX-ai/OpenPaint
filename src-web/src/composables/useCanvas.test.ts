@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
-import { defineComponent, h, nextTick, type Ref } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 
 vi.mock('@api/index', () => ({
@@ -348,7 +348,7 @@ describe('useCanvas', () => {
     });
     const wrapper = mount(Comp, { attachTo: document.body });
     // 把 ref 指到 fakeCanvas
-    (captured!.canvasRef as Ref<HTMLCanvasElement | null>).value =
+    (captured!.canvasRef as unknown as { value: HTMLCanvasElement | null }).value =
       fakeCanvas as unknown as HTMLCanvasElement;
     await nextTick();
     const evt = new PointerEvent('pointermove', { clientX: 42, clientY: 7 });
