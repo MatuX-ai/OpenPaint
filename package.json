@@ -36,5 +36,10 @@
   },
   "workspaces": [
     "src-web"
-  ]
+  ],
+  "pnpm": {
+    "overrides": {
+      "canvaskit-wasm": "^0.40.0"
+    }
+  }
 }

@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  canvaskit-wasm: ^0.40.0
+
 importers:
 
   .:
@@ -28,7 +31,7 @@ importers:
         version: 0.14.0
       '@open-pencil/vue':
         specifier: ^0.14.0
-        version: 0.14.0(@open-pencil/core@0.14.0)(canvaskit-wasm@0.39.1)(vue@3.5.41)
+        version: 0.14.0(@open-pencil/core@0.14.0)(canvaskit-wasm@0.40.0)(vue@3.5.41)
       '@tauri-apps/api':
         specifier: ^2.0.0
         version: 2.11.1
@@ -48,8 +51,8 @@ importers:
         specifier: ^2.0.0
         version: 2.4.4
       canvaskit-wasm:
-        specifier: ^0.39.0
-        version: 0.39.1
+        specifier: ^0.40.0
+        version: 0.40.0
       lucide-vue-next:
         specifier: ^0.344.0
         version: 0.344.0(vue@3.5.41)
@@ -737,11 +740,11 @@ packages:
       svgpath: 2.6.0
     dev: false
 
-  /@open-pencil/vue@0.14.0(@open-pencil/core@0.14.0)(canvaskit-wasm@0.39.1)(vue@3.5.41):
+  /@open-pencil/vue@0.14.0(@open-pencil/core@0.14.0)(canvaskit-wasm@0.40.0)(vue@3.5.41):
     resolution: {integrity: sha512-eKqRUr+GSkS3+4H1mJs+9+FexEpYLQNfXQb6JTwFyYeFv+gdTa3Ca7OQMi7+AWdbpFX3AiHE2hyMEbD0efjx6g==}
     peerDependencies:
       '@open-pencil/core': ^0.14.0
-      canvaskit-wasm: '>=0.39.0'
+      canvaskit-wasm: ^0.40.0
       vue: ^3.4.0
     peerDependenciesMeta:
       canvaskit-wasm:
@@ -755,7 +758,7 @@ packages:
       '@open-pencil/scene-graph': 0.14.0
       '@tanstack/vue-table': 8.21.3(vue@3.5.41)
       '@vueuse/core': 14.4.0(vue@3.5.41)
-      canvaskit-wasm: 0.39.1
+      canvaskit-wasm: 0.40.0
       nanostores: 1.5.2
       reka-ui: 2.10.4(vue@3.5.41)
       vue: 3.5.41(typescript@5.9.3)
@@ -1854,12 +1857,6 @@ packages:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
     dev: true
-
-  /canvaskit-wasm@0.39.1:
-    resolution: {integrity: sha512-Gy3lCmhUdKq+8bvDrs9t8+qf7RvcjuQn+we7vTVVyqgOVO1UVfHpsnBxkTZw+R4ApEJ3D5fKySl9TU11hmjl/A==}
-    dependencies:
-      '@webgpu/types': 0.1.21
-    dev: false
 
   /canvaskit-wasm@0.40.0:
     resolution: {integrity: sha512-Od2o+ZmoEw9PBdN/yCGvzfu0WVqlufBPEWNG452wY7E9aT8RBE+ChpZF526doOlg7zumO4iCS+RAeht4P0Gbpw==}
