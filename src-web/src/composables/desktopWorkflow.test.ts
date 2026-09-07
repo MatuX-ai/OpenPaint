@@ -43,6 +43,40 @@ const summaryLayers: LayerSummary[] = [];
 const renderPngBase64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
+const {
+  exportRaster,
+  selectAll,
+  deleteSelected,
+  zoomToFit,
+  undoBridge,
+  redoBridge,
+} = vi.hoisted(() => {
+  const png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  return {
+    exportRaster: vi.fn(
+      async (): Promise<{
+        mime: string;
+        bytesBase64: string;
+        width: number;
+        height: number;
+        dataUrl: string;
+      } | null> => ({
+        mime: 'image/png',
+        bytesBase64: 'AAAA',
+        width: 520,
+        height: 520,
+        dataUrl: png,
+      }),
+    ),
+    selectAll: vi.fn(),
+    deleteSelected: vi.fn(),
+    zoomToFit: vi.fn(),
+    undoBridge: vi.fn(),
+    redoBridge: vi.fn(),
+  };
+});
+
 function newLayerId(): string {
   layerCounter += 1;
   return `layer-${layerCounter}`;
@@ -221,6 +255,24 @@ vi.mock('@api/runtime', async () => {
   };
 });
 
+vi.mock('@composables/useOpenPencil', () => ({
+  getOpenPencilBridge: () => ({
+    status: { value: 'ready' },
+    placeDataUrl: vi.fn(async () => undefined),
+    placeFiles: vi.fn(async () => undefined),
+    placeBytes: vi.fn(async () => undefined),
+    exportRaster,
+    undo: undoBridge,
+    redo: redoBridge,
+    editor: {
+      selectAll,
+      deleteSelected,
+      zoomToFit,
+    },
+  }),
+  syncOpenPencilStateToCanvasStore: vi.fn(),
+}));
+
 async function loadFileActions() {
   const mod = await import('@composables/useFileActions');
   return mod.useFileActions();
@@ -247,6 +299,10 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
     (canvasApi.renderCanvasImage as ReturnType<typeof vi.fn>).mockClear();
     (canvasApi.resizeCanvas as ReturnType<typeof vi.fn>).mockClear();
     (canvasApi.renderCanvasPng as ReturnType<typeof vi.fn>).mockClear();
+    exportRaster.mockClear();
+    selectAll.mockClear();
+    deleteSelected.mockClear();
+    zoomToFit.mockClear();
   });
 
   /**
@@ -268,6 +324,7 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
 
   /**
    * TC-WF-WEB-002：新建 520×520 画布 → canvasStore 同步，document 状态进入 pristine。
+   * W14+：newCanvas 走 OpenPencil（清空选区 / fit），不再调用 Rust resizeCanvas。
    */
   it('TC-WF-WEB-002: newCanvas(520,520) updates store + resets doc', async () => {
     const { useCanvasStore } = await import('@stores/canvasStore');
@@ -285,8 +342,9 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
       handleLayers: 'discard',
     });
 
-    const { canvasApi } = await import('@api/index');
-    expect(canvasApi.resizeCanvas).toHaveBeenCalledWith(520, 520);
+    expect(selectAll).toHaveBeenCalled();
+    expect(deleteSelected).toHaveBeenCalled();
+    expect(zoomToFit).toHaveBeenCalled();
     expect(store.canvasWidth).toBe(520);
     expect(store.canvasHeight).toBe(520);
     expect(doc.state.value).toBe('pristine');
