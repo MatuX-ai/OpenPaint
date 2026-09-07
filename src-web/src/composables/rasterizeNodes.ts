@@ -43,7 +43,9 @@ export function collectVectorIdsForPixelEdit(editor: Editor, hitId: string | nul
   }
 
   const selected = editor.getSelectedNodes();
-  const vectors = selected.filter((n) => !isPageNode(n) && !isPixelEditableNode(n)).map((n) => n.id);
+  const vectors = selected
+    .filter((n) => !isPageNode(n) && !isPixelEditableNode(n))
+    .map((n) => n.id);
   return vectors;
 }
 

@@ -22,9 +22,7 @@ const editor = {
   reorderChildWithUndo: vi.fn(),
   groupSelected: vi.fn(() => 'group-1'),
   flattenSelected: vi.fn(() => 'flat-1'),
-  getLayerTree: vi.fn(
-    (): Array<{ depth: number; node: Record<string, unknown> }> => [],
-  ),
+  getLayerTree: vi.fn((): Array<{ depth: number; node: Record<string, unknown> }> => []),
   requestRepaint: vi.fn(),
   state: { currentPageId: 'page-1', panX: 0, panY: 0, zoom: 1 },
   graph: {
