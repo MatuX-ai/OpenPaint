@@ -122,16 +122,8 @@ export function setLayerOpacity(editor: Editor, layerId: string, opacity: number
   return { ok: true };
 }
 
-export function setLayerBlendMode(
-  editor: Editor,
-  layerId: string,
-  mode: BlendMode,
-): LayerOpResult {
-  editor.updateNodeWithUndo(
-    layerId,
-    { blendMode: toOpBlend(mode) } as never,
-    '图层混合模式',
-  );
+export function setLayerBlendMode(editor: Editor, layerId: string, mode: BlendMode): LayerOpResult {
+  editor.updateNodeWithUndo(layerId, { blendMode: toOpBlend(mode) } as never, '图层混合模式');
   sync(editor);
   return { ok: true };
 }
@@ -147,11 +139,7 @@ export function rotateLayer(editor: Editor, layerId: string, degrees: number): L
  * Reorder a top-level layer.
  * `displayIndex` is the index in the UI list (top-most first).
  */
-export function reorderLayer(
-  editor: Editor,
-  layerId: string,
-  displayIndex: number,
-): LayerOpResult {
+export function reorderLayer(editor: Editor, layerId: string, displayIndex: number): LayerOpResult {
   const bottomToTop = topLevelIds(editor);
   if (!bottomToTop.includes(layerId)) return { ok: false, message: '图层不存在' };
   const topToBottom = [...bottomToTop].reverse();

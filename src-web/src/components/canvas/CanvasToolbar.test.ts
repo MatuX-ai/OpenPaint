@@ -41,7 +41,14 @@ vi.mock('@composables/useOpenPencil', () => ({
   getOpenPencilBridge: () => ({
     editor: {
       setTool: vi.fn(),
-      state: { activeTool: 'SELECT', penState: null, currentPageId: 'page-1', panX: 0, panY: 0, zoom: 1 },
+      state: {
+        activeTool: 'SELECT',
+        penState: null,
+        currentPageId: 'page-1',
+        panX: 0,
+        panY: 0,
+        zoom: 1,
+      },
       getSelectedNodes: vi.fn(() => []),
       updateNodeWithUndo: mocks.updateNodeWithUndo,
       requestRepaint: vi.fn(),

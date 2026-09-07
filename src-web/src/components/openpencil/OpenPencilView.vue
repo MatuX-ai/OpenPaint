@@ -66,9 +66,7 @@ const bridge = getOpenPencilBridge();
 const { editor, status, sendImageToAI } = bridge;
 const store = useCanvasStore();
 /** Hide OP chrome when left-rail pixel tools own input (avoids SELECT desync). */
-const showOpToolbar = computed(
-  () => status.value === 'ready' && !isRasterTool(store.activeTool),
-);
+const showOpToolbar = computed(() => status.value === 'ready' && !isRasterTool(store.activeTool));
 
 provideEditor(editor);
 

@@ -123,10 +123,7 @@ export function replaceImageFillHash(
   const matchIdx = list.findIndex(
     (f) => f?.type === 'IMAGE' && (f.imageHash === targetHash || (!targetHash && f.imageHash)),
   );
-  const idx =
-    matchIdx >= 0
-      ? matchIdx
-      : list.findIndex((f) => f?.type === 'IMAGE');
+  const idx = matchIdx >= 0 ? matchIdx : list.findIndex((f) => f?.type === 'IMAGE');
 
   const nextFill = preferStretch
     ? {
@@ -149,7 +146,12 @@ export function replaceImageFillHash(
 }
 
 export function colorDistance(a: Rgba, b: Rgba): number {
-  return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]), Math.abs(a[3] - b[3]));
+  return Math.max(
+    Math.abs(a[0] - b[0]),
+    Math.abs(a[1] - b[1]),
+    Math.abs(a[2] - b[2]),
+    Math.abs(a[3] - b[3]),
+  );
 }
 
 export function readPixel(data: Uint8ClampedArray, width: number, x: number, y: number): Rgba {
@@ -157,7 +159,13 @@ export function readPixel(data: Uint8ClampedArray, width: number, x: number, y: 
   return [data[i], data[i + 1], data[i + 2], data[i + 3]];
 }
 
-export function writePixel(data: Uint8ClampedArray, width: number, x: number, y: number, rgba: Rgba): void {
+export function writePixel(
+  data: Uint8ClampedArray,
+  width: number,
+  x: number,
+  y: number,
+  rgba: Rgba,
+): void {
   const i = (y * width + x) * 4;
   data[i] = rgba[0];
   data[i + 1] = rgba[1];

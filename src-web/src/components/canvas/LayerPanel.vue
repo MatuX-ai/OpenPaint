@@ -7,15 +7,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import {
-  Plus,
-  Trash2,
-  RotateCw,
-  RotateCcw,
-  Copy,
-  Layers,
-  Combine,
-} from 'lucide-vue-next';
+import { Plus, Trash2, RotateCw, RotateCcw, Copy, Layers, Combine } from 'lucide-vue-next';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useToast } from '@composables/useToast';
 import { getOpenPencilBridge } from '@composables/useOpenPencil';

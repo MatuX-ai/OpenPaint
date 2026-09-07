@@ -120,7 +120,8 @@ function mimeFromExt(ext: string): string {
 function fileNameFromDataUrl(dataUrl: string, fallback: string): string {
   const m = /^data:([^;,]+)/i.exec(dataUrl);
   const mime = m?.[1] ?? 'image/png';
-  if (mime.includes('jpeg') || mime.includes('jpg')) return fallback.replace(/\.[^.]+$/, '') + '.jpg';
+  if (mime.includes('jpeg') || mime.includes('jpg'))
+    return fallback.replace(/\.[^.]+$/, '') + '.jpg';
   if (mime.includes('webp')) return fallback.replace(/\.[^.]+$/, '') + '.webp';
   if (mime.includes('svg')) return fallback.replace(/\.[^.]+$/, '') + '.svg';
   if (mime.includes('gif')) return fallback.replace(/\.[^.]+$/, '') + '.gif';
@@ -160,11 +161,16 @@ export function syncOpenPencilStateToCanvasStore(editor?: Editor | null): void {
     return;
   }
 
-  const tree = (ed as Editor & { getLayerTree?: () => Array<{ depth: number; node: Record<string, unknown> }> })
-    .getLayerTree?.() ?? [];
+  const tree =
+    (
+      ed as Editor & {
+        getLayerTree?: () => Array<{ depth: number; node: Record<string, unknown> }>;
+      }
+    ).getLayerTree?.() ?? [];
   const selected = new Set(
     (
-      (ed as Editor & { getSelectedNodes?: () => Array<{ id?: string }> }).getSelectedNodes?.() ?? []
+      (ed as Editor & { getSelectedNodes?: () => Array<{ id?: string }> }).getSelectedNodes?.() ??
+      []
     )
       .map((n) => n.id)
       .filter((id): id is string => Boolean(id)),
@@ -308,10 +314,7 @@ function createSingleton(): OpenPencilBridge {
     if (!renderer) {
       throw new Error('画布渲染器未就绪');
     }
-    const ids =
-      nodeIds && nodeIds.length > 0
-        ? nodeIds
-        : getRootIds();
+    const ids = nodeIds && nodeIds.length > 0 ? nodeIds : getRootIds();
     if (ids.length === 0) return null;
 
     const rasterFormat = format === 'jpg' ? 'JPG' : format === 'webp' ? 'WEBP' : 'PNG';
@@ -333,8 +336,7 @@ function createSingleton(): OpenPencilBridge {
     const bounds = computeContentBounds(editor.graph, ids);
     const width = bounds ? Math.max(1, Math.ceil(bounds.maxX - bounds.minX)) : 0;
     const height = bounds ? Math.max(1, Math.ceil(bounds.maxY - bounds.minY)) : 0;
-    const mime =
-      format === 'jpg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+    const mime = format === 'jpg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
     const bytesBase64 = bytesToBase64(bytes);
     const dataUrl = `data:${mime};base64,${bytesBase64}`;
     if (format === 'png') {
@@ -348,7 +350,10 @@ function createSingleton(): OpenPencilBridge {
     format: 'png' | 'jpg' | 'webp' = 'png',
     quality = 92,
   ): Promise<OpenPencilRasterExport | null> {
-    const selected = editor.getSelectedNodes().map((n) => n.id).filter(Boolean);
+    const selected = editor
+      .getSelectedNodes()
+      .map((n) => n.id)
+      .filter(Boolean);
     return exportRaster(format, quality, selected.length > 0 ? selected : undefined);
   }
 

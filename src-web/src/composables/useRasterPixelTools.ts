@@ -10,10 +10,7 @@ import type { Editor } from '@open-pencil/core/editor';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useToast } from '@composables/useToast';
 import { isRasterTool } from '@/tools/editorTools';
-import {
-  collectVectorIdsForPixelEdit,
-  rasterizeNodeIds,
-} from '@composables/rasterizeNodes';
+import { collectVectorIdsForPixelEdit, rasterizeNodeIds } from '@composables/rasterizeNodes';
 import { requestRasterizeConfirm } from '@composables/useRasterizeConfirm';
 import {
   createTransparentPng,
@@ -232,11 +229,7 @@ export function useRasterPixelTools(
     try {
       const { target, image, originalFills } = snapshot;
       // Copy pixels at schedule time so later erase strokes don't race the encode.
-      const copy = new ImageData(
-        new Uint8ClampedArray(image.data),
-        image.width,
-        image.height,
-      );
+      const copy = new ImageData(new Uint8ClampedArray(image.data), image.width, image.height);
       const png = await encodeImageDataPng(copy);
       if (!working || working !== snapshot || gen !== previewGen) return;
       const hash = editor.storeImage(png);

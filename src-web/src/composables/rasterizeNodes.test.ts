@@ -67,10 +67,7 @@ describe('collectVectorIdsForPixelEdit', () => {
   });
 
   it('blank hit id null still reports selection vectors (menu path; pointer path skips this)', () => {
-    const editor = fakeEditor(
-      { a: { type: 'RECTANGLE', fills: [{ type: 'SOLID' }] } },
-      ['a'],
-    );
+    const editor = fakeEditor({ a: { type: 'RECTANGLE', fills: [{ type: 'SOLID' }] } }, ['a']);
     expect(collectVectorIdsForPixelEdit(editor, null)).toEqual(['a']);
   });
 });
@@ -94,7 +91,9 @@ describe('rasterizeCurrentSelection', () => {
   it('honours confirm cancel', async () => {
     const { rasterizeCurrentSelection } = await import('./rasterizeNodes');
     const editor = {
-      getSelectedNodes: () => [{ id: 'v', type: 'RECTANGLE', fills: [{ type: 'SOLID' }], name: '方块' }],
+      getSelectedNodes: () => [
+        { id: 'v', type: 'RECTANGLE', fills: [{ type: 'SOLID' }], name: '方块' },
+      ],
     } as never;
     const result = await rasterizeCurrentSelection(editor, {
       confirm: async () => false,

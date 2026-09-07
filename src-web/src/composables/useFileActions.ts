@@ -194,8 +194,7 @@ export function useFileActions() {
       }
       await tauriWriteFile(path, res.dataUrl);
       doc.markExported();
-      const sizeLabel =
-        res.width > 0 && res.height > 0 ? `${res.width}×${res.height} ` : '';
+      const sizeLabel = res.width > 0 && res.height > 0 ? `${res.width}×${res.height} ` : '';
       toast.success(`已导出 ${sizeLabel}(${format.toUpperCase()})`);
     } catch (e) {
       toast.error(`导出失败：${String((e as Error).message ?? e)}`);

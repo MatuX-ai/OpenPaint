@@ -33,12 +33,7 @@ import { useCanvasStore } from '@stores/canvasStore';
 import ResourceTabs from '@/components/asset/ResourceTabs.vue';
 import type { IconMeta } from '@/types/asset';
 import { useToast } from '@/composables/useToast';
-import {
-  RAIL_TOOL_IDS,
-  getToolDef,
-  railLabel,
-  type ToolType,
-} from '@/tools/editorTools';
+import { RAIL_TOOL_IDS, getToolDef, railLabel, type ToolType } from '@/tools/editorTools';
 import { activateTool } from '@/tools/useEditorTool';
 
 const ICONS: Record<ToolType, Component> = {
@@ -97,9 +92,7 @@ watch(
   { immediate: true },
 );
 
-const railTools = computed(() =>
-  RAIL_TOOL_IDS.map((id) => getToolDef(id)!).filter(Boolean),
-);
+const railTools = computed(() => RAIL_TOOL_IDS.map((id) => getToolDef(id)!).filter(Boolean));
 
 function isActive(id: ToolType): boolean {
   const def = getToolDef(id);
@@ -205,11 +198,7 @@ function titleFor(id: ToolType): string {
     :aria-label="isIcons ? '资源面板' : '绘图工具'"
   >
     <nav v-if="!isIcons" class="left-sidebar__tools" aria-label="绘图工具">
-      <div
-        v-for="tool in railTools"
-        :key="tool.id"
-        class="left-sidebar__slot"
-      >
+      <div v-for="tool in railTools" :key="tool.id" class="left-sidebar__slot">
         <button
           class="left-sidebar__tool"
           type="button"
@@ -233,11 +222,7 @@ function titleFor(id: ToolType): string {
           />
         </button>
 
-        <div
-          v-if="flyoutFor === tool.id && tool.flyout"
-          class="left-sidebar__flyout"
-          role="menu"
-        >
+        <div v-if="flyoutFor === tool.id && tool.flyout" class="left-sidebar__flyout" role="menu">
           <button
             v-for="fid in tool.flyout"
             :key="fid"
@@ -253,7 +238,10 @@ function titleFor(id: ToolType): string {
           >
             <component :is="ICONS[fid]" :size="14" />
             <span>{{ getToolDef(fid)?.label }}</span>
-            <span v-if="getToolDef(fid)?.availability === 'comingSoon'" class="left-sidebar__soon-tag">
+            <span
+              v-if="getToolDef(fid)?.availability === 'comingSoon'"
+              class="left-sidebar__soon-tag"
+            >
               即将
             </span>
           </button>

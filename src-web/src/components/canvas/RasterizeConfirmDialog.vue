@@ -6,21 +6,14 @@
 import { computed } from 'vue';
 import AppModal from '@components/common/AppModal.vue';
 import AppButton from '@components/common/AppButton.vue';
-import {
-  decideRasterizeConfirm,
-  useRasterizeConfirmState,
-} from '@composables/useRasterizeConfirm';
+import { decideRasterizeConfirm, useRasterizeConfirmState } from '@composables/useRasterizeConfirm';
 
 const { open, request } = useRasterizeConfirmState();
 
 const message = computed(() => {
   const label = request.value?.label?.trim();
   const count = request.value?.nodeIds.length ?? 0;
-  const subject = label
-    ? `「${label}」`
-    : count > 1
-      ? `选中的 ${count} 个对象`
-      : '选中的矢量对象';
+  const subject = label ? `「${label}」` : count > 1 ? `选中的 ${count} 个对象` : '选中的矢量对象';
   return `将把${subject}转换为像素图后再编辑。转换后无法再以矢量方式精调路径与文字。`;
 });
 
