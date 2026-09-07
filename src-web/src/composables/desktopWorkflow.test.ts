@@ -43,39 +43,34 @@ const summaryLayers: LayerSummary[] = [];
 const renderPngBase64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
-const {
-  exportRaster,
-  selectAll,
-  deleteSelected,
-  zoomToFit,
-  undoBridge,
-  redoBridge,
-} = vi.hoisted(() => {
-  const png =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-  return {
-    exportRaster: vi.fn(
-      async (): Promise<{
-        mime: string;
-        bytesBase64: string;
-        width: number;
-        height: number;
-        dataUrl: string;
-      } | null> => ({
-        mime: 'image/png',
-        bytesBase64: 'AAAA',
-        width: 520,
-        height: 520,
-        dataUrl: png,
-      }),
-    ),
-    selectAll: vi.fn(),
-    deleteSelected: vi.fn(),
-    zoomToFit: vi.fn(),
-    undoBridge: vi.fn(),
-    redoBridge: vi.fn(),
-  };
-});
+const { exportRaster, selectAll, deleteSelected, zoomToFit, undoBridge, redoBridge } = vi.hoisted(
+  () => {
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    return {
+      exportRaster: vi.fn(
+        async (): Promise<{
+          mime: string;
+          bytesBase64: string;
+          width: number;
+          height: number;
+          dataUrl: string;
+        } | null> => ({
+          mime: 'image/png',
+          bytesBase64: 'AAAA',
+          width: 520,
+          height: 520,
+          dataUrl: png,
+        }),
+      ),
+      selectAll: vi.fn(),
+      deleteSelected: vi.fn(),
+      zoomToFit: vi.fn(),
+      undoBridge: vi.fn(),
+      redoBridge: vi.fn(),
+    };
+  },
+);
 
 function newLayerId(): string {
   layerCounter += 1;
