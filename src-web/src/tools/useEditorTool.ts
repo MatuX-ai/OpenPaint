@@ -30,9 +30,7 @@ export function activateTool(tool: ToolType): ActivateToolResult {
     return {
       ok: false,
       reason: 'comingSoon',
-      message: kind
-        ? `${def.label}：${kind}工具即将推出`
-        : `${def.label}：即将推出`,
+      message: kind ? `${def.label}：${kind}工具即将推出` : `${def.label}：即将推出`,
     };
   }
 

@@ -63,9 +63,7 @@ function makeEditor() {
       nodes.set(id, { id, name: 'flat', parentId: 'page-1' });
       return id;
     }),
-    getLayerTree: vi.fn(() =>
-      [...nodes.values()].map((n) => ({ depth: 0, node: { ...n } })),
-    ),
+    getLayerTree: vi.fn(() => [...nodes.values()].map((n) => ({ depth: 0, node: { ...n } }))),
     requestRepaint: vi.fn(),
   } as never;
 }

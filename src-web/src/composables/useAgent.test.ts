@@ -33,7 +33,9 @@ vi.mock('@composables/useLlmConfig', () => ({
 }));
 
 const agentOpMocks = vi.hoisted(() => ({
-  getSelectedNodes: vi.fn(() => [] as Array<{ id: string; x: number; y: number; width: number; height: number }>),
+  getSelectedNodes: vi.fn(
+    () => [] as Array<{ id: string; x: number; y: number; width: number; height: number }>,
+  ),
 }));
 
 vi.mock('@composables/useOpenPencil', () => ({

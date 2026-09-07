@@ -30,10 +30,7 @@ import { useToast } from '@composables/useToast';
 import { canvasApi } from '@api/index';
 import { getOpenPencilBridge } from '@composables/useOpenPencil';
 import type { BlendMode } from '@/types/canvas';
-import {
-  isShapeDrawTool,
-  toolLabel as resolveToolLabel,
-} from '@/tools/editorTools';
+import { isShapeDrawTool, toolLabel as resolveToolLabel } from '@/tools/editorTools';
 import { activateTool } from '@/tools/useEditorTool';
 import {
   applyFillStyleToSelected,
@@ -41,7 +38,11 @@ import {
   applyStrokeStyleToSelected,
   applyTextStyleToSelected,
 } from '@composables/vectorStrokeStyle';
-import { addLayer as addOpLayer, rotateLayer as rotateOpLayer, setLayerBlendMode } from '@composables/layerOps';
+import {
+  addLayer as addOpLayer,
+  rotateLayer as rotateOpLayer,
+  setLayerBlendMode,
+} from '@composables/layerOps';
 import {
   zoomIn as zoomInOp,
   zoomOut as zoomOutOp,
@@ -98,9 +99,7 @@ const showTextControls = computed(() => {
 });
 
 const showPolygonControls = computed(
-  () =>
-    store.activeTool === 'polygon' ||
-    selectedNodes().some((n) => n.type === 'POLYGON'),
+  () => store.activeTool === 'polygon' || selectedNodes().some((n) => n.type === 'POLYGON'),
 );
 const showStarControls = computed(
   () => store.activeTool === 'star' || selectedNodes().some((n) => n.type === 'STAR'),

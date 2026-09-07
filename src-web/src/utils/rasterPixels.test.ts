@@ -16,7 +16,11 @@ import {
   IDENTITY_IMAGE_TRANSFORM,
 } from './rasterPixels';
 
-function make(w: number, h: number, fill: [number, number, number, number] = [255, 0, 0, 255]): ImageData {
+function make(
+  w: number,
+  h: number,
+  fill: [number, number, number, number] = [255, 0, 0, 255],
+): ImageData {
   const data = new Uint8ClampedArray(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     data[i * 4] = fill[0];

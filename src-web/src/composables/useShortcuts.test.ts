@@ -202,7 +202,12 @@ describe('useShortcuts', () => {
     expect(opMocks.penCommit).not.toHaveBeenCalled();
     expect(opMocks.penCancel).not.toHaveBeenCalled();
 
-    opMocks.state.penState = { vertices: [{ x: 0, y: 0 }, { x: 10, y: 10 }] };
+    opMocks.state.penState = {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ],
+    };
     enter.run(new KeyboardEvent('keydown', { key: 'Enter' }));
     expect(opMocks.penCommit).toHaveBeenCalledWith(false);
 

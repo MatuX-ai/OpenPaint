@@ -173,12 +173,7 @@ function onDrop(e: DragEvent) {
           @keydown="onNameKeydown"
           @blur="commitRename"
         />
-        <span
-          v-else
-          class="layer-item__name"
-          :title="'双击重命名'"
-          @dblclick="startRename"
-        >
+        <span v-else class="layer-item__name" :title="'双击重命名'" @dblclick="startRename">
           {{ layer.name }}
         </span>
       </div>

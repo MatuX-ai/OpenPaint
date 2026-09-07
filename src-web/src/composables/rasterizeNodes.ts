@@ -32,10 +32,7 @@ export function isPixelEditableNode(node: {
  * Collect vector node ids that need rasterization before pixel editing.
  * Prefers the hit node; falls back to current selection.
  */
-export function collectVectorIdsForPixelEdit(
-  editor: Editor,
-  hitId: string | null,
-): string[] {
+export function collectVectorIdsForPixelEdit(editor: Editor, hitId: string | null): string[] {
   if (hitId) {
     const hit = editor.getNode(hitId);
     if (hit && hit.type !== 'PAGE' && !isPixelEditableNode(hit)) {
@@ -96,9 +93,7 @@ export async function rasterizeNodeIds(
   const first = editor.getNode(ids[0]!);
   const parentId = first?.parentId ?? undefined;
   const name =
-    ids.length === 1
-      ? `${String(first?.name || '对象')}（像素）`
-      : `栅格化选区（${ids.length}）`;
+    ids.length === 1 ? `${String(first?.name || '对象')}（像素）` : `栅格化选区（${ids.length}）`;
 
   const hash = editor.storeImage(bytes);
   const newId = editor.createShape('RECTANGLE', x, y, width, height, parentId, name);

@@ -75,7 +75,10 @@ describe('useOpenPencil', () => {
   it('syncOpenPencilStateToCanvasStore 把顶层节点写入 canvasStore.layerList', () => {
     setActivePinia(createPinia());
     mockEditor.getLayerTree.mockReturnValue([
-      { depth: 0, node: { id: 'r1', name: '红点', type: 'RECTANGLE', x: 1, y: 2, width: 10, height: 20 } },
+      {
+        depth: 0,
+        node: { id: 'r1', name: '红点', type: 'RECTANGLE', x: 1, y: 2, width: 10, height: 20 },
+      },
       { depth: 1, node: { id: 'c1', name: 'child' } },
       { depth: 0, node: { id: 'r2', name: '蓝点', type: 'RECTANGLE' } },
     ]);
@@ -221,7 +224,11 @@ describe('useOpenPencil', () => {
     bridge.status.value = 'ready';
     const file = new File([new Uint8Array([1])], 'a.png', { type: 'image/png' });
     await bridge.placeFiles([file]);
-    expect(mockEditor.placeFiles).toHaveBeenCalledWith([file], expect.any(Number), expect.any(Number));
+    expect(mockEditor.placeFiles).toHaveBeenCalledWith(
+      [file],
+      expect.any(Number),
+      expect.any(Number),
+    );
   });
 
   it('placeFiles 在未就绪时抛错', async () => {

@@ -103,7 +103,15 @@ export function applyGradientToSelection(
     const z = zoom || 1;
     const cx = (-panX + 640) / z;
     const cy = (-panY + 360) / z;
-    const id = editor.createShape('RECTANGLE', cx - 160, cy - 100, 320, 200, undefined, gradient.nameZh || '渐变');
+    const id = editor.createShape(
+      'RECTANGLE',
+      cx - 160,
+      cy - 100,
+      320,
+      200,
+      undefined,
+      gradient.nameZh || '渐变',
+    );
     editor.updateNodeWithUndo(id, { fills: [fill] } as never, '渐变填充');
     editor.select([id]);
     sync(editor);

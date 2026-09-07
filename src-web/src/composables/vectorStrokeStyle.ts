@@ -5,10 +5,7 @@
 
 import type { Editor } from '@open-pencil/core/editor';
 import { useCanvasStore } from '@stores/canvasStore';
-import {
-  isShapeDrawTool,
-  type ToolType,
-} from '@/tools/editorTools';
+import { isShapeDrawTool, type ToolType } from '@/tools/editorTools';
 import {
   rgba01ToHex,
   withFillStyle,
@@ -23,15 +20,7 @@ let pendingKind: StyleKind | null = null;
 /** Avoid re-applying (and flooding undo) on every selection:changed. */
 let lastStyledSelectionKey = '';
 
-const SHAPE_TYPES = new Set([
-  'RECTANGLE',
-  'ELLIPSE',
-  'LINE',
-  'POLYGON',
-  'STAR',
-  'FRAME',
-  'VECTOR',
-]);
+const SHAPE_TYPES = new Set(['RECTANGLE', 'ELLIPSE', 'LINE', 'POLYGON', 'STAR', 'FRAME', 'VECTOR']);
 
 function styleKindForTool(tool: ToolType): StyleKind | null {
   if (tool === 'pen') return 'stroke';
@@ -73,7 +62,11 @@ function isTextNode(node: { type?: string }): boolean {
   return node.type === 'TEXT';
 }
 
-function isStyleableShape(node: { type?: string; strokes?: unknown[]; fills?: unknown[] }): boolean {
+function isStyleableShape(node: {
+  type?: string;
+  strokes?: unknown[];
+  fills?: unknown[];
+}): boolean {
   if (!node.type || node.type === 'PAGE') return false;
   if (SHAPE_TYPES.has(node.type)) return true;
   return Boolean(node.strokes?.length || node.fills?.length);
@@ -149,11 +142,7 @@ export function applyShapeExtrasToSelected(editor: Editor): number {
   let n = 0;
   for (const node of editor.getSelectedNodes()) {
     if (node.type === 'POLYGON') {
-      editor.updateNodeWithUndo(
-        node.id,
-        { pointCount: store.polygonSides } as never,
-        '多边形边数',
-      );
+      editor.updateNodeWithUndo(node.id, { pointCount: store.polygonSides } as never, '多边形边数');
       n += 1;
     } else if (node.type === 'STAR') {
       editor.updateNodeWithUndo(

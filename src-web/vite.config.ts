@@ -25,12 +25,10 @@ const sourceMapShim = resolvePath(
 const OPENPENCIL_FONTS: Record<string, string> = {
   '/Inter-Regular.ttf':
     'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-400-normal.ttf',
-  '/Inter-Medium.ttf':
-    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf',
+  '/Inter-Medium.ttf': 'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf',
   '/Inter-SemiBold.ttf':
     'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-600-normal.ttf',
-  '/Inter-Bold.ttf':
-    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-700-normal.ttf',
+  '/Inter-Bold.ttf': 'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-700-normal.ttf',
   '/Inter-ExtraBold.ttf':
     'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-800-normal.ttf',
   '/NotoNaskhArabic-Regular.ttf':

@@ -30,8 +30,8 @@ describe('vectorStroke', () => {
   });
 
   it('withFillStyle clears when disabled', () => {
-    expect(withFillStyle([{ type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 } }], '#000', false)).toEqual(
-      [],
-    );
+    expect(
+      withFillStyle([{ type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 } }], '#000', false),
+    ).toEqual([]);
   });
 });

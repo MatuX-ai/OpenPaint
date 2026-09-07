@@ -43,11 +43,7 @@ function iconKey(icon: IconMeta): string {
   return `${icon.prefix}/${icon.name}`;
 }
 
-async function fetchIconSvg(
-  icon: IconMeta,
-  color: string,
-  size: number,
-): Promise<CachedIcon> {
+async function fetchIconSvg(icon: IconMeta, color: string, size: number): Promise<CachedIcon> {
   const key = cacheKey(icon.prefix, icon.name, color, size);
   const hit = svgCache.get(key);
   if (hit) return hit;
