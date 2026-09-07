@@ -14,6 +14,7 @@ import AppButton from '@components/common/AppButton.vue';
 
 const props = defineProps<{
   open: boolean;
+  initialFormat?: 'png' | 'jpg' | 'webp';
 }>();
 
 const emit = defineEmits<{
@@ -30,7 +31,7 @@ watch(
   () => props.open,
   (open) => {
     if (open) {
-      format.value = 'png';
+      format.value = props.initialFormat ?? 'png';
       quality.value = 90;
     }
   },

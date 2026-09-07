@@ -27,6 +27,59 @@ interface CachedIcon {
   fromCache: boolean;
 }
 
+/** Module-level SVG cache shared across useAssets() instances (preview + grid thumbs). */
+const svgCache = new Map<string, CachedIcon>();
+/** In-flight fetches so concurrent callers for the same key share one IPC. */
+const svgInflight = new Map<string, Promise<CachedIcon>>();
+
+const THUMB_SIZE = 24;
+const THUMB_CONCURRENCY = 8;
+
+function cacheKey(prefix: string, name: string, color: string, size: number): string {
+  return `${prefix}/${name}/${color}/${size}`;
+}
+
+function iconKey(icon: IconMeta): string {
+  return `${icon.prefix}/${icon.name}`;
+}
+
+async function fetchIconSvg(
+  icon: IconMeta,
+  color: string,
+  size: number,
+): Promise<CachedIcon> {
+  const key = cacheKey(icon.prefix, icon.name, color, size);
+  const hit = svgCache.get(key);
+  if (hit) return hit;
+
+  const pending = svgInflight.get(key);
+  if (pending) return pending;
+
+  const promise = assetApi
+    .renderIconSvg({
+      prefix: icon.prefix,
+      name: icon.name,
+      color,
+      size,
+    })
+    .then((res: RenderIconResult) => {
+      const cached: CachedIcon = {
+        svg: res.svg,
+        width: res.width,
+        height: res.height,
+        fromCache: res.fromCache,
+      };
+      svgCache.set(key, cached);
+      return cached;
+    })
+    .finally(() => {
+      svgInflight.delete(key);
+    });
+
+  svgInflight.set(key, promise);
+  return promise;
+}
+
 /** 来源标识：用于 ToolCallCard 区分是 agent 还是用户触发。 */
 export type AssetAttribution = 'agent' | 'user';
 
@@ -51,6 +104,12 @@ export interface UseAssetsApi {
   previewSvg: Ref<string | null>;
   openPreview: (icon: IconMeta) => Promise<void>;
   closePreview: () => void;
+
+  // ---- grid thumbnails ----
+  /** SVG strings keyed by `prefix/name` for the current search grid. */
+  thumbnailSvgs: Ref<Record<string, string>>;
+  /** Look up a thumbnail SVG for an icon (empty string if not loaded yet). */
+  getThumbnailSvg: (icon: IconMeta) => string;
 
   // ---- canvas import ----
   isImporting: Ref<boolean>;
@@ -132,13 +191,7 @@ export function useAssets(): UseAssetsApi {
 
   async function runSearch(): Promise<void> {
     const q = searchQuery.value.trim();
-    if (!q && !searchStyle.value && !searchCategory.value) {
-      // 空查询 + 无过滤 → 不主动搜索（避免空结果闪屏）
-      searchResults.value = [];
-      searchTotal.value = 0;
-      searchHasMore.value = false;
-      return;
-    }
+    // 空 query + 无 style/category 时浏览内置索引（「全部」默认列表）
     const token = ++lastSearchToken;
     isSearching.value = true;
     searchError.value = null;
@@ -189,33 +242,61 @@ export function useAssets(): UseAssetsApi {
   const renderError = ref<string | null>(null);
   const previewSvg = ref<string | null>(null);
 
-  const renderCache = new Map<string, CachedIcon>();
+  // ---- grid thumbnails ----
+  const thumbnailSvgs = ref<Record<string, string>>({});
+  let thumbLoadToken = 0;
+
+  function getThumbnailSvg(icon: IconMeta): string {
+    return thumbnailSvgs.value[iconKey(icon)] ?? '';
+  }
+
+  async function preloadThumbnails(icons: IconMeta[]): Promise<void> {
+    const token = ++thumbLoadToken;
+    const missing = icons.filter((icon) => !thumbnailSvgs.value[iconKey(icon)]);
+    if (missing.length === 0) return;
+
+    for (let i = 0; i < missing.length; i += THUMB_CONCURRENCY) {
+      if (token !== thumbLoadToken) return;
+      const batch = missing.slice(i, i + THUMB_CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(async (icon) => {
+          const cached = await fetchIconSvg(icon, DEFAULT_COLOR, THUMB_SIZE);
+          return { key: iconKey(icon), svg: cached.svg };
+        }),
+      );
+      if (token !== thumbLoadToken) return;
+      const next = { ...thumbnailSvgs.value };
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          next[result.value.key] = result.value.svg;
+        }
+      }
+      thumbnailSvgs.value = next;
+    }
+  }
+
+  watch(
+    searchResults,
+    (icons) => {
+      void preloadThumbnails(icons);
+    },
+    { deep: true },
+  );
 
   async function openPreview(icon: IconMeta): Promise<void> {
     previewedIcon.value = icon;
     renderError.value = null;
-    const cacheKey = `${icon.prefix}/${icon.name}/${DEFAULT_COLOR}/${DEFAULT_SIZE}`;
-    const cached = renderCache.get(cacheKey);
-    if (cached) {
-      previewSvg.value = cached.svg;
+    const key = cacheKey(icon.prefix, icon.name, DEFAULT_COLOR, DEFAULT_SIZE);
+    const hit = svgCache.get(key);
+    if (hit) {
+      previewSvg.value = hit.svg;
       return;
     }
     isRendering.value = true;
     try {
-      const res: RenderIconResult = await assetApi.renderIconSvg({
-        prefix: icon.prefix,
-        name: icon.name,
-        color: DEFAULT_COLOR,
-        size: DEFAULT_SIZE,
-      });
-      renderCache.set(cacheKey, {
-        svg: res.svg,
-        width: res.width,
-        height: res.height,
-        fromCache: res.fromCache,
-      });
+      const cached = await fetchIconSvg(icon, DEFAULT_COLOR, DEFAULT_SIZE);
       if (previewedIcon.value?.prefix === icon.prefix && previewedIcon.value?.name === icon.name) {
-        previewSvg.value = res.svg;
+        previewSvg.value = cached.svg;
       }
     } catch (err) {
       renderError.value = err instanceof Error ? err.message : String(err);
@@ -242,13 +323,14 @@ export function useAssets(): UseAssetsApi {
     isImporting.value = true;
     importError.value = null;
     try {
-      const result = await assetApi.importIconToCanvas({
-        prefix: icon.prefix,
-        name: icon.name,
-        color: opts?.color ?? DEFAULT_COLOR,
-        size: opts?.size ?? DEFAULT_SIZE,
-      });
-      // attribution === 'agent' 时在 chat 流上挂 ToolCallCard（仅占位）
+      const color = opts?.color ?? DEFAULT_COLOR;
+      const size = opts?.size ?? DEFAULT_SIZE;
+      const rendered = await fetchIconSvg(icon, color, size);
+      const { getOpenPencilBridge } = await import('@composables/useOpenPencil');
+      const bridge = getOpenPencilBridge();
+      await bridge.importSVG(rendered.svg, { replaceSelection: false });
+      const selected = bridge.editor.getSelectedNodes();
+      const layerId = selected[0]?.id ?? `${icon.prefix}/${icon.name}`;
       if (opts?.attribution === 'agent') {
         try {
           const chat = (
@@ -271,7 +353,13 @@ export function useAssets(): UseAssetsApi {
           // 静默失败，避免阻塞 UI
         }
       }
-      return result.layerId;
+      try {
+        const { useDocumentState } = await import('@composables/useDocumentState');
+        useDocumentState().markDirty();
+      } catch {
+        /* ignore */
+      }
+      return layerId;
     } catch (err) {
       importError.value = err instanceof Error ? err.message : String(err);
       throw err;
@@ -336,12 +424,21 @@ export function useAssets(): UseAssetsApi {
     mode: 'swatch_bar' | 'replace_color',
     opts?: { layerId?: string; replaceHex?: string },
   ): Promise<void> {
-    await assetApi.applyPalette({
-      paletteId,
-      mode,
-      layerId: opts?.layerId,
-      replaceHex: opts?.replaceHex,
-    });
+    const palette = palettes.value.find((p) => p.id === paletteId);
+    if (!palette) throw new Error(`调色板不存在：${paletteId}`);
+    const { getOpenPencilBridge } = await import('@composables/useOpenPencil');
+    const { applyPaletteToSelection } = await import('@composables/assetApply');
+    const bridge = getOpenPencilBridge();
+    if (opts?.layerId) {
+      bridge.editor.select([opts.layerId]);
+    }
+    applyPaletteToSelection(bridge.editor, palette, mode, opts?.replaceHex);
+    try {
+      const { useDocumentState } = await import('@composables/useDocumentState');
+      useDocumentState().markDirty();
+    } catch {
+      /* ignore */
+    }
   }
 
   // ---- gradients (W10) ----
@@ -368,11 +465,21 @@ export function useAssets(): UseAssetsApi {
     gradientId: string,
     opts?: { layerId?: string; opacity?: number },
   ): Promise<void> {
-    await assetApi.applyGradient({
-      gradientId,
-      layerId: opts?.layerId,
-      opacity: opts?.opacity,
-    });
+    const gradient = gradients.value.find((g) => g.id === gradientId);
+    if (!gradient) throw new Error(`渐变不存在：${gradientId}`);
+    const { getOpenPencilBridge } = await import('@composables/useOpenPencil');
+    const { applyGradientToSelection } = await import('@composables/assetApply');
+    const bridge = getOpenPencilBridge();
+    if (opts?.layerId) {
+      bridge.editor.select([opts.layerId]);
+    }
+    applyGradientToSelection(bridge.editor, gradient, opts?.opacity ?? 1);
+    try {
+      const { useDocumentState } = await import('@composables/useDocumentState');
+      useDocumentState().markDirty();
+    } catch {
+      /* ignore */
+    }
   }
 
   // ---- helpers ----
@@ -430,6 +537,9 @@ export function useAssets(): UseAssetsApi {
     openPreview,
     closePreview,
 
+    thumbnailSvgs,
+    getThumbnailSvg,
+
     isImporting,
     importError,
     importIconToCanvas,
@@ -480,4 +590,10 @@ export function useGroupedIcons(
     }
     return Array.from(map.entries()).map(([prefix, items]) => ({ prefix, items }));
   });
+}
+
+/** Clear the module-level SVG cache (tests only). */
+export function clearIconSvgCache(): void {
+  svgCache.clear();
+  svgInflight.clear();
 }

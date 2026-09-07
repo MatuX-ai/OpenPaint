@@ -2,8 +2,8 @@
  * imageConvert — 浏览器端 RGBA → PNG base64。
  *
  * 用 HTML5 Canvas（happy-dom 测试环境也提供基础 Canvas）。
- * 用于编辑菜单"粘贴"：从 OS 剪贴板拿到 RGBA bytes 后转 PNG 再喂给
- * `canvasApi.pasteImage`（后端只接受 data URL）。
+ * 用于编辑菜单"粘贴"：从 OS 剪贴板拿到 RGBA bytes 后转 PNG data URL，
+ * 再经 OpenPencil `placeDataUrl` 放入中央画布。
  */
 
 /**

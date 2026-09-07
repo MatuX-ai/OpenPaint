@@ -17,6 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { flushPromises } from '@vue/test-utils';
 import { nextTick, ref, type Ref } from 'vue';
 import type * as ApiIndex from '@api/index';
 import type { IconMeta, SearchIconsResult } from '@/types/asset';
@@ -93,6 +94,41 @@ vi.mock('@api/index', async () => {
   };
 });
 
+const assetOpMocks = vi.hoisted(() => ({
+  importSVG: vi.fn(async () => undefined),
+  getSelectedNodes: vi.fn(() => [{ id: 'op-node-1' }]),
+  select: vi.fn(),
+  updateNodeWithUndo: vi.fn(),
+  createShape: vi.fn(() => 'grad-rect'),
+  requestRepaint: vi.fn(),
+  state: { panX: 0, panY: 0, zoom: 1, currentPageId: 'page-1' },
+}));
+
+vi.mock('@composables/useOpenPencil', () => ({
+  getOpenPencilBridge: () => ({
+    editor: {
+      getSelectedNodes: assetOpMocks.getSelectedNodes,
+      select: assetOpMocks.select,
+      updateNodeWithUndo: assetOpMocks.updateNodeWithUndo,
+      createShape: assetOpMocks.createShape,
+      requestRepaint: assetOpMocks.requestRepaint,
+      state: assetOpMocks.state,
+      getLayerTree: () => [],
+    },
+    importSVG: assetOpMocks.importSVG,
+  }),
+  syncOpenPencilStateToCanvasStore: vi.fn(),
+}));
+
+vi.mock('@composables/useDocumentState', () => ({
+  useDocumentState: () => ({ markDirty: vi.fn(), markClean: vi.fn(), isDirty: { value: false } }),
+}));
+
+vi.mock('@composables/assetApply', () => ({
+  applyPaletteToSelection: vi.fn(() => ({ applied: 1, colors: ['#000'] })),
+  applyGradientToSelection: vi.fn(() => 1),
+}));
+
 const sampleIcons: IconMeta[] = [
   { prefix: 'lucide', name: 'search', category: 'ui', tags: ['search', 'find'] },
   { prefix: 'lucide', name: 'settings', category: 'ui', tags: ['settings', 'gear'] },
@@ -104,7 +140,7 @@ function makeResult(icons: IconMeta[] = sampleIcons, total = icons.length): Sear
 }
 
 describe('useAssets', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     mockSearchIcons.mockReset();
     mockRenderIconSvg.mockReset();
@@ -120,6 +156,12 @@ describe('useAssets', () => {
     mockGetAssetsConfig.mockReset();
     mockSetAssetsConfig.mockReset();
     mockGetAssetState.mockReset();
+    assetOpMocks.importSVG.mockReset();
+    assetOpMocks.importSVG.mockResolvedValue(undefined);
+    assetOpMocks.getSelectedNodes.mockReturnValue([{ id: 'op-node-1' }]);
+
+    const { clearIconSvgCache } = await import('@composables/useAssets');
+    clearIconSvgCache();
 
     // default mocks
     mockSearchIcons.mockResolvedValue(makeResult());
@@ -281,12 +323,19 @@ describe('useAssets', () => {
     expect(mockSearchIcons).toHaveBeenCalledWith(expect.objectContaining({ style: 'lucide' }));
   });
 
-  it('AST-105: 三参都为空 → 不触发 search', async () => {
+  it('AST-105: 三参都为空 → 浏览全部图标', async () => {
     const a = await load();
     a.searchQuery.value = '   '; // 纯空白 trim 后为空
     await vi.advanceTimersByTimeAsync(500);
-    expect(mockSearchIcons).not.toHaveBeenCalled();
-    expect(a.searchResults.value).toEqual([]);
+    await flushPromises();
+    expect(mockSearchIcons).toHaveBeenCalledTimes(1);
+    expect(mockSearchIcons).toHaveBeenCalledWith({
+      query: '',
+      style: undefined,
+      category: undefined,
+      limit: 30,
+    });
+    expect(a.searchResults.value).toEqual(sampleIcons);
   });
 
   it('AST-106: clearSearch 重置所有状态', async () => {
@@ -367,12 +416,11 @@ describe('useAssets', () => {
   it('AST-203: 不同 size 的导入不污染 openPreview 缓存', async () => {
     const a = await load();
     const icon = sampleIcons[0];
-    // openPreview 用 size=64；importIconToCanvas 默认也是 size=64，同 key
     await a.openPreview(icon);
-    await a.importIconToCanvas(icon); // 同样 size=64 命中缓存
-    // 但 importIconToCanvas 走的是 assetApi.importIconToCanvas 这个独立方法，
-    // 不会主动调 renderIconSvg，所以这里的 IPC 调用次数应仍是 1（仅 openPreview 那次）
-    expect(mockImportIconToCanvas).toHaveBeenCalledTimes(1);
+    await a.importIconToCanvas(icon); // size=64 命中 renderIconSvg 缓存
+    // openPreview + import 同 size：renderIconSvg 只调一次
+    expect(mockRenderIconSvg).toHaveBeenCalledTimes(1);
+    expect(assetOpMocks.importSVG).toHaveBeenCalledTimes(1);
   });
 
   it('AST-204: openPreview 失败时 renderError 被填充', async () => {
@@ -393,33 +441,49 @@ describe('useAssets', () => {
     expect(a.renderError.value).toBeNull();
   });
 
+  it('AST-206: 搜索结果变化时预加载缩略图到 thumbnailSvgs', async () => {
+    const a = await load();
+    a.searchResults.value = [sampleIcons[0]];
+    await flushPromises();
+    expect(a.thumbnailSvgs.value['lucide/search']).toBe('<svg><rect/></svg>');
+    expect(mockRenderIconSvg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prefix: 'lucide',
+        name: 'search',
+        size: 24,
+      }),
+    );
+    expect(a.getThumbnailSvg(sampleIcons[0])).toBe('<svg><rect/></svg>');
+  });
+
   // ---- AST-3xx: 导入画布链路 ----
 
-  it('AST-301: importIconToCanvas 调用 assetApi.importIconToCanvas 并返回 layerId', async () => {
+  it('AST-301: importIconToCanvas 渲染 SVG 并导入 OpenPencil', async () => {
     const a = await load();
     const icon = sampleIcons[0];
     const layerId = await a.importIconToCanvas(icon);
-    expect(layerId).toBe('L1');
-    expect(mockImportIconToCanvas).toHaveBeenCalledWith({
+    expect(layerId).toBe('op-node-1');
+    expect(mockRenderIconSvg).toHaveBeenCalledWith({
       prefix: icon.prefix,
       name: icon.name,
       color: 'currentColor',
       size: 64,
     });
+    expect(assetOpMocks.importSVG).toHaveBeenCalled();
   });
 
   it('AST-302: 导入失败时 importError 被填充，并重新抛出', async () => {
     const a = await load();
-    mockImportIconToCanvas.mockRejectedValueOnce(new Error('粘贴失败'));
+    assetOpMocks.importSVG.mockRejectedValueOnce(new Error('粘贴失败'));
     await expect(a.importIconToCanvas(sampleIcons[0])).rejects.toThrow('粘贴失败');
     expect(a.importError.value).toBe('粘贴失败');
     expect(a.isImporting.value).toBe(false);
   });
 
-  it('AST-303: 自定义 color / size 被传递到 IPC', async () => {
+  it('AST-303: 自定义 color / size 被传递到 renderIconSvg', async () => {
     const a = await load();
     await a.importIconToCanvas(sampleIcons[0], { color: '#ff0000', size: 128 });
-    expect(mockImportIconToCanvas).toHaveBeenCalledWith({
+    expect(mockRenderIconSvg).toHaveBeenCalledWith({
       prefix: sampleIcons[0].prefix,
       name: sampleIcons[0].name,
       color: '#ff0000',
@@ -437,19 +501,10 @@ describe('useAssets', () => {
     expect(a.searchError.value).toBe('plain string error');
   });
 
-  it('AST-402: importIconToCanvas 异步流程保持 isImporting 状态正确', async () => {
+  it('AST-402: importIconToCanvas 完成后 isImporting 复位', async () => {
     const a = await load();
-    let resolveFn!: (v: { layerId: string; svg: string }) => void;
-    mockImportIconToCanvas.mockImplementationOnce(
-      () =>
-        new Promise<{ layerId: string; svg: string }>((resolve) => {
-          resolveFn = resolve;
-        }),
-    );
     const p = a.importIconToCanvas(sampleIcons[0]);
-    await Promise.resolve();
     expect(a.isImporting.value).toBe(true);
-    resolveFn({ layerId: 'LX', svg: '<svg/>' });
     await p;
     expect(a.isImporting.value).toBe(false);
   });
@@ -519,24 +574,21 @@ describe('useAssets', () => {
     expect(a.activeBrushId.value).toBe('round-soft');
   });
 
-  it('AST-703: applyPalette swatch_bar 把参数转成 snake_case 传给 IPC', async () => {
+  it('AST-703: applyPalette 走 OpenPencil 选区着色', async () => {
+    const { applyPaletteToSelection } = await import('@composables/assetApply');
     const a = await load();
+    await a.loadPalettes();
     await a.applyPalette('material', 'swatch_bar');
-    expect(mockApplyPalette).toHaveBeenCalledWith({
-      paletteId: 'material',
-      mode: 'swatch_bar',
-      layerId: undefined,
-      replaceHex: undefined,
-    });
+    expect(applyPaletteToSelection).toHaveBeenCalled();
+    expect(mockApplyPalette).not.toHaveBeenCalled();
   });
 
-  it('AST-704: applyGradient 带 opacity 时透传', async () => {
+  it('AST-704: applyGradient 走 OpenPencil 渐变填充', async () => {
+    const { applyGradientToSelection } = await import('@composables/assetApply');
     const a = await load();
+    await a.loadGradients();
     await a.applyGradient('sunset', { opacity: 0.5 });
-    expect(mockApplyGradient).toHaveBeenCalledWith({
-      gradientId: 'sunset',
-      layerId: undefined,
-      opacity: 0.5,
-    });
+    expect(applyGradientToSelection).toHaveBeenCalled();
+    expect(mockApplyGradient).not.toHaveBeenCalled();
   });
 });

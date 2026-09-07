@@ -34,10 +34,34 @@ vi.mock('@api/index', () => ({
 }));
 
 // W14+ 统一画布架构：快捷键走 OpenPencil bridge 单例。
-// 测试环境里 mock 出 noop 的 undo / redo 避免真实调用。
+const opMocks = vi.hoisted(() => ({
+  penCommit: vi.fn(),
+  penCancel: vi.fn(),
+  selectAll: vi.fn(),
+  clearSelection: vi.fn(),
+  deleteSelected: vi.fn(),
+  getSelectedNodes: vi.fn(() => [{ id: 'n1' }]),
+  zoomTo100: vi.fn(),
+  zoomToFit: vi.fn(),
+  zoomToLevel: vi.fn(),
+  state: { activeTool: 'SELECT' as string, penState: null as unknown, zoom: 1, panX: 0, panY: 0 },
+}));
+
 vi.mock('@composables/useOpenPencil', () => ({
   getOpenPencilBridge: () => ({
-    editor: {} as unknown,
+    editor: {
+      setTool: vi.fn(),
+      state: opMocks.state,
+      penCommit: opMocks.penCommit,
+      penCancel: opMocks.penCancel,
+      selectAll: opMocks.selectAll,
+      clearSelection: opMocks.clearSelection,
+      deleteSelected: opMocks.deleteSelected,
+      getSelectedNodes: opMocks.getSelectedNodes,
+      zoomTo100: opMocks.zoomTo100,
+      zoomToFit: opMocks.zoomToFit,
+      zoomToLevel: opMocks.zoomToLevel,
+    } as unknown,
     status: { value: 'ready' },
     lastResult: { value: null },
     exportSVG: () => null,
@@ -50,6 +74,7 @@ vi.mock('@composables/useOpenPencil', () => ({
     replaceDocument: () => {},
     onEditorEvent: () => () => {},
   }),
+  syncOpenPencilStateToCanvasStore: vi.fn(),
 }));
 
 import * as ApiIndex from '@api/index';
@@ -61,6 +86,9 @@ describe('useShortcuts', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    opMocks.state.penState = null;
+    opMocks.state.activeTool = 'SELECT';
+    opMocks.state.zoom = 1;
   });
 
   it('返回 { register, install, uninstall, defaultBindings }', () => {
@@ -129,12 +157,15 @@ describe('useShortcuts', () => {
     expect(combos).not.toContain('Ctrl+Alt+P');
     // 视图
     expect(combos).toContain('Ctrl+0');
+    // 钢笔收笔
+    expect(combos).toContain('Enter');
+    expect(combos).toContain('Escape');
     // 帮助
     expect(combos).toContain('?');
     wrapper.unmount();
   });
 
-  it('defaultBindings 中 V/B/E 工具快捷键调用 setActiveTool', () => {
+  it('defaultBindings 中 V/B 工具快捷键调用 activateTool', () => {
     let captured: ReturnType<typeof useShortcuts> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -146,10 +177,38 @@ describe('useShortcuts', () => {
     const list = captured!.defaultBindings();
     const brushBinding = list.find((b) => b.combo === 'B')!;
     brushBinding.run(new KeyboardEvent('keydown'));
-    expect(useCanvasStore().activeTool).toBe('brush');
+    expect(useCanvasStore().activeTool).toBe('pen');
     const vBinding = list.find((b) => b.combo === 'V')!;
     vBinding.run(new KeyboardEvent('keydown'));
     expect(useCanvasStore().activeTool).toBe('select');
+    wrapper.unmount();
+  });
+
+  it('Enter / Escape 仅在钢笔绘制中结束或取消路径', () => {
+    let captured: ReturnType<typeof useShortcuts> | null = null;
+    const Comp = defineComponent({
+      setup() {
+        captured = useShortcuts();
+        return () => h('div');
+      },
+    });
+    const wrapper = mount(Comp, { attachTo: document.body });
+    const list = captured!.defaultBindings();
+    const enter = list.find((b) => b.combo === 'Enter')!;
+    const esc = list.find((b) => b.combo === 'Escape')!;
+
+    expect(enter.run(new KeyboardEvent('keydown', { key: 'Enter' }))).toBe(false);
+    expect(esc.run(new KeyboardEvent('keydown', { key: 'Escape' }))).toBe(false);
+    expect(opMocks.penCommit).not.toHaveBeenCalled();
+    expect(opMocks.penCancel).not.toHaveBeenCalled();
+
+    opMocks.state.penState = { vertices: [{ x: 0, y: 0 }, { x: 10, y: 10 }] };
+    enter.run(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(opMocks.penCommit).toHaveBeenCalledWith(false);
+
+    opMocks.penCommit.mockClear();
+    esc.run(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(opMocks.penCancel).toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -201,7 +260,7 @@ describe('useShortcuts', () => {
     wrapper.unmount();
   });
 
-  it('Ctrl+0 重置 zoom 到 1', () => {
+  it('Ctrl+0 调用 editor.zoomTo100', () => {
     let captured: ReturnType<typeof useShortcuts> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -210,11 +269,9 @@ describe('useShortcuts', () => {
       },
     });
     const wrapper = mount(Comp, { attachTo: document.body });
-    const canvas = useCanvasStore();
-    canvas.setZoom(2.5);
     const k = captured!.defaultBindings().find((b) => b.combo === 'Ctrl+0')!;
     k.run(new KeyboardEvent('keydown'));
-    expect(canvas.zoom).toBe(1);
+    expect(opMocks.zoomTo100).toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -405,13 +462,7 @@ describe('useShortcuts', () => {
     wrapper.unmount();
   });
 
-  it('Ctrl+A 调用 getSelectionBounds（不抛错）', async () => {
-    vi.mocked(ApiIndex.canvasApi.getSelectionBounds).mockResolvedValueOnce({
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-    });
+  it('Ctrl+A 调用 editor.selectAll', async () => {
     let captured: ReturnType<typeof useShortcuts> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -422,12 +473,11 @@ describe('useShortcuts', () => {
     const wrapper = mount(Comp, { attachTo: document.body });
     const k = captured!.defaultBindings().find((b) => b.combo === 'Ctrl+A')!;
     await k.run(new KeyboardEvent('keydown'));
-    expect(ApiIndex.canvasApi.getSelectionBounds).toHaveBeenCalled();
+    expect(opMocks.selectAll).toHaveBeenCalled();
     wrapper.unmount();
   });
 
-  it('Ctrl+D 调用 clearSelection', async () => {
-    vi.mocked(ApiIndex.canvasApi.clearSelection).mockResolvedValueOnce();
+  it('Ctrl+D 调用 editor.clearSelection', async () => {
     let captured: ReturnType<typeof useShortcuts> | null = null;
     const Comp = defineComponent({
       setup() {
@@ -438,7 +488,7 @@ describe('useShortcuts', () => {
     const wrapper = mount(Comp, { attachTo: document.body });
     const k = captured!.defaultBindings().find((b) => b.combo === 'Ctrl+D')!;
     await k.run(new KeyboardEvent('keydown'));
-    expect(ApiIndex.canvasApi.clearSelection).toHaveBeenCalled();
+    expect(opMocks.clearSelection).toHaveBeenCalled();
     wrapper.unmount();
   });
 

@@ -1,17 +1,18 @@
 /**
  * useFileActions — 高层"文件 IO"动作（保存到图库 / 打开 / 导出 / 批量导出）。
  *
- * 封装 canvasApi / galleryApi 的调用，串接 useDocumentState / useToast，
- * 让上层（菜单、快捷键、TopBar 按钮）只关心"做什么"，不关心实现。
+ * W14+：打开 / 导入 / 导出 / 撤销走 OpenPencil 中央画布；
+ * 仅图库落盘与本地写文件仍经 Tauri FS / galleryApi。
  *
  * 关联需求：docs/ux-onboarding-requirements.md §3.3、US-3 / US-4 / US-5 / US-9 / US-6。
  */
 
-import { canvasApi, galleryApi } from '@api/index';
+import { galleryApi } from '@api/index';
 import { useDocumentState } from './useDocumentState';
 import { useToast } from './useToast';
 import { useCanvasStore } from '@stores/canvasStore';
 import { isTauri, WebPreviewUnsupportedError } from '@api/runtime';
+import { getOpenPencilBridge, syncOpenPencilStateToCanvasStore } from './useOpenPencil';
 
 const SUPPORTED_OPEN_EXT = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 
@@ -57,31 +58,23 @@ async function tauriWriteFile(path: string, data: string): Promise<void> {
   }
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
-    reader.onload = () => {
-      const r = reader.result;
-      if (typeof r === 'string') resolve(r);
-      else reject(new Error('FileReader did not return a string'));
-    };
-    reader.readAsDataURL(file);
-  });
+function mimeFromExt(ext: string): string {
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'svg') return 'image/svg+xml';
+  return 'image/png';
 }
 
 export function useFileActions() {
   const doc = useDocumentState();
   const toast = useToast();
   const canvasStore = useCanvasStore();
+  const bridge = getOpenPencilBridge();
 
   async function importFromDataUrl(dataUrl: string, extHint?: string): Promise<boolean> {
-    if (!isTauri()) {
-      toast.warn('导入图片仅在桌面版可用（web preview 默认不落画布）');
-      return false;
-    }
     try {
-      await canvasApi.pasteImage(dataUrl);
+      const name = `import.${extHint || 'png'}`;
+      await bridge.placeDataUrl(dataUrl, name);
       doc.markDirty();
       toast.success(`已导入到画布${extHint ? ` (${extHint})` : ''}`);
       return true;
@@ -92,13 +85,13 @@ export function useFileActions() {
   }
 
   /**
-   * 从拖拽事件 / input.files 拿到 File 列表，转 dataURL 后逐个 paste 到画布。
+   * 从拖拽事件 / input.files 拿到 File 列表，直接 placeFiles 到 OpenPencil。
    * 非图像文件被拒绝；超 50MB 的文件拒绝（避免 webview 内存炸）。
    */
   async function importFromFiles(files: FileList | File[]): Promise<void> {
     const list = Array.from(files);
     if (list.length === 0) return;
-    let imported = 0;
+    const accepted: File[] = [];
     let rejected = 0;
     for (const f of list) {
       const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
@@ -112,17 +105,18 @@ export function useFileActions() {
         rejected++;
         continue;
       }
-      try {
-        const dataUrl = await readFileAsDataUrl(f);
-        const ok = await importFromDataUrl(dataUrl, ext);
-        if (ok) imported++;
-      } catch (e) {
-        toast.error(`${f.name}：读取失败（${String((e as Error).message ?? e)}）`);
-        rejected++;
-      }
+      accepted.push(f);
     }
-    if (imported > 0 && rejected > 0) {
-      toast.info(`已导入 ${imported} 张，跳过 ${rejected} 个`);
+    if (accepted.length === 0) return;
+    try {
+      await bridge.placeFiles(accepted);
+      doc.markDirty();
+      toast.success(accepted.length === 1 ? '已导入到画布' : `已导入 ${accepted.length} 张`);
+      if (rejected > 0) {
+        toast.info(`已导入 ${accepted.length} 张，跳过 ${rejected} 个`);
+      }
+    } catch (e) {
+      toast.error(`导入失败：${String((e as Error).message ?? e)}`);
     }
   }
 
@@ -134,29 +128,15 @@ export function useFileActions() {
     try {
       const path = await importTauriDialogOpen();
       if (!path) return;
-      const ext = path.split('.').pop()?.toLowerCase() ?? '';
+      const base = path.split(/[/\\]/).pop() ?? 'image.png';
+      const ext = base.split('.').pop()?.toLowerCase() ?? '';
       if (!SUPPORTED_OPEN_EXT.includes(ext)) {
         toast.error(`暂不支持 .${ext} 格式，可转 PNG / JPG / WebP / SVG 后再试`);
         return;
       }
       const { readFile } = await import('@tauri-apps/plugin-fs');
       const bytes = await readFile(path);
-      // 拼 base64
-      let bin = '';
-      const chunk = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      const mime =
-        ext === 'jpg' || ext === 'jpeg'
-          ? 'image/jpeg'
-          : ext === 'webp'
-            ? 'image/webp'
-            : ext === 'svg'
-              ? 'image/svg+xml'
-              : 'image/png';
-      const dataUrl = `data:${mime};base64,${btoa(bin)}`;
-      await canvasApi.pasteImage(dataUrl);
+      await bridge.placeBytes(bytes, base, mimeFromExt(ext));
       doc.markDirty();
       toast.success('已导入到画布');
     } catch (e) {
@@ -171,14 +151,14 @@ export function useFileActions() {
     }
     doc.markSaving();
     try {
-      const png = await canvasApi.renderCanvasPng();
-      if (!png) {
+      const exported = await bridge.exportRaster('png');
+      if (!exported) {
         toast.error('画布为空或渲染失败');
         doc.markDirty();
         return false;
       }
       const res = await galleryApi.save({
-        imageData: png,
+        imageData: exported.dataUrl,
         tags,
         source: 'imported',
       });
@@ -207,15 +187,16 @@ export function useFileActions() {
         filters: [{ name: format.toUpperCase(), extensions: [format] }],
       });
       if (!path) return;
-      const res = await canvasApi.renderCanvasImage({
-        format,
-        quality,
-        targetLongEdge: 0,
-      });
-      const dataUrl = `data:${res.mime};base64,${res.bytesBase64}`;
-      await tauriWriteFile(path, dataUrl);
+      const res = await bridge.exportRaster(format, quality);
+      if (!res) {
+        toast.error('画布为空或渲染失败');
+        return;
+      }
+      await tauriWriteFile(path, res.dataUrl);
       doc.markExported();
-      toast.success(`已导出 ${res.width}×${res.height} (${format.toUpperCase()})`);
+      const sizeLabel =
+        res.width > 0 && res.height > 0 ? `${res.width}×${res.height} ` : '';
+      toast.success(`已导出 ${sizeLabel}(${format.toUpperCase()})`);
     } catch (e) {
       toast.error(`导出失败：${String((e as Error).message ?? e)}`);
     }
@@ -223,7 +204,7 @@ export function useFileActions() {
 
   async function batchExport(
     sizes: number[],
-    saveToGallery: boolean,
+    saveToGalleryFlag: boolean,
     tags: string[],
   ): Promise<void> {
     if (!isTauri()) {
@@ -234,7 +215,8 @@ export function useFileActions() {
     let dirPath: string | null = null;
     try {
       const { open: openDir } = await import('@tauri-apps/plugin-dialog');
-      dirPath = await openDir({ directory: true, multiple: false });
+      const selected = await openDir({ directory: true, multiple: false });
+      dirPath = typeof selected === 'string' ? selected : null;
     } catch {
       dirPath = null;
     }
@@ -243,19 +225,21 @@ export function useFileActions() {
     doc.markSaving();
     let success = 0;
     try {
+      // 先导出整页 PNG，再在前端按长边缩放各尺寸（避免重复走 CanvasKit）。
+      const base = await bridge.exportRaster('png');
+      if (!base) {
+        toast.error('画布为空或渲染失败');
+        doc.markDirty();
+        return;
+      }
       for (let i = 0; i < sizes.length; i++) {
         const s = sizes[i];
         const filePath = `${dirPath.replace(/[\\/]+$/, '')}/icon-${s}x${s}.png`;
         try {
-          const res = await canvasApi.renderCanvasImage({
-            format: 'png',
-            quality: 100,
-            targetLongEdge: s,
-          });
-          const dataUrl = `data:${res.mime};base64,${res.bytesBase64}`;
+          const dataUrl = await resizeDataUrlToLongEdge(base.dataUrl, s);
           await tauriWriteFile(filePath, dataUrl);
           success++;
-          if (saveToGallery) {
+          if (saveToGalleryFlag) {
             await galleryApi.save({
               imageData: dataUrl,
               tags: [...tags, `${s}x${s}`],
@@ -280,25 +264,22 @@ export function useFileActions() {
     height: number;
     unit: 'px' | 'mm';
     dpi: 72 | 144 | 300;
-    handleLayers: 'crop' | 'discard' | 'cancel';
+    handleLayers: 'keep' | 'discard' | 'cancel';
   }): Promise<void> {
     if (args.handleLayers === 'cancel') return;
-    if (!isTauri()) {
-      toast.warn('新建画布仅在桌面版可用（web 预览默认 1280×720）');
-      // 在 web preview 里不报错，只是更新 store
-      canvasStore.canvasWidth = args.width;
-      canvasStore.canvasHeight = args.height;
-      canvasStore.resetView();
-      doc.resetForNew();
-      return;
-    }
+    const w = args.unit === 'mm' ? Math.round((args.width / 25.4) * args.dpi) : args.width;
+    const h = args.unit === 'mm' ? Math.round((args.height / 25.4) * args.dpi) : args.height;
     try {
-      const w = args.unit === 'mm' ? Math.round((args.width / 25.4) * args.dpi) : args.width;
-      const h = args.unit === 'mm' ? Math.round((args.height / 25.4) * args.dpi) : args.height;
-      await canvasApi.resizeCanvas(w, h);
+      // OpenPencil 文档通过清空选区并重置视口表示"新建"；保留当前图时仅更新尺寸元数据。
+      if (args.handleLayers === 'discard') {
+        bridge.editor.selectAll();
+        bridge.editor.deleteSelected();
+      }
       canvasStore.canvasWidth = w;
       canvasStore.canvasHeight = h;
       canvasStore.resetView();
+      bridge.editor.zoomToFit();
+      syncOpenPencilStateToCanvasStore(bridge.editor);
       doc.resetForNew();
       toast.success(`已创建 ${w}×${h} 画布`);
     } catch (e) {
@@ -308,10 +289,7 @@ export function useFileActions() {
 
   async function undo(): Promise<void> {
     try {
-      await canvasApi.undo();
-      const summary = await canvasApi.getCanvasSummary();
-      canvasStore.canUndo = summary.canUndo;
-      canvasStore.canRedo = summary.canRedo;
+      bridge.undo();
       doc.markDirty();
     } catch (e) {
       toast.error(`撤销失败：${String((e as Error).message ?? e)}`);
@@ -320,10 +298,7 @@ export function useFileActions() {
 
   async function redo(): Promise<void> {
     try {
-      await canvasApi.redo();
-      const summary = await canvasApi.getCanvasSummary();
-      canvasStore.canUndo = summary.canUndo;
-      canvasStore.canRedo = summary.canRedo;
+      bridge.redo();
       doc.markDirty();
     } catch (e) {
       toast.error(`重做失败：${String((e as Error).message ?? e)}`);
@@ -341,4 +316,33 @@ export function useFileActions() {
     importFromDataUrl,
     importFromFiles,
   };
+}
+
+/** 用浏览器 Canvas 把 data URL 缩放到指定长边（保持比例，输出正方形画布居中）。 */
+async function resizeDataUrlToLongEdge(dataUrl: string, longEdge: number): Promise<string> {
+  if (typeof document === 'undefined') {
+    throw new Error('resizeDataUrlToLongEdge requires a browser environment');
+  }
+  const img = await loadImage(dataUrl);
+  const srcLong = Math.max(img.width, img.height) || 1;
+  const scale = longEdge / srcLong;
+  const dw = Math.max(1, Math.round(img.width * scale));
+  const dh = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = longEdge;
+  canvas.height = longEdge;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas context unavailable');
+  ctx.clearRect(0, 0, longEdge, longEdge);
+  ctx.drawImage(img, Math.floor((longEdge - dw) / 2), Math.floor((longEdge - dh) / 2), dw, dh);
+  return canvas.toDataURL('image/png');
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to decode image for resize'));
+    img.src = src;
+  });
 }

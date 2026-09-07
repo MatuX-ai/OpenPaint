@@ -14,7 +14,8 @@ import { useChatStore } from '@stores/chatStore';
 import { useUIStore } from '@stores/uiStore';
 import { useLlmConfig } from '@composables/useLlmConfig';
 import { mockChatReply } from '@composables/mockChatReply';
-import { agentApi, canvasToolsApi } from '@api/index';
+import { agentApi } from '@api/index';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
 import { uuid } from '@utils/helpers';
 import type { ChatMessage, ToolCall } from '@/types/agent';
 
@@ -76,8 +77,25 @@ export function useAgent(): UseAgentReturn {
   async function sendWithSelection(text: string) {
     let selectionNote = '';
     try {
-      const bounds = await canvasToolsApi.getSelectionBounds();
-      selectionNote = `\n[当前选区: ${bounds.width}×${bounds.height} at (${bounds.x},${bounds.y})]`;
+      const bridge = getOpenPencilBridge();
+      const nodes = bridge.editor.getSelectedNodes();
+      if (nodes.length === 0) {
+        selectionNote = '\n[无选区]';
+      } else {
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const n of nodes) {
+          minX = Math.min(minX, n.x);
+          minY = Math.min(minY, n.y);
+          maxX = Math.max(maxX, n.x + n.width);
+          maxY = Math.max(maxY, n.y + n.height);
+        }
+        const w = Math.max(0, Math.round(maxX - minX));
+        const h = Math.max(0, Math.round(maxY - minY));
+        selectionNote = `\n[当前选区: ${nodes.length} 个节点，约 ${w}×${h} at (${Math.round(minX)},${Math.round(minY)})]`;
+      }
     } catch {
       selectionNote = '\n[无选区]';
     }

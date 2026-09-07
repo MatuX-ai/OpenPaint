@@ -138,7 +138,7 @@ defineExpose({ canvasRef, paintBase64, refresh, zoomIn, zoomOut, resetView });
       <div
         v-if="
           pointer &&
-          (activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rect-select')
+          (activeTool === 'pen' || activeTool === 'eraser' || activeTool === 'rect-select')
         "
         class="canvas-view__crosshair"
         :style="{ left: pointer.x + 'px', top: pointer.y + 'px' }"

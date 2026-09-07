@@ -1,30 +1,36 @@
 <!--
-  Layer panel.
-  Shows the synced layer list from the canvas store and provides
-  add/remove actions. Selecting a layer asks the backend to make it
-  the new active layer.
+  Layer panel — OpenPencil top-level nodes as layers.
 
-  W13 UX 验收补齐：
-    - 接收 LayerItem 的锁定 / 不透明度 / 混合模式变更事件，转发到 IPC
-    - 在图层项上右键弹出通用 ContextMenu（旋转 90° / -90° / 删除 / 复制占位）
+  Actions: add / delete / duplicate / merge down / merge visible / flatten /
+  rename / reorder / visibility / lock / opacity / blend / rotate.
 -->
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Plus, Trash2, RotateCw, RotateCcw, Copy } from 'lucide-vue-next';
+import {
+  Plus,
+  Trash2,
+  RotateCw,
+  RotateCcw,
+  Copy,
+  Layers,
+  Combine,
+} from 'lucide-vue-next';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useToast } from '@composables/useToast';
-import { canvasApi } from '@api/index';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import * as layerOps from '@composables/layerOps';
 import LayerItem from './LayerItem.vue';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu.vue';
 import type { BlendMode } from '@/types/canvas';
 
 const store = useCanvasStore();
 const toast = useToast();
+const bridge = getOpenPencilBridge();
 
 const isAdding = ref(false);
+const dragFromId = ref<string | null>(null);
 
-// 右键菜单状态
 const menuState = ref<{ visible: boolean; x: number; y: number; layerId: string }>({
   visible: false,
   x: 0,
@@ -32,85 +38,164 @@ const menuState = ref<{ visible: boolean; x: number; y: number; layerId: string 
   layerId: '',
 });
 
-const layers = computed(() => [...store.layerList].reverse()); // top-most first
+/** UI list: top-most first. */
+const layers = computed(() => [...store.layerList].reverse());
+
+function run(result: layerOps.LayerOpResult, successMsg?: string) {
+  if (!result.ok) {
+    toast.warn(result.message);
+    return false;
+  }
+  if (successMsg) toast.success(successMsg);
+  return true;
+}
 
 async function addLayer() {
   if (isAdding.value) return;
   isAdding.value = true;
   try {
-    const id = await canvasApi.addLayer(`Layer ${store.layerList.length + 1}`);
-    store.activeLayerId = id;
+    const r = layerOps.addLayer(bridge.editor, `图层 ${store.layerList.length + 1}`);
+    run(r);
   } catch (e) {
-    console.error('[LayerPanel] addLayer failed:', e);
+    toast.error(`新建图层失败：${String((e as Error).message ?? e)}`);
   } finally {
     isAdding.value = false;
   }
 }
 
-async function removeActive() {
-  if (store.layerList.length <= 1) {
-    console.warn('[LayerPanel] cannot remove last layer');
-    return;
-  }
-  try {
-    await canvasApi.removeActiveLayer();
-  } catch (e) {
-    console.error('[LayerPanel] removeActiveLayer failed:', e);
-  }
+function removeActive() {
+  const r = layerOps.deleteActiveLayer(bridge.editor, store.activeLayerId);
+  run(r);
 }
-
-// ---- LayerItem 事件 handlers ----
 
 function onVisibilityChanged(layerId: string, visible: boolean) {
   const layer = store.layerList.find((l) => l.id === layerId);
   if (layer) layer.visible = visible;
+  try {
+    layerOps.setLayerVisible(bridge.editor, layerId, visible);
+  } catch (e) {
+    if (layer) layer.visible = !visible;
+    toast.error(`切换可见性失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
 function onLockedChanged(layerId: string, locked: boolean) {
   const layer = store.layerList.find((l) => l.id === layerId);
   if (layer) layer.locked = locked;
+  try {
+    layerOps.setLayerLocked(bridge.editor, layerId, locked);
+  } catch (e) {
+    if (layer) layer.locked = !locked;
+    toast.error(`切换锁定失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
 function onOpacityChanged(layerId: string, opacity: number) {
   const layer = store.layerList.find((l) => l.id === layerId);
+  const prev = layer?.opacity;
   if (layer) layer.opacity = opacity;
+  try {
+    layerOps.setLayerOpacity(bridge.editor, layerId, opacity);
+  } catch (e) {
+    if (layer && prev != null) layer.opacity = prev;
+    toast.error(`调节不透明度失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
 function onBlendChanged(layerId: string, mode: BlendMode) {
   const layer = store.layerList.find((l) => l.id === layerId);
+  const prev = layer?.blendMode;
   if (layer) layer.blendMode = mode;
+  try {
+    layerOps.setLayerBlendMode(bridge.editor, layerId, mode);
+  } catch (e) {
+    if (layer && prev) layer.blendMode = prev;
+    toast.error(`切换混合模式失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
-async function onRotateRequest(layerId: string, degrees: number) {
+function onRotateRequest(layerId: string, degrees: number) {
   try {
-    await canvasApi.rotateLayer(layerId, degrees);
-    toast.success(`已旋转 ${degrees > 0 ? '顺时针' : '逆时针'} ${Math.abs(degrees)}°`);
+    const r = layerOps.rotateLayer(bridge.editor, layerId, degrees);
+    run(r, `已旋转 ${degrees > 0 ? '顺时针' : '逆时针'} ${Math.abs(degrees)}°`);
   } catch (e) {
     toast.error(`旋转失败：${String((e as Error).message ?? e)}`);
   }
 }
 
-async function onDeleteRequest(layerId: string) {
-  if (store.layerList.length <= 1) {
-    toast.warn('至少保留一个图层');
-    return;
-  }
-  // 选中要删除的图层后调用 removeActiveLayer
+function onDeleteRequest(layerId: string) {
   try {
-    await canvasApi.setActiveLayer(layerId);
-    store.activeLayerId = layerId;
-    await canvasApi.removeActiveLayer();
+    run(layerOps.deleteLayer(bridge.editor, layerId));
   } catch (e) {
     toast.error(`删除失败：${String((e as Error).message ?? e)}`);
   }
 }
 
-function onDuplicateRequest(_layerId: string) {
-  // TODO(W13+): 复制图层需要后端 duplicate_layer IPC，当前 mock toast 即可
-  toast.info('复制图层：W14+ 提供');
+function onDuplicateRequest(layerId: string) {
+  try {
+    run(layerOps.duplicateLayer(bridge.editor, layerId), '已复制图层');
+  } catch (e) {
+    toast.error(`复制失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
-// ---- 右键菜单 ----
+function onRenameRequest(layerId: string, name: string) {
+  try {
+    run(layerOps.renameLayer(bridge.editor, layerId, name));
+  } catch (e) {
+    toast.error(`重命名失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+function onSelectRequest(layerId: string) {
+  try {
+    layerOps.selectLayer(bridge.editor, layerId);
+  } catch (e) {
+    console.error('[LayerPanel] select failed:', e);
+  }
+}
+
+function onDragStart(layerId: string) {
+  dragFromId.value = layerId;
+}
+
+function onDrop(targetId: string) {
+  const fromId = dragFromId.value;
+  dragFromId.value = null;
+  if (!fromId || fromId === targetId) return;
+  const display = layers.value.map((l) => l.id);
+  const toIndex = display.indexOf(targetId);
+  if (toIndex < 0) return;
+  try {
+    run(layerOps.reorderLayer(bridge.editor, fromId, toIndex));
+  } catch (e) {
+    toast.error(`重排失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+function onMergeDown(layerId: string) {
+  try {
+    run(layerOps.mergeDown(bridge.editor, layerId), '已向下合并');
+  } catch (e) {
+    toast.error(`合并失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+function onMergeVisible() {
+  try {
+    run(layerOps.mergeVisible(bridge.editor), '已合并可见图层');
+  } catch (e) {
+    toast.error(`合并可见失败：${String((e as Error).message ?? e)}`);
+  }
+}
+
+function onFlattenVisible() {
+  try {
+    run(layerOps.flattenVisible(bridge.editor), '已拼合可见图层');
+  } catch (e) {
+    toast.error(`拼合失败：${String((e as Error).message ?? e)}`);
+  }
+}
 
 function onContextMenu(event: MouseEvent, layerId: string) {
   menuState.value = { visible: true, x: event.clientX, y: event.clientY, layerId };
@@ -122,7 +207,12 @@ function closeMenu() {
 
 function buildMenuItems(layerId: string): ContextMenuItem[] {
   const layer = store.layerList.find((l) => l.id === layerId);
+  const bottomToTop = store.layerList.map((l) => l.id);
+  const idx = bottomToTop.indexOf(layerId);
+  const canMergeDown = idx > 0;
   const hasMultipleLayers = store.layerList.length > 1;
+  const visibleCount = store.layerList.filter((l) => l.visible).length;
+
   return [
     {
       label: '顺时针旋转 90°',
@@ -140,12 +230,28 @@ function buildMenuItems(layerId: string): ContextMenuItem[] {
     {
       label: '复制图层',
       icon: Copy,
-      disabled: true,
       onSelect: () => onDuplicateRequest(layerId),
     },
     {
+      label: '向下合并',
+      icon: Combine,
+      disabled: !canMergeDown,
+      onSelect: () => onMergeDown(layerId),
+    },
+    {
+      label: '合并可见',
+      icon: Layers,
+      disabled: visibleCount < 2,
+      onSelect: () => onMergeVisible(),
+    },
+    {
+      label: '拼合可见',
+      disabled: visibleCount < 1,
+      onSelect: () => onFlattenVisible(),
+    },
+    { label: '', separator: true },
+    {
       label: layer?.locked ? '解锁图层' : '锁定图层',
-      icon: layer?.locked ? undefined : undefined,
       onSelect: () => onLockedChanged(layerId, !layer?.locked),
     },
     {
@@ -201,6 +307,10 @@ function buildMenuItems(layerId: string): ContextMenuItem[] {
         @blend-changed="onBlendChanged"
         @rotate-request="onRotateRequest"
         @delete-request="onDeleteRequest"
+        @rename-request="onRenameRequest"
+        @select-request="onSelectRequest"
+        @drag-start="onDragStart"
+        @drop-on="onDrop"
         @context-menu="onContextMenu"
       />
     </ul>

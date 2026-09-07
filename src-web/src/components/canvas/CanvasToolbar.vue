@@ -12,7 +12,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import {
   Undo2,
   Redo2,
@@ -30,40 +30,85 @@ import { useToast } from '@composables/useToast';
 import { canvasApi } from '@api/index';
 import { getOpenPencilBridge } from '@composables/useOpenPencil';
 import type { BlendMode } from '@/types/canvas';
+import {
+  isShapeDrawTool,
+  toolLabel as resolveToolLabel,
+} from '@/tools/editorTools';
+import { activateTool } from '@/tools/useEditorTool';
+import {
+  applyFillStyleToSelected,
+  applyShapeExtrasToSelected,
+  applyStrokeStyleToSelected,
+  applyTextStyleToSelected,
+} from '@composables/vectorStrokeStyle';
+import { addLayer as addOpLayer, rotateLayer as rotateOpLayer, setLayerBlendMode } from '@composables/layerOps';
+import {
+  zoomIn as zoomInOp,
+  zoomOut as zoomOutOp,
+  zoomToFit as zoomToFitOp,
+} from '@composables/viewportOps';
 import TextInputDialog from './TextInputDialog.vue';
 
 const store = useCanvasStore();
 const toast = useToast();
 const bridge = getOpenPencilBridge();
 
-const showBrushControls = computed(
-  () => store.activeTool === 'brush' || store.activeTool === 'eraser',
+function selectedNodes() {
+  void store.activeLayerId;
+  void store.layerList;
+  try {
+    return bridge.editor.getSelectedNodes();
+  } catch {
+    return [];
+  }
+}
+
+const showRasterControls = computed(
+  () => store.activeTool === 'eraser' || store.activeTool === 'bucket',
+);
+const showEraserSize = computed(() => store.activeTool === 'eraser');
+const showBucketControls = computed(() => store.activeTool === 'bucket');
+
+const showFillControls = computed(() => {
+  if (store.activeTool === 'text') return true;
+  if (isShapeDrawTool(store.activeTool) && store.activeTool !== 'line') return true;
+  return selectedNodes().some((n) => {
+    if (n.type === 'TEXT' || n.type === 'PAGE' || n.type === 'VECTOR') return n.type === 'TEXT';
+    return ['RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'FRAME'].includes(n.type);
+  });
+});
+
+const showStrokeControls = computed(() => {
+  if (store.activeTool === 'pen' || store.activeTool === 'line') return true;
+  if (isShapeDrawTool(store.activeTool)) return true;
+  return selectedNodes().some((n) => {
+    const strokes = (n as { strokes?: unknown[] }).strokes;
+    return (
+      n.type === 'VECTOR' ||
+      n.type === 'LINE' ||
+      ['RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'FRAME'].includes(n.type) ||
+      Boolean(strokes?.length)
+    );
+  });
+});
+
+const showTextControls = computed(() => {
+  if (store.activeTool === 'text') return true;
+  return selectedNodes().some((n) => n.type === 'TEXT');
+});
+
+const showPolygonControls = computed(
+  () =>
+    store.activeTool === 'polygon' ||
+    selectedNodes().some((n) => n.type === 'POLYGON'),
+);
+const showStarControls = computed(
+  () => store.activeTool === 'star' || selectedNodes().some((n) => n.type === 'STAR'),
 );
 
 const textDialogOpen = ref(false);
 
-const toolLabel = computed<string>(() => {
-  switch (store.activeTool) {
-    case 'select':
-      return '选择';
-    case 'rect-select':
-      return '矩形选区';
-    case 'brush':
-      return '画笔';
-    case 'eraser':
-      return '橡皮';
-    case 'move':
-      return '移动';
-    case 'transform':
-      return '变形';
-    case 'rotate':
-      return '旋转';
-    case 'text':
-      return '文字';
-    default:
-      return store.activeTool;
-  }
-});
+const toolLabel = computed<string>(() => resolveToolLabel(store.activeTool));
 
 const zoomPercent = computed(() => Math.round(store.zoom * 100));
 
@@ -76,6 +121,7 @@ const swatches = [
   '#00b894',
   '#0984e3',
   '#d63031',
+  '#d4d4d4',
 ];
 
 const blendModes: { value: BlendMode; label: string }[] = [
@@ -85,6 +131,16 @@ const blendModes: { value: BlendMode; label: string }[] = [
   { value: 'overlay', label: '叠加' },
 ];
 
+function canApplyToSelection(): boolean {
+  // Pen stroke applies on commit; mid-draw only updates store prefs.
+  try {
+    if (store.activeTool === 'pen' && bridge.editor.state.penState) return false;
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 function pickColor(color: string) {
   store.setBrushColor(color);
 }
@@ -92,7 +148,58 @@ function setRadius(e: Event) {
   const target = e.target as HTMLInputElement;
   store.setBrushRadius(parseInt(target.value, 10));
 }
-
+function setTolerance(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setBucketTolerance(parseInt(target.value, 10));
+}
+function pickFillColor(color: string) {
+  store.setFillColor(color);
+  store.setFillEnabled(true);
+  if (!canApplyToSelection()) return;
+  if (store.activeTool === 'text' || selectedNodes().some((n) => n.type === 'TEXT')) {
+    applyTextStyleToSelected(bridge.editor);
+  } else {
+    applyFillStyleToSelected(bridge.editor);
+  }
+}
+function toggleFillEnabled() {
+  store.setFillEnabled(!store.fillEnabled);
+  if (canApplyToSelection()) applyFillStyleToSelected(bridge.editor);
+}
+function pickStrokeColor(color: string) {
+  store.setStrokeColor(color);
+  store.setStrokeEnabled(true);
+  if (canApplyToSelection()) applyStrokeStyleToSelected(bridge.editor);
+}
+function setStrokeWeight(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setStrokeWeight(parseFloat(target.value));
+  if (canApplyToSelection()) applyStrokeStyleToSelected(bridge.editor);
+}
+function toggleStrokeEnabled() {
+  store.setStrokeEnabled(!store.strokeEnabled);
+  if (canApplyToSelection()) applyStrokeStyleToSelected(bridge.editor);
+}
+function setFontSize(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setFontSize(parseInt(target.value, 10));
+  if (canApplyToSelection()) applyTextStyleToSelected(bridge.editor);
+}
+function setPolygonSides(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setPolygonSides(parseInt(target.value, 10));
+  if (canApplyToSelection()) applyShapeExtrasToSelected(bridge.editor);
+}
+function setStarPoints(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setStarPoints(parseInt(target.value, 10));
+  if (canApplyToSelection()) applyShapeExtrasToSelected(bridge.editor);
+}
+function setStarInner(e: Event) {
+  const target = e.target as HTMLInputElement;
+  store.setStarInnerRadius(parseFloat(target.value));
+  if (canApplyToSelection()) applyShapeExtrasToSelected(bridge.editor);
+}
 // W14+ 统一画布架构：撤销 / 重做直接走 OpenPencil editor（共享 SceneGraph 历史），
 // 不再调用 Rust canvasApi.undo / redo。
 async function doUndo() {
@@ -111,21 +218,39 @@ async function doRedo() {
 }
 async function doAddLayer() {
   try {
-    const id = await canvasApi.addLayer(`图层 ${store.layerList.length + 1}`);
-    store.activeLayerId = id;
+    const r = addOpLayer(bridge.editor, `图层 ${store.layerList.length + 1}`);
+    if (!r.ok) {
+      toast.warn(r.message);
+      return;
+    }
     toast.success('已新建图层');
   } catch (e) {
     toast.error(`新建图层失败：${String((e as Error).message ?? e)}`);
   }
 }
 function zoomIn() {
-  store.setZoom(store.zoom * 1.2);
+  try {
+    zoomInOp(bridge.editor);
+  } catch (e) {
+    toast.error(`放大失败：${String((e as Error).message ?? e)}`);
+  }
 }
 function zoomOut() {
-  store.setZoom(store.zoom / 1.2);
+  try {
+    zoomOutOp(bridge.editor);
+  } catch (e) {
+    toast.error(`缩小失败：${String((e as Error).message ?? e)}`);
+  }
+}
+function fitView() {
+  try {
+    zoomToFitOp(bridge.editor);
+  } catch (e) {
+    toast.error(`适配失败：${String((e as Error).message ?? e)}`);
+  }
 }
 
-// W13：旋转活动图层。默认顺时针 90°，Shift 修饰 = 逆时针。
+// 旋转活动图层。默认顺时针 90°，Shift 修饰 = 逆时针。
 async function rotateActive(degrees: number) {
   const activeId = store.activeLayerId;
   if (!activeId) {
@@ -133,32 +258,24 @@ async function rotateActive(degrees: number) {
     return;
   }
   try {
-    await canvasApi.rotateLayer(activeId, degrees);
+    const r = rotateOpLayer(bridge.editor, activeId, degrees);
+    if (!r.ok) {
+      toast.warn(r.message);
+      return;
+    }
     toast.success(`已旋转 ${degrees > 0 ? '顺时针' : '逆时针'} ${Math.abs(degrees)}°`);
   } catch (e) {
     toast.error(`旋转失败：${String((e as Error).message ?? e)}`);
   }
 }
 
-// W13：文字工具激活时，打开文字输入对话框
+// 顶栏「文字」按钮：切到 OpenPencil TEXT（在画布点击放置），不再弹旧像素对话框。
 function openTextDialog() {
-  if (!store.activeLayerId) {
-    toast.warn('请先选中一个图层');
-    return;
+  const result = activateTool('text');
+  if (!result.ok && result.message) {
+    toast.info(result.message);
   }
-  textDialogOpen.value = true;
 }
-
-// W13 UX 优化：选中文字工具时自动打开对话框
-// Vue watch 默认 immediate:false，组件挂载时不会触发，所以无需首次守卫。
-watch(
-  () => store.activeTool,
-  (next, prev) => {
-    if (next === 'text' && prev !== 'text') {
-      openTextDialog();
-    }
-  },
-);
 
 // W13：文字对话框确认后回调
 async function onTextConfirm(payload: {
@@ -186,7 +303,7 @@ async function onTextConfirm(payload: {
   }
 }
 
-// W13：混合模式切换
+// 混合模式切换
 async function onBlendModeChange(mode: BlendMode) {
   const activeId = store.activeLayerId;
   if (!activeId) {
@@ -194,7 +311,11 @@ async function onBlendModeChange(mode: BlendMode) {
     return;
   }
   try {
-    await canvasApi.setLayerBlendMode(activeId, mode);
+    const r = setLayerBlendMode(bridge.editor, activeId, mode);
+    if (!r.ok) {
+      toast.warn(r.message);
+      return;
+    }
     toast.info(`混合模式：${blendModes.find((b) => b.value === mode)?.label ?? mode}`);
   } catch (e) {
     toast.error(`切换混合模式失败：${String((e as Error).message ?? e)}`);
@@ -285,6 +406,223 @@ const activeBlendMode = computed<BlendMode>(() => {
 
     <span class="canvas-toolbar__sep" aria-hidden="true" />
 
+    <!-- 工具名 + 当前工具参数（靠前，避免被 48px 裁切 / 挤出视口） -->
+    <div class="canvas-toolbar__group">
+      <span class="canvas-toolbar__tool-label">
+        工具：
+        <strong>{{ toolLabel }}</strong>
+      </span>
+    </div>
+
+    <!-- 填充（形状 / 文字 / 选中可填节点） -->
+    <template v-if="showFillControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+      <div class="canvas-toolbar__group canvas-toolbar__group--props">
+        <button
+          v-if="store.activeTool !== 'text'"
+          type="button"
+          class="canvas-toolbar__toggle"
+          :class="{ 'is-on': store.fillEnabled }"
+          :aria-pressed="store.fillEnabled"
+          :title="store.fillEnabled ? '关闭填充' : '开启填充'"
+          :aria-label="store.fillEnabled ? '关闭填充' : '开启填充'"
+          @click="toggleFillEnabled"
+        >
+          填充
+        </button>
+        <span v-else class="canvas-toolbar__label">文字色</span>
+        <div class="canvas-toolbar__swatches">
+          <button
+            v-for="color in swatches"
+            :key="`fill-${color}`"
+            type="button"
+            class="canvas-toolbar__swatch"
+            :class="{ 'is-active': store.fillColor === color }"
+            :style="{ backgroundColor: color }"
+            :title="color"
+            :aria-label="`填充颜色 ${color}`"
+            @click="pickFillColor(color)"
+          />
+        </div>
+      </div>
+    </template>
+
+    <!-- 文字字号 -->
+    <template v-if="showTextControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+      <div class="canvas-toolbar__group canvas-toolbar__group--props">
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">字号</span>
+          <input
+            type="range"
+            min="8"
+            max="128"
+            step="1"
+            :value="store.fontSize"
+            :aria-label="`字号 ${store.fontSize}`"
+            @input="setFontSize"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.fontSize }}</span>
+        </label>
+      </div>
+    </template>
+
+    <!-- 描边（钢笔 / 形状 / 选中路径） -->
+    <template v-if="showStrokeControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+
+      <div class="canvas-toolbar__group canvas-toolbar__group--props">
+        <button
+          v-if="store.activeTool !== 'pen' && store.activeTool !== 'line'"
+          type="button"
+          class="canvas-toolbar__toggle"
+          :class="{ 'is-on': store.strokeEnabled }"
+          :aria-pressed="store.strokeEnabled"
+          :title="store.strokeEnabled ? '关闭描边' : '开启描边'"
+          :aria-label="store.strokeEnabled ? '关闭描边' : '开启描边'"
+          @click="toggleStrokeEnabled"
+        >
+          描边
+        </button>
+        <span v-else class="canvas-toolbar__label">描边</span>
+        <div class="canvas-toolbar__swatches">
+          <button
+            v-for="color in swatches"
+            :key="`stroke-${color}`"
+            type="button"
+            class="canvas-toolbar__swatch"
+            :class="{ 'is-active': store.strokeColor === color }"
+            :style="{ backgroundColor: color }"
+            :title="color"
+            :aria-label="`描边颜色 ${color}`"
+            @click="pickStrokeColor(color)"
+          />
+        </div>
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">线宽</span>
+          <input
+            type="range"
+            min="1"
+            max="32"
+            step="0.5"
+            :value="store.strokeWeight"
+            :aria-label="`描边线宽 ${store.strokeWeight}`"
+            @input="setStrokeWeight"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.strokeWeight }}</span>
+        </label>
+      </div>
+    </template>
+
+    <!-- 多边形边数 -->
+    <template v-if="showPolygonControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+      <div class="canvas-toolbar__group canvas-toolbar__group--props">
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">边数</span>
+          <input
+            type="range"
+            min="3"
+            max="12"
+            step="1"
+            :value="store.polygonSides"
+            :aria-label="`多边形边数 ${store.polygonSides}`"
+            @input="setPolygonSides"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.polygonSides }}</span>
+        </label>
+      </div>
+    </template>
+
+    <!-- 星形参数 -->
+    <template v-if="showStarControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+      <div class="canvas-toolbar__group canvas-toolbar__group--props">
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">角数</span>
+          <input
+            type="range"
+            min="3"
+            max="12"
+            step="1"
+            :value="store.starPoints"
+            :aria-label="`星形角数 ${store.starPoints}`"
+            @input="setStarPoints"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.starPoints }}</span>
+        </label>
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">内径</span>
+          <input
+            type="range"
+            min="0.1"
+            max="0.9"
+            step="0.05"
+            :value="store.starInnerRadius"
+            :aria-label="`星形内径 ${store.starInnerRadius}`"
+            @input="setStarInner"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.starInnerRadius }}</span>
+        </label>
+      </div>
+    </template>
+
+    <!-- 像素工具参数（橡皮 / 油漆桶） -->
+    <template v-if="showRasterControls">
+      <span class="canvas-toolbar__sep" aria-hidden="true" />
+
+      <div v-if="showBucketControls" class="canvas-toolbar__group">
+        <span class="canvas-toolbar__label">颜色</span>
+        <div class="canvas-toolbar__swatches">
+          <button
+            v-for="color in swatches"
+            :key="color"
+            type="button"
+            class="canvas-toolbar__swatch"
+            :class="{ 'is-active': store.brushColor === color }"
+            :style="{ backgroundColor: color }"
+            :title="color"
+            :aria-label="`选择颜色 ${color}`"
+            @click="pickColor(color)"
+          />
+        </div>
+      </div>
+
+      <div v-if="showEraserSize" class="canvas-toolbar__group">
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">粗细</span>
+          <input
+            type="range"
+            min="1"
+            max="64"
+            step="1"
+            :value="store.brushRadius"
+            :aria-label="`橡皮粗细 ${store.brushRadius} 像素`"
+            @input="setRadius"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.brushRadius }}</span>
+        </label>
+      </div>
+
+      <div v-if="showBucketControls" class="canvas-toolbar__group">
+        <label class="canvas-toolbar__radius">
+          <span class="canvas-toolbar__label">容差</span>
+          <input
+            type="range"
+            min="0"
+            max="128"
+            step="1"
+            :value="store.bucketTolerance ?? 32"
+            :aria-label="`填充容差 ${store.bucketTolerance ?? 32}`"
+            @input="setTolerance"
+          />
+          <span class="canvas-toolbar__radius-value">{{ store.bucketTolerance }}</span>
+        </label>
+      </div>
+    </template>
+
+    <span class="canvas-toolbar__sep" aria-hidden="true" />
+
     <!-- 缩放 -->
     <div class="canvas-toolbar__group canvas-toolbar__group--zoom">
       <button
@@ -311,59 +649,11 @@ const activeBlendMode = computed<BlendMode>(() => {
         class="canvas-toolbar__btn canvas-toolbar__btn--icon"
         title="适配窗口 (Ctrl+Shift+0)"
         aria-label="适配窗口"
-        @click="store.resetView()"
+        @click="fitView"
       >
         <Maximize2 :size="14" />
       </button>
     </div>
-
-    <span class="canvas-toolbar__sep" aria-hidden="true" />
-
-    <!-- 工具名 -->
-    <div class="canvas-toolbar__group">
-      <span class="canvas-toolbar__tool-label">
-        工具：
-        <strong>{{ toolLabel }}</strong>
-      </span>
-    </div>
-
-    <!-- 画笔参数：仅画笔/橡皮可见 -->
-    <template v-if="showBrushControls">
-      <span class="canvas-toolbar__sep" aria-hidden="true" />
-
-      <div class="canvas-toolbar__group">
-        <span class="canvas-toolbar__label">颜色</span>
-        <div class="canvas-toolbar__swatches">
-          <button
-            v-for="color in swatches"
-            :key="color"
-            type="button"
-            class="canvas-toolbar__swatch"
-            :class="{ 'is-active': store.brushColor === color }"
-            :style="{ backgroundColor: color }"
-            :title="color"
-            :aria-label="`选择颜色 ${color}`"
-            @click="pickColor(color)"
-          />
-        </div>
-      </div>
-
-      <div class="canvas-toolbar__group">
-        <label class="canvas-toolbar__radius">
-          <span class="canvas-toolbar__label">粗细</span>
-          <input
-            type="range"
-            min="1"
-            max="64"
-            step="1"
-            :value="store.brushRadius"
-            :aria-label="`画笔粗细 ${store.brushRadius} 像素`"
-            @input="setRadius"
-          />
-          <span class="canvas-toolbar__radius-value">{{ store.brushRadius }}</span>
-        </label>
-      </div>
-    </template>
 
     <span class="canvas-toolbar__sep" aria-hidden="true" />
 
@@ -406,11 +696,39 @@ const activeBlendMode = computed<BlendMode>(() => {
   font-size: var(--font-size-sm);
   min-height: 36px;
   row-gap: 6px; /* 换行后组与组之间间距 */
+  overflow: visible;
 
   &__group {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
+
+    &--props {
+      flex-wrap: wrap;
+      row-gap: 4px;
+      padding: 2px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+  }
+
+  &__toggle {
+    height: 22px;
+    padding: 0 8px;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+
+    &.is-on {
+      color: var(--text-primary);
+      border-color: var(--accent-color, #6c5ce7);
+      background: color-mix(in srgb, var(--accent-color, #6c5ce7) 18%, transparent);
+    }
   }
 
   &__sep {

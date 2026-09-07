@@ -266,8 +266,13 @@ impl CanvasRenderer {
     ) -> Result<()> {
         use base64::Engine;
 
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(image_data_b64.trim_start_matches("data:image/png;base64,"))?;
+        // Accept any data:image/...;base64,... payload (PNG / JPEG / WebP),
+        // or a raw base64 string without the data-URL prefix.
+        let b64 = image_data_b64
+            .find(',')
+            .map(|i| image_data_b64[i + 1..].trim())
+            .unwrap_or_else(|| image_data_b64.trim());
+        let bytes = base64::engine::general_purpose::STANDARD.decode(b64)?;
         let img = image::load_from_memory(&bytes)?.to_rgba8();
 
         let layer = state

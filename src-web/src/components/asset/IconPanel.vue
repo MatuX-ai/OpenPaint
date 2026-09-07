@@ -12,7 +12,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+import { computed, onMounted, toRef } from 'vue';
 import { useAssets, useGroupedIcons } from '@/composables/useAssets';
 import IconPreview from './IconPreview.vue';
 import type { IconMeta, IconPrefix } from '@/types/asset';
@@ -34,6 +34,11 @@ const styleOptions: { value: IconPrefix | ''; label: string }[] = [
   { value: 'phosphor', label: 'Phosphor' },
   { value: 'iconoir', label: 'Iconoir' },
 ];
+
+onMounted(() => {
+  // 「全部」+ 空搜索：进入面板即浏览内置图标，避免空白空状态
+  void assets.runSearch();
+});
 
 function onStyleChange(event: Event): void {
   const target = event.target as HTMLSelectElement;
@@ -115,6 +120,15 @@ const totalLabel = computed(() => {
             @click="onPreview(icon)"
             @dblclick="onDoubleClick(icon)"
           >
+            <span class="icon-panel__item-svg" aria-hidden="true">
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <span
+                v-if="assets.getThumbnailSvg(icon)"
+                class="icon-panel__item-glyph"
+                v-html="assets.getThumbnailSvg(icon)"
+              ></span>
+              <span v-else class="icon-panel__item-skeleton"></span>
+            </span>
             <span class="icon-panel__item-name">{{ icon.name }}</span>
           </button>
         </div>
@@ -233,9 +247,9 @@ const totalLabel = computed(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    height: 56px;
-    padding: 4px;
+    gap: 4px;
+    height: 72px;
+    padding: 6px 4px;
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
@@ -256,6 +270,35 @@ const totalLabel = computed(() => {
     }
   }
 
+  &__item-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+  }
+
+  &__item-glyph {
+    display: inline-flex;
+    line-height: 0;
+
+    :deep(svg) {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  &__item-skeleton {
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: var(--bg-hover);
+    opacity: 0.7;
+  }
+
   &__item-name {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 10px;
@@ -263,6 +306,7 @@ const totalLabel = computed(() => {
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
     max-width: 100%;
   }
 

@@ -304,7 +304,7 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
     await f.newCanvas({ width: 520, height: 520, unit: 'px', dpi: 72, handleLayers: 'discard' });
 
     const palette = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'];
-    store.setActiveTool('brush');
+    store.setActiveTool('pen');
 
     // 模拟 6 个不同图层（addLayer 后立即变成 active）
     for (let i = 0; i < 6; i++) {
@@ -457,7 +457,7 @@ describe('desktop workflow (no AI) — frontend orchestration', () => {
     expect(store.canvasHeight).toBe(520);
 
     // 2) 6 种颜色画 6 个形状
-    store.setActiveTool('brush');
+    store.setActiveTool('pen');
     const palette = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'];
     for (let i = 0; i < 6; i++) {
       const layerId = await canvasApi.addLayer(`Shape-${i + 1}`);

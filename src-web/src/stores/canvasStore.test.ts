@@ -22,6 +22,14 @@ describe('canvasStore', () => {
       expect(store.panY).toBe(0);
       expect(store.brushColor).toBe('#6c5ce7');
       expect(store.brushRadius).toBe(8);
+      expect(store.fillColor).toBe('#d4d4d4');
+      expect(store.fillEnabled).toBe(true);
+      expect(store.strokeColor).toBe('#000000');
+      expect(store.strokeWeight).toBe(2);
+      expect(store.strokeEnabled).toBe(true);
+      expect(store.fontSize).toBe(16);
+      expect(store.polygonSides).toBe(3);
+      expect(store.starPoints).toBe(5);
       expect(store.layerList).toEqual([]);
       expect(store.activeLayerId).toBeNull();
       expect(store.canvasWidth).toBe(1920);
@@ -36,8 +44,8 @@ describe('canvasStore', () => {
     it('should change active tool', () => {
       const store = useCanvasStore();
 
-      store.setActiveTool('brush');
-      expect(store.activeTool).toBe('brush');
+      store.setActiveTool('pen');
+      expect(store.activeTool).toBe('pen');
 
       store.setActiveTool('eraser');
       expect(store.activeTool).toBe('eraser');
@@ -48,14 +56,17 @@ describe('canvasStore', () => {
 
     it('should accept all valid tool types', () => {
       const store = useCanvasStore();
-      const tools: Array<'select' | 'brush' | 'eraser' | 'move' | 'transform' | 'rect-select'> = [
+      const tools = [
         'select',
-        'brush',
-        'eraser',
-        'move',
-        'transform',
         'rect-select',
-      ];
+        'hand',
+        'pen',
+        'text',
+        'rectangle',
+        'ellipse',
+        'line',
+        'frame',
+      ] as const;
 
       tools.forEach((tool) => {
         store.setActiveTool(tool);
@@ -154,6 +165,37 @@ describe('canvasStore', () => {
 
       store.setBrushRadius(1000);
       expect(store.brushRadius).toBe(200);
+    });
+  });
+
+  describe('vector style prefs', () => {
+    it('updates fill / stroke / text / shape params with clamps', () => {
+      const store = useCanvasStore();
+      store.setFillColor('#0984e3');
+      store.setFillEnabled(false);
+      store.setStrokeColor('#d63031');
+      store.setStrokeWeight(12);
+      store.setStrokeEnabled(false);
+      store.setFontSize(48);
+      store.setPolygonSides(8);
+      store.setStarPoints(7);
+      store.setStarInnerRadius(0.5);
+      expect(store.fillColor).toBe('#0984e3');
+      expect(store.fillEnabled).toBe(false);
+      expect(store.strokeColor).toBe('#d63031');
+      expect(store.strokeWeight).toBe(12);
+      expect(store.strokeEnabled).toBe(false);
+      expect(store.fontSize).toBe(48);
+      expect(store.polygonSides).toBe(8);
+      expect(store.starPoints).toBe(7);
+      expect(store.starInnerRadius).toBe(0.5);
+
+      store.setFontSize(1);
+      expect(store.fontSize).toBe(8);
+      store.setPolygonSides(100);
+      expect(store.polygonSides).toBe(24);
+      store.setStarInnerRadius(2);
+      expect(store.starInnerRadius).toBe(0.95);
     });
   });
 

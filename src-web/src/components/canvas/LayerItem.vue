@@ -1,27 +1,14 @@
 <!--
   LayerItem — single row in the LayerPanel list.
 
-  W13 UX 验收补齐：
-    - 锁按钮真正切换状态（之前只有 @click.stop 是死按钮）
-    - 不透明度改为可拖动滑块（之前只显示不让改）
-    - 右键菜单：旋转 90° / 旋转 -90° / 删除 / 复制占位 / 切换锁定 / 切换可见性
-    - Blend Mode 下拉直接暴露在行内（可选，避免与右键菜单冗余）
-
-  触发的事件：
-    - visibility-changed: { layerId, visible }
-    - locked-changed: { layerId, locked }
-    - opacity-changed: { layerId, opacity }
-    - rotate-request: { layerId, degrees }
-    - delete-request: { layerId }
-    - context-menu: { event, layerId }（由父组件 LayerPanel 决定是否弹出菜单）
+  Emits property / action events; LayerPanel applies OpenPencil mutations.
+  Supports inline rename (double-click name) and HTML5 drag reorder.
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Eye, EyeOff, Lock, Unlock } from 'lucide-vue-next';
+import { computed, nextTick, ref } from 'vue';
+import { Eye, EyeOff, Lock, Unlock, GripVertical } from 'lucide-vue-next';
 import { useCanvasStore } from '@stores/canvasStore';
-import { useToast } from '@composables/useToast';
-import { canvasApi } from '@api/index';
 import type { Layer, BlendMode } from '@/types/canvas';
 
 const props = defineProps<{ layer: Layer }>();
@@ -32,13 +19,20 @@ const emit = defineEmits<{
   'blend-changed': [layerId: string, mode: BlendMode];
   'rotate-request': [layerId: string, degrees: number];
   'delete-request': [layerId: string];
+  'rename-request': [layerId: string, name: string];
+  'select-request': [layerId: string];
+  'drag-start': [layerId: string];
+  'drop-on': [layerId: string];
   'context-menu': [event: MouseEvent, layerId: string];
 }>();
 
 const store = useCanvasStore();
-const toast = useToast();
 
 const isActive = computed(() => props.layer.isActive || props.layer.id === store.activeLayerId);
+
+const editing = ref(false);
+const draftName = ref('');
+const nameInput = ref<HTMLInputElement | null>(null);
 
 const blendModes: { value: BlendMode; label: string }[] = [
   { value: 'normal', label: '正常' },
@@ -47,73 +41,83 @@ const blendModes: { value: BlendMode; label: string }[] = [
   { value: 'overlay', label: '叠加' },
 ];
 
-// ---- 锁切换 ----
-async function toggleLocked(e: Event) {
+function toggleLocked(e: Event) {
   e.stopPropagation();
-  const next = !props.layer.locked;
-  // 乐观更新：先改 store，再发 IPC
-  emit('locked-changed', props.layer.id, next);
-  try {
-    await canvasApi.setLayerLocked(props.layer.id, next);
-  } catch (err) {
-    // IPC 失败时回滚
-    emit('locked-changed', props.layer.id, !next);
-    toast.error(`切换锁定失败：${String((err as Error).message ?? err)}`);
-  }
+  emit('locked-changed', props.layer.id, !props.layer.locked);
 }
 
-// ---- 可见性切换 ----
-async function toggleVisible(e: Event) {
+function toggleVisible(e: Event) {
   e.stopPropagation();
-  const next = !props.layer.visible;
-  emit('visibility-changed', props.layer.id, next);
-  try {
-    await canvasApi.setLayerVisibility(props.layer.id, next);
-  } catch (err) {
-    emit('visibility-changed', props.layer.id, !next);
-    toast.error(`切换可见性失败：${String((err as Error).message ?? err)}`);
-  }
+  emit('visibility-changed', props.layer.id, !props.layer.visible);
 }
 
-// ---- 不透明度调节 ----
-async function setOpacity(e: Event) {
+function setOpacity(e: Event) {
   const value = parseInt((e.target as HTMLInputElement).value, 10);
-  const next = value / 100;
-  emit('opacity-changed', props.layer.id, next);
-  try {
-    await canvasApi.setLayerOpacity(props.layer.id, next);
-  } catch (err) {
-    emit('opacity-changed', props.layer.id, props.layer.opacity);
-    toast.error(`调节不透明度失败：${String((err as Error).message ?? err)}`);
-  }
+  emit('opacity-changed', props.layer.id, value / 100);
 }
 
-// ---- 混合模式 ----
-async function setBlendMode(e: Event) {
+function setBlendMode(e: Event) {
   e.stopPropagation();
-  const next = (e.target as HTMLSelectElement).value as BlendMode;
-  emit('blend-changed', props.layer.id, next);
-  try {
-    await canvasApi.setLayerBlendMode(props.layer.id, next);
-  } catch (err) {
-    toast.error(`切换混合模式失败：${String((err as Error).message ?? err)}`);
-  }
+  emit('blend-changed', props.layer.id, (e.target as HTMLSelectElement).value as BlendMode);
 }
 
-// ---- 选中 ----
-async function select() {
-  try {
-    await canvasApi.setActiveLayer(props.layer.id);
-    store.activeLayerId = props.layer.id;
-  } catch (e) {
-    console.error('[LayerItem] setActiveLayer failed:', e);
-  }
+function select() {
+  if (editing.value) return;
+  emit('select-request', props.layer.id);
 }
 
-// ---- 右键菜单：转发到父组件（由 LayerPanel 弹 ContextMenu） ----
 function onContextMenu(e: MouseEvent) {
   e.preventDefault();
   emit('context-menu', e, props.layer.id);
+}
+
+async function startRename(e: Event) {
+  e.stopPropagation();
+  editing.value = true;
+  draftName.value = props.layer.name;
+  await nextTick();
+  nameInput.value?.focus();
+  nameInput.value?.select();
+}
+
+function commitRename() {
+  if (!editing.value) return;
+  editing.value = false;
+  const next = draftName.value.trim();
+  if (next && next !== props.layer.name) {
+    emit('rename-request', props.layer.id, next);
+  }
+}
+
+function cancelRename() {
+  editing.value = false;
+  draftName.value = props.layer.name;
+}
+
+function onNameKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    commitRename();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    cancelRename();
+  }
+}
+
+function onDragStart(e: DragEvent) {
+  e.dataTransfer?.setData('text/plain', props.layer.id);
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  emit('drag-start', props.layer.id);
+}
+
+function onDragOver(e: DragEvent) {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault();
+  emit('drop-on', props.layer.id);
 }
 </script>
 
@@ -125,58 +129,83 @@ function onContextMenu(e: MouseEvent) {
       'is-locked': layer.locked,
       'is-hidden': !layer.visible,
     }"
+    draggable="true"
     @click="select"
     @contextmenu="onContextMenu"
+    @dragstart="onDragStart"
+    @dragover="onDragOver"
+    @drop="onDrop"
   >
-    <button
-      class="layer-item__icon-btn"
-      type="button"
-      :title="layer.visible ? '隐藏图层' : '显示图层'"
-      :aria-label="layer.visible ? '隐藏图层' : '显示图层'"
-      @click="toggleVisible"
-    >
-      <Eye v-if="layer.visible" :size="14" />
-      <EyeOff v-else :size="14" />
-    </button>
-    <button
-      class="layer-item__icon-btn layer-item__icon-btn--lock"
-      type="button"
-      :title="layer.locked ? '解锁图层' : '锁定图层'"
-      :aria-label="layer.locked ? '解锁图层' : '锁定图层'"
-      :aria-pressed="layer.locked"
-      @click="toggleLocked"
-    >
-      <Lock v-if="layer.locked" :size="14" />
-      <Unlock v-else :size="14" />
-    </button>
-    <div class="layer-item__main">
-      <div class="layer-item__name-row">
-        <span class="layer-item__name">{{ layer.name }}</span>
-        <select
-          class="layer-item__blend"
-          :value="layer.blendMode ?? 'normal'"
-          aria-label="混合模式"
-          @click.stop
-          @change="setBlendMode"
-        >
-          <option v-for="m in blendModes" :key="m.value" :value="m.value">{{ m.label }}</option>
-        </select>
-      </div>
-      <div class="layer-item__opacity-row">
+    <div class="layer-item__top">
+      <span class="layer-item__grip" title="拖动排序" aria-hidden="true">
+        <GripVertical :size="12" />
+      </span>
+      <button
+        class="layer-item__icon-btn"
+        type="button"
+        :title="layer.visible ? '隐藏图层' : '显示图层'"
+        :aria-label="layer.visible ? '隐藏图层' : '显示图层'"
+        @click="toggleVisible"
+      >
+        <Eye v-if="layer.visible" :size="14" />
+        <EyeOff v-else :size="14" />
+      </button>
+      <button
+        class="layer-item__icon-btn layer-item__icon-btn--lock"
+        type="button"
+        :title="layer.locked ? '解锁图层' : '锁定图层'"
+        :aria-label="layer.locked ? '解锁图层' : '锁定图层'"
+        :aria-pressed="layer.locked"
+        @click="toggleLocked"
+      >
+        <Lock v-if="layer.locked" :size="14" />
+        <Unlock v-else :size="14" />
+      </button>
+      <div class="layer-item__name-wrap">
         <input
-          class="layer-item__opacity-slider"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          :value="Math.round(layer.opacity * 100)"
-          :aria-label="`不透明度 ${Math.round(layer.opacity * 100)}%`"
-          :title="`不透明度 ${Math.round(layer.opacity * 100)}%`"
+          v-if="editing"
+          ref="nameInput"
+          v-model="draftName"
+          class="layer-item__name-input"
+          type="text"
+          aria-label="图层名称"
           @click.stop
-          @input="setOpacity"
+          @keydown="onNameKeydown"
+          @blur="commitRename"
         />
-        <span class="layer-item__opacity-value">{{ Math.round(layer.opacity * 100) }}%</span>
+        <span
+          v-else
+          class="layer-item__name"
+          :title="'双击重命名'"
+          @dblclick="startRename"
+        >
+          {{ layer.name }}
+        </span>
       </div>
+      <select
+        class="layer-item__blend"
+        :value="layer.blendMode ?? 'normal'"
+        aria-label="混合模式"
+        @click.stop
+        @change="setBlendMode"
+      >
+        <option v-for="m in blendModes" :key="m.value" :value="m.value">{{ m.label }}</option>
+      </select>
+    </div>
+    <div class="layer-item__opacity-row">
+      <input
+        class="layer-item__opacity-slider"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        :value="Math.round(layer.opacity * 100)"
+        :aria-label="`不透明度 ${Math.round(layer.opacity * 100)}%`"
+        :title="`不透明度 ${Math.round(layer.opacity * 100)}%`"
+        @click.stop
+        @input="setOpacity"
+      />
+      <span class="layer-item__opacity-value">{{ Math.round(layer.opacity * 100) }}%</span>
     </div>
   </li>
 </template>
@@ -214,6 +243,20 @@ function onContextMenu(e: MouseEvent) {
     opacity: 0.55;
   }
 
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__grip {
+    display: inline-flex;
+    color: var(--text-muted);
+    cursor: grab;
+    flex-shrink: 0;
+  }
+
   &__icon-btn {
     display: inline-flex;
     align-items: center;
@@ -222,35 +265,34 @@ function onContextMenu(e: MouseEvent) {
     height: 20px;
     color: inherit;
     border-radius: var(--radius-sm);
+    flex-shrink: 0;
 
     &:hover {
       background: var(--bg-hover);
     }
-
-    &--lock.is-active {
-      color: var(--color-warn, #fdcb6e);
-    }
   }
 
-  &__main {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  &__name-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  &__name-wrap {
+    flex: 1;
     min-width: 0;
   }
 
   &__name {
-    flex: 1;
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  &__name-input {
+    width: 100%;
+    height: 22px;
+    padding: 0 4px;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
   }
 
   &__blend {
@@ -264,6 +306,7 @@ function onContextMenu(e: MouseEvent) {
     border: 1px solid var(--border-color);
     border-radius: 3px;
     cursor: pointer;
+    flex-shrink: 0;
 
     &:hover {
       border-color: var(--accent);
@@ -278,6 +321,7 @@ function onContextMenu(e: MouseEvent) {
     display: flex;
     align-items: center;
     gap: 6px;
+    padding-left: 16px;
   }
 
   &__opacity-slider {

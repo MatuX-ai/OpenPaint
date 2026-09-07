@@ -60,6 +60,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // Initialize application state
             // 注意：Tauri 2 的 `manage<T>` 按 `TypeId::of::<T>()` 严格匹配；

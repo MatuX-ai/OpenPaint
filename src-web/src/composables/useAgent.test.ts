@@ -19,12 +19,6 @@ vi.mock('@api/index', () => ({
     chat: vi.fn(),
     sendCommand: vi.fn(),
   },
-  canvasToolsApi: {
-    getSelectionBounds: vi.fn(),
-    getCanvasSelection: vi.fn(),
-    pasteImageToLayer: vi.fn(),
-    getLayerInfo: vi.fn(),
-  },
 }));
 
 const mockIsMockRef = { value: false };
@@ -38,6 +32,18 @@ vi.mock('@composables/useLlmConfig', () => ({
   }),
 }));
 
+const agentOpMocks = vi.hoisted(() => ({
+  getSelectedNodes: vi.fn(() => [] as Array<{ id: string; x: number; y: number; width: number; height: number }>),
+}));
+
+vi.mock('@composables/useOpenPencil', () => ({
+  getOpenPencilBridge: () => ({
+    editor: {
+      getSelectedNodes: agentOpMocks.getSelectedNodes,
+    },
+  }),
+}));
+
 import * as ApiIndex from '@api/index';
 import { useAgent } from '@composables/useAgent';
 import { useChatStore } from '@stores/chatStore';
@@ -48,6 +54,7 @@ describe('useAgent', () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     mockIsMockRef.value = false;
+    agentOpMocks.getSelectedNodes.mockReturnValue([]);
   });
 
   it('mock 模式下不调用 agentApi.chat', async () => {
@@ -166,17 +173,14 @@ describe('useAgent', () => {
     expect(a.store.isProcessing).toBe(false);
   });
 
-  it('sendWithSelection 附加选区信息（来自 canvasToolsApi）', async () => {
-    vi.mocked(ApiIndex.canvasToolsApi.getSelectionBounds).mockResolvedValueOnce({
-      x: 10,
-      y: 20,
-      width: 100,
-      height: 50,
-    });
+  it('sendWithSelection 附加选区信息（来自 OpenPencil）', async () => {
+    agentOpMocks.getSelectedNodes.mockReturnValueOnce([
+      { id: 'a', x: 10, y: 20, width: 100, height: 50 },
+    ]);
     mockIsMockRef.value = true;
     const a = useAgent();
     await a.sendWithSelection('解释这块');
-    expect(ApiIndex.canvasToolsApi.getSelectionBounds).toHaveBeenCalled();
+    expect(agentOpMocks.getSelectedNodes).toHaveBeenCalled();
     expect(a.store.messages).toHaveLength(2);
     expect(a.store.messages[0].content).toContain('解释这块');
     expect(a.store.messages[0].content).toContain('100×50');
@@ -184,9 +188,7 @@ describe('useAgent', () => {
   });
 
   it('sendWithSelection 无选区时使用「无选区」占位', async () => {
-    vi.mocked(ApiIndex.canvasToolsApi.getSelectionBounds).mockRejectedValueOnce(
-      new Error('no selection'),
-    );
+    agentOpMocks.getSelectedNodes.mockReturnValueOnce([]);
     mockIsMockRef.value = true;
     const a = useAgent();
     await a.sendWithSelection('看看');

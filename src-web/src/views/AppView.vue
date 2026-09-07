@@ -34,10 +34,12 @@ import { useChatStore } from '@stores/chatStore';
 import { useShortcuts } from '@composables/useShortcuts';
 import { useToast } from '@composables/useToast';
 import { rgbaToPngBase64 } from '@utils/imageConvert';
-import { llmApi, canvasApi } from '@api/index';
+import { llmApi } from '@api/index';
 import { mockChatReply } from '@composables/mockChatReply';
 import { uuid } from '@utils/helpers';
 import WebPreviewBanner from '@/components/web/WebPreviewBanner.vue';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import * as viewportOps from '@composables/viewportOps';
 
 const runningInTauri = isTauri();
 const onboarding = useOnboarding();
@@ -53,9 +55,15 @@ const toast = useToast();
 // ---- Dialog state ----
 const newCanvasOpen = ref(false);
 const exportOpen = ref(false);
+const exportInitialFormat = ref<'png' | 'jpg' | 'webp'>('png');
 const batchExportOpen = ref(false);
 const unsavedOpen = ref(false);
 const cheatsheetOpen = ref(false);
+
+function openExport(format: 'png' | 'jpg' | 'webp' = 'png') {
+  exportInitialFormat.value = format;
+  exportOpen.value = true;
+}
 
 // Onboarding 引导：4 选项触发后调哪个 action
 function onOnboardingNew() {
@@ -120,22 +128,22 @@ function registerOnce() {
   );
   unregisters.push(
     menu.register('file.saveAs', () => {
-      exportOpen.value = true;
+      openExport('png');
     }),
   );
   unregisters.push(
     menu.register('file.export.png', () => {
-      exportOpen.value = true;
+      openExport('png');
     }),
   );
   unregisters.push(
     menu.register('file.export.jpg', () => {
-      exportOpen.value = true;
+      openExport('jpg');
     }),
   );
   unregisters.push(
     menu.register('file.export.webp', () => {
-      exportOpen.value = true;
+      openExport('webp');
     }),
   );
   unregisters.push(
@@ -173,20 +181,18 @@ function registerOnce() {
     }),
   );
   unregisters.push(
-    menu.register('edit.selectAll', async () => {
+    menu.register('edit.selectAll', () => {
       try {
-        const b = await canvasStore; // ensure store
-        void b;
-      } catch {
-        /* ignore */
+        getOpenPencilBridge().editor.selectAll();
+      } catch (e) {
+        toast.error(`全选失败：${String((e as Error).message ?? e)}`);
       }
     }),
   );
   unregisters.push(
-    menu.register('edit.clearSelection', async () => {
+    menu.register('edit.clearSelection', () => {
       try {
-        const { canvasApi } = await import('@api/index');
-        await canvasApi.clearSelection();
+        getOpenPencilBridge().editor.clearSelection();
       } catch (e) {
         toast.error(`取消选区失败：${String((e as Error).message ?? e)}`);
       }
@@ -199,17 +205,60 @@ function registerOnce() {
         return;
       }
       try {
-        const res = await canvasApi.renderCanvasImage({
-          format: 'png',
-          quality: 100,
-          targetLongEdge: 0,
-        });
-        const dataUrl = `data:${res.mime};base64,${res.bytesBase64}`;
+        const bridge = getOpenPencilBridge();
+        const exported = await bridge.exportSelectionOrDocument('png');
+        if (!exported) {
+          toast.warn('画布为空，无法复制');
+          return;
+        }
         const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
-        await writeImage(dataUrl);
+        await writeImage(exported.dataUrl);
         toast.success('已复制到剪贴板');
       } catch (e) {
         toast.error(`复制失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.cut', async () => {
+      if (!runningInTauri) {
+        toast.info('剪切：web preview 未启用系统剪贴板');
+        return;
+      }
+      try {
+        const bridge = getOpenPencilBridge();
+        const selected = bridge.editor.getSelectedNodes();
+        if (selected.length === 0) {
+          toast.warn('请先选中要剪切的内容');
+          return;
+        }
+        const exported = await bridge.exportSelectionOrDocument('png');
+        if (!exported) {
+          toast.warn('无法剪切空内容');
+          return;
+        }
+        const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager');
+        await writeImage(exported.dataUrl);
+        bridge.editor.deleteSelected();
+        doc.markDirty();
+        toast.success('已剪切到剪贴板');
+      } catch (e) {
+        toast.error(`剪切失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('edit.delete', () => {
+      try {
+        const bridge = getOpenPencilBridge();
+        if (bridge.editor.getSelectedNodes().length === 0) {
+          toast.warn('没有选中内容');
+          return;
+        }
+        bridge.editor.deleteSelected();
+        doc.markDirty();
+      } catch (e) {
+        toast.error(`删除失败：${String((e as Error).message ?? e)}`);
       }
     }),
   );
@@ -224,7 +273,7 @@ function registerOnce() {
         const img = await readImage();
         const [rgba, size] = await Promise.all([img.rgba(), img.size()]);
         const png = await rgbaToPngBase64(rgba, size.width, size.height);
-        await canvasApi.pasteImage(png);
+        await getOpenPencilBridge().placeDataUrl(png, 'clipboard.png');
         doc.markDirty();
         toast.success('已粘贴到画布');
       } catch (e) {
@@ -232,17 +281,65 @@ function registerOnce() {
       }
     }),
   );
+  unregisters.push(
+    menu.register('edit.rasterize', async () => {
+      try {
+        const { rasterizeCurrentSelection } = await import('@composables/rasterizeNodes');
+        const { requestRasterizeConfirm } = await import('@composables/useRasterizeConfirm');
+        const bridge = getOpenPencilBridge();
+        const result = await rasterizeCurrentSelection(bridge.editor, {
+          confirm: (ids, label) => requestRasterizeConfirm({ nodeIds: ids, label }),
+        });
+        if (!result) {
+          toast.info('已取消栅格化');
+          return;
+        }
+        doc.markDirty();
+        toast.success('已转换为像素图');
+      } catch (e) {
+        toast.error(`栅格化失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
 
   // View
-  unregisters.push(menu.register('view.zoom.100', () => canvasStore.setZoom(1)));
-  unregisters.push(menu.register('view.zoom.fit', () => canvasStore.resetView()));
   unregisters.push(
-    menu.register('view.zoom.in', () => canvasStore.setZoom(canvasStore.zoom * 1.2)),
+    menu.register('view.zoom.100', () => {
+      try {
+        viewportOps.zoomTo100(getOpenPencilBridge().editor);
+      } catch (e) {
+        toast.error(`缩放失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
   );
   unregisters.push(
-    menu.register('view.zoom.out', () => canvasStore.setZoom(canvasStore.zoom / 1.2)),
+    menu.register('view.zoom.fit', () => {
+      try {
+        viewportOps.zoomToFit(getOpenPencilBridge().editor);
+      } catch (e) {
+        toast.error(`适配失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
   );
-  // W14+ 统一画布架构：OpenPencil 已移至中央，不再有 "view.rightPanel.openpencil" 菜单项。
+  unregisters.push(
+    menu.register('view.zoom.in', () => {
+      try {
+        viewportOps.zoomIn(getOpenPencilBridge().editor);
+      } catch (e) {
+        toast.error(`放大失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  unregisters.push(
+    menu.register('view.zoom.out', () => {
+      try {
+        viewportOps.zoomOut(getOpenPencilBridge().editor);
+      } catch (e) {
+        toast.error(`缩小失败：${String((e as Error).message ?? e)}`);
+      }
+    }),
+  );
+  // OpenPencil 已是中央画布；右窗仅图库 / 折叠。
   unregisters.push(
     menu.register('view.rightPanel.gallery', () => uiStore.switchRightPanel('gallery')),
   );
@@ -304,7 +401,7 @@ async function onNewCanvasConfirm(payload: {
   height: number;
   unit: 'px' | 'mm';
   dpi: 72 | 144 | 300;
-  handleLayers: 'crop' | 'discard' | 'cancel';
+  handleLayers: 'keep' | 'discard' | 'cancel';
 }) {
   newCanvasOpen.value = false;
   await files.newCanvas(payload);
@@ -444,7 +541,12 @@ onBeforeUnmount(() => {
     @update:open="newCanvasOpen = $event"
     @confirm="onNewCanvasConfirm"
   />
-  <ExportDialog :open="exportOpen" @update:open="exportOpen = $event" @confirm="onExportConfirm" />
+  <ExportDialog
+    :open="exportOpen"
+    :initial-format="exportInitialFormat"
+    @update:open="exportOpen = $event"
+    @confirm="onExportConfirm"
+  />
   <BatchExportDialog
     :open="batchExportOpen"
     @update:open="batchExportOpen = $event"

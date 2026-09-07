@@ -18,7 +18,6 @@ const items: DropdownItem[] = [
   { id: 'view.zoom.in', label: '放大', shortcut: '+' },
   { id: 'view.zoom.out', label: '缩小', shortcut: '-' },
   { id: 'view.sep-1', separator: true },
-  { id: 'view.rightPanel.openpencil', label: '右窗 · OpenPencil' },
   { id: 'view.rightPanel.gallery', label: '右窗 · 图库' },
   { id: 'view.rightPanel.none', label: '右窗 · 折叠' },
   { id: 'view.sep-2', separator: true },

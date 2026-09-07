@@ -19,8 +19,12 @@ const items: DropdownItem[] = [
   { id: 'edit.selectAll', label: '全选', shortcut: 'Ctrl+A' },
   { id: 'edit.clearSelection', label: '取消选区', shortcut: 'Ctrl+D' },
   { id: 'edit.sep-2', separator: true },
+  { id: 'edit.cut', label: '剪切', shortcut: 'Ctrl+X' },
   { id: 'edit.copy', label: '复制', shortcut: 'Ctrl+C' },
   { id: 'edit.paste', label: '粘贴', shortcut: 'Ctrl+V' },
+  { id: 'edit.delete', label: '删除', shortcut: 'Delete' },
+  { id: 'edit.sep-3', separator: true },
+  { id: 'edit.rasterize', label: '栅格化选区…' },
 ];
 
 function onSelect(id: string): void {

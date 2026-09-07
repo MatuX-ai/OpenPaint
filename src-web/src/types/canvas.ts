@@ -6,17 +6,8 @@
 // The frontend uses camelCase via the adapter in `api/index.ts`.
 // ============================================================
 
-/** Tool type */
-export type ToolType =
-  | 'select'
-  | 'brush'
-  | 'eraser'
-  | 'move'
-  | 'transform'
-  | 'rect-select'
-  // W13 UX 验收补齐：旋转 / 文字工具
-  | 'rotate'
-  | 'text';
+/** Tool type — Paint.NET–inspired left rail (see `tools/editorTools.ts`). */
+export type { ToolType } from '@/tools/editorTools';
 
 /** Blend mode */
 export type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay';

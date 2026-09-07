@@ -83,7 +83,10 @@ import OpenPencilView from '@/components/openpencil/OpenPencilView.vue';
 
   &__toolbar {
     flex-shrink: 0;
-    height: 48px;
+    min-height: 48px;
+    /* Allow CanvasToolbar wrap (stroke / brush params) instead of clipping. */
+    height: auto;
+    overflow: visible;
   }
 
   &__canvas {

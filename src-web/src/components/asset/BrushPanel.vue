@@ -64,6 +64,10 @@ function onAiGenerateClick(): void {
       </button>
     </header>
 
+    <div class="brush-panel__soon" role="status">
+      像素画笔工具即将推出。下列预设可先浏览；请用左侧「钢笔 / 路径」绘制矢量描边。
+    </div>
+
     <div v-if="assets.brushLoading.value" class="brush-panel__status" role="status">
       加载画刷中…
     </div>
@@ -126,6 +130,16 @@ function onAiGenerateClick(): void {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  &__soon {
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
   }
 
   &__ai {

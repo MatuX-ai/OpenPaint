@@ -19,19 +19,38 @@ const sourceMapShim = resolvePath(
 // OpenPencil 的字体资源（BUNDLED_FONTS）：dev 阶段通过中间件从 jsdelivr 拉取并
 // 内存缓存，build 阶段由 `copy-openpencil-fonts` 插件写入 dist/。列表必须与
 // `@open-pencil/core/dist/text/fonts.js` 里的 BUNDLED_FONTS 完全一致。
+//
+// 注意：rsms/inter@v4 docs/font-files 路径已 404；改用 fontsource 静态 TTF
+//（非 variable —— OpenPencil 的 isVariableFont 会拒绝可变字体）。
 const OPENPENCIL_FONTS: Record<string, string> = {
   '/Inter-Regular.ttf':
-    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Regular.ttf',
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-400-normal.ttf',
   '/Inter-Medium.ttf':
-    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Medium.ttf',
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf',
   '/Inter-SemiBold.ttf':
-    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-SemiBold.ttf',
-  '/Inter-Bold.ttf': 'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Bold.ttf',
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-600-normal.ttf',
+  '/Inter-Bold.ttf':
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-700-normal.ttf',
   '/Inter-ExtraBold.ttf':
-    'https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-ExtraBold.ttf',
+    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-800-normal.ttf',
   '/NotoNaskhArabic-Regular.ttf':
     'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@main/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf',
 };
+
+/** TrueType / OpenType magic — 拒绝把 CDN 404 HTML 当成字体缓存。 */
+function looksLikeFontBuffer(buf: Buffer): boolean {
+  if (buf.length < 4) return false;
+  // TTF: 0x00010000 | OTTO | true | wOFF
+  const b0 = buf[0];
+  const b1 = buf[1];
+  const b2 = buf[2];
+  const b3 = buf[3];
+  if (b0 === 0x00 && b1 === 0x01 && b2 === 0x00 && b3 === 0x00) return true;
+  if (b0 === 0x4f && b1 === 0x54 && b2 === 0x54 && b3 === 0x4f) return true; // OTTO
+  if (b0 === 0x74 && b1 === 0x72 && b2 === 0x75 && b3 === 0x65) return true; // true
+  if (b0 === 0x77 && b1 === 0x4f && b2 === 0x46 && b3 === 0x46) return true; // wOFF
+  return false;
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -159,6 +178,10 @@ export default defineConfig({
                 return;
               }
               const buf = Buffer.from(await res.arrayBuffer());
+              if (!looksLikeFontBuffer(buf)) {
+                console.warn(`[copy-openpencil-fonts] ${relPath} not a font buffer — skip`);
+                return;
+              }
               await fs.writeFile(dest, buf);
               console.log(`[copy-openpencil-fonts] ${relPath} -> ${buf.length} bytes`);
             } catch (err) {
@@ -235,12 +258,13 @@ export default defineConfig({
         const cache = new Map<string, Buffer>();
         const inflight = new Map<string, Promise<Buffer | null>>();
         server.middlewares.use(async (req, res, next) => {
-          const url = req.url ?? '';
-          if (!OPENPENCIL_FONTS[url]) {
+          const raw = req.url ?? '';
+          const pathname = raw.split('?', 1)[0] ?? raw;
+          if (!OPENPENCIL_FONTS[pathname]) {
             next();
             return;
           }
-          const cached = cache.get(url);
+          const cached = cache.get(pathname);
           if (cached) {
             res.setHeader('Content-Type', 'font/ttf');
             res.setHeader('Content-Length', String(cached.length));
@@ -249,23 +273,24 @@ export default defineConfig({
             res.end(cached);
             return;
           }
-          let pending = inflight.get(url);
+          let pending = inflight.get(pathname);
           if (!pending) {
             pending = (async () => {
               try {
-                const upstream = await fetch(OPENPENCIL_FONTS[url]);
+                const upstream = await fetch(OPENPENCIL_FONTS[pathname]);
                 if (!upstream.ok) return null;
                 const ab = await upstream.arrayBuffer();
                 const buf = Buffer.from(ab);
-                cache.set(url, buf);
+                if (!looksLikeFontBuffer(buf)) return null;
+                cache.set(pathname, buf);
                 return buf;
               } catch {
                 return null;
               } finally {
-                inflight.delete(url);
+                inflight.delete(pathname);
               }
             })();
-            inflight.set(url, pending);
+            inflight.set(pathname, pending);
           }
           const buf = await pending;
           if (!buf) {

@@ -8,8 +8,10 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
 import { useUIStore } from '@stores/uiStore';
-import { canvasApi } from '@api/index';
 import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import { activateTool } from '@/tools/useEditorTool';
+import { clearPendingPenStrokeApply } from '@composables/vectorStrokeStyle';
+import * as viewportOps from '@composables/viewportOps';
 
 export interface ShortcutBinding {
   /** e.g. 'B', 'Ctrl+Z'. Modifiers use 'Ctrl', 'Shift', 'Alt', 'Meta'. */
@@ -17,7 +19,7 @@ export interface ShortcutBinding {
   description: string;
   /** True when no input/textarea is focused. */
   whenEditable?: boolean;
-  run: (event: KeyboardEvent) => void | Promise<void>;
+  run: (event: KeyboardEvent) => void | boolean | Promise<void>;
 }
 
 interface ResolvedBinding {
@@ -28,7 +30,7 @@ interface ResolvedBinding {
   key: string;
   description: string;
   whenEditable: boolean;
-  run: (event: KeyboardEvent) => void | Promise<void>;
+  run: (event: KeyboardEvent) => void | boolean | Promise<void>;
 }
 
 function parseCombo(combo: string): {
@@ -101,54 +103,115 @@ export function useShortcuts(target: HTMLElement | Window = window) {
 
   function defaultBindings(): ShortcutBinding[] {
     return [
-      // Tools (skip when typing)
+      // Tools — Paint.NET–inspired; drive OpenPencil via activateTool
       {
         combo: 'V',
-        description: '选择工具',
+        description: '选择 / 移动',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('select'),
-      },
-      {
-        combo: 'B',
-        description: '画笔工具',
-        whenEditable: false,
-        run: () => canvasStore.setActiveTool('brush'),
-      },
-      {
-        combo: 'E',
-        description: '橡皮工具',
-        whenEditable: false,
-        run: () => canvasStore.setActiveTool('eraser'),
+        run: () => {
+          activateTool('select');
+        },
       },
       {
         combo: 'M',
         description: '矩形选区',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('rect-select'),
+        run: () => {
+          activateTool('rect-select');
+        },
       },
       {
         combo: 'H',
-        description: '移动工具',
+        description: '平移画布',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('move'),
+        run: () => {
+          activateTool('hand');
+        },
+      },
+      {
+        combo: 'B',
+        description: '钢笔 / 路径（矢量）',
+        whenEditable: false,
+        run: () => {
+          activateTool('pen');
+        },
+      },
+      {
+        combo: 'Enter',
+        description: '结束钢笔路径（开放）',
+        whenEditable: false,
+        run: () => {
+          const editor = bridge.editor;
+          if (!editor.state.penState) return false;
+          editor.penCommit(false);
+        },
+      },
+      {
+        combo: 'Escape',
+        description: '取消钢笔路径',
+        whenEditable: false,
+        run: () => {
+          const editor = bridge.editor;
+          if (!editor.state.penState) return false;
+          clearPendingPenStrokeApply();
+          editor.penCancel();
+        },
       },
       {
         combo: 'T',
-        description: '变形工具',
+        description: '文字工具',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('transform'),
+        run: () => {
+          activateTool('text');
+        },
       },
       {
         combo: 'R',
-        description: '旋转工具',
+        description: '形状（矩形）',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('rotate'),
+        run: () => {
+          activateTool('rectangle');
+        },
       },
       {
-        combo: 'X',
-        description: '文字工具',
+        combo: 'O',
+        description: '椭圆',
         whenEditable: false,
-        run: () => canvasStore.setActiveTool('text'),
+        run: () => {
+          activateTool('ellipse');
+        },
+      },
+      {
+        combo: 'L',
+        description: '直线',
+        whenEditable: false,
+        run: () => {
+          activateTool('line');
+        },
+      },
+      {
+        combo: 'A',
+        description: '画框',
+        whenEditable: false,
+        run: () => {
+          activateTool('frame');
+        },
+      },
+      {
+        combo: 'E',
+        description: '橡皮',
+        whenEditable: false,
+        run: () => {
+          activateTool('eraser');
+        },
+      },
+      {
+        combo: 'F',
+        description: '油漆桶',
+        whenEditable: false,
+        run: () => {
+          activateTool('bucket');
+        },
       },
 
       // History — W14+ 统一走 OpenPencil editor（共享 SceneGraph 历史）。
@@ -276,7 +339,7 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         },
       },
       {
-        // Ctrl+V → 走 menu bus 到 edit.paste handler（桌面端从系统剪贴板读 PNG 并 pasteImage 到画布）。
+        // Ctrl+V → 走 menu bus 到 edit.paste handler（桌面端从系统剪贴板读 PNG 并 place 到 OpenPencil）。
         // 不带 whenEditable=false 以保留输入框文本粘贴行为；
         // 但 edit.paste 在文本剪贴板上调用 readImage 会抛错并 toast 提示，因此安全。
         combo: 'Ctrl+V',
@@ -291,11 +354,9 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         combo: 'Ctrl+A',
         description: '全选',
         whenEditable: false,
-        run: async () => {
-          // 兼容模式：仍调用 Rust getSelectionBounds；OpenPencil editor 提供 selectAll()。
+        run: () => {
           try {
-            const bounds = await canvasApi.getSelectionBounds();
-            void bounds;
+            bridge.editor.selectAll();
           } catch (e) {
             console.error(e);
           }
@@ -305,45 +366,81 @@ export function useShortcuts(target: HTMLElement | Window = window) {
         combo: 'Ctrl+D',
         description: '取消选区',
         whenEditable: false,
-        run: async () => {
+        run: () => {
           try {
-            await canvasApi.clearSelection();
+            bridge.editor.clearSelection();
           } catch (e) {
             console.error(e);
           }
         },
       },
+      {
+        combo: 'Delete',
+        description: '删除选中',
+        whenEditable: false,
+        run: () => {
+          try {
+            if (bridge.editor.getSelectedNodes().length === 0) return false;
+            bridge.editor.deleteSelected();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+      {
+        combo: 'Backspace',
+        description: '删除选中',
+        whenEditable: false,
+        run: () => {
+          try {
+            if (bridge.editor.getSelectedNodes().length === 0) return false;
+            bridge.editor.deleteSelected();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+      },
+      {
+        combo: 'Ctrl+X',
+        description: '剪切',
+        whenEditable: false,
+        run: () => {
+          void import('@composables/useMenuActions').then((m) =>
+            m.useMenuActions().dispatch('edit.cut'),
+          );
+        },
+      },
 
-      // View — zoom
+      // View — zoom (OpenPencil viewport)
       {
         combo: 'Ctrl+0',
         description: '缩放至 100%',
         whenEditable: false,
-        run: () => canvasStore.setZoom(1),
+        run: () => viewportOps.zoomTo100(bridge.editor),
       },
       {
         combo: 'Ctrl+Shift+0',
         description: '适配窗口',
         whenEditable: false,
-        run: () => canvasStore.resetView(),
+        run: () => viewportOps.zoomToFit(bridge.editor),
       },
       {
         combo: '=',
         description: '放大',
         whenEditable: false,
-        run: () => canvasStore.setZoom(canvasStore.zoom * 1.2),
+        run: () => viewportOps.zoomIn(bridge.editor),
       },
       {
         combo: '+',
         description: '放大',
         whenEditable: false,
-        run: () => canvasStore.setZoom(canvasStore.zoom * 1.2),
+        run: () => viewportOps.zoomIn(bridge.editor),
       },
       {
         combo: '-',
         description: '缩小',
         whenEditable: false,
-        run: () => canvasStore.setZoom(canvasStore.zoom / 1.2),
+        run: () => viewportOps.zoomOut(bridge.editor),
       },
 
       // Help
@@ -364,9 +461,11 @@ export function useShortcuts(target: HTMLElement | Window = window) {
     for (const binding of bindings) {
       if (!eventMatches(event, binding)) continue;
       if (!binding.whenEditable && isEditableTarget(event.target)) continue;
+      const result = binding.run(event);
+      // `false` = binding declined (e.g. Enter/Esc when not drawing a path)
+      if (result === false) continue;
       event.preventDefault();
       event.stopPropagation();
-      void binding.run(event);
       return;
     }
   }

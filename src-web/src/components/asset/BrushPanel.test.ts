@@ -88,6 +88,7 @@ describe('BrushPanel', () => {
     await flushPromises();
     expect(w.findAll('.brush-panel__item')).toHaveLength(8);
     expect(w.find('.brush-panel__ai').exists()).toBe(true);
+    expect(w.find('.brush-panel__soon').text()).toContain('即将推出');
   });
 
   it('BR-102: clicking a brush triggers setActiveBrush + emits brush-changed', async () => {

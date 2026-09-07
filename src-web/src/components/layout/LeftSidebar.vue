@@ -1,15 +1,9 @@
 <!--
-  Left sidebar — tool picker + resource picker (W9).
+  Left sidebar — Paint.NET–inspired tool rail + resource picker.
 
-  Two modes (toggled via the bottom chip):
-    - `tools`   (default): the original 6 tool buttons (V/M/B/E/H/T)
-    - `icons`   (W9)     : the IconPanel rendered into a wider sidebar
-
-  When switching to `icons` the sidebar widens from 48px to 280px so the
-  IconPanel can lay out a search input + result grid. The user can click
-  the chip again to collapse back.
-
-  Wired to canvasStore.activeTool via useCanvasStore.setActiveTool.
+  Live tools drive OpenPencil via `activateTool()` → editor.setTool().
+  Vector pen (B) draws paths; eraser / paint bucket edit IMAGE pixels.
+  Pixel brush stays comingSoon until a dedicated raster stroke path exists.
 -->
 
 <script setup lang="ts">
@@ -19,50 +13,68 @@ import {
   Eraser,
   MousePointer2,
   Hand,
-  Crop,
   Square,
-  Shapes,
-  RotateCw,
+  Circle,
   Type,
+  Box,
+  Droplet,
+  Palette,
+  Hexagon,
+  Star,
+  Minus,
+  Pencil,
+  PenTool,
+  Sparkles,
+  Crosshair,
+  ChevronRight,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';
-import type { ToolType } from '@/types/canvas';
 import ResourceTabs from '@/components/asset/ResourceTabs.vue';
 import type { IconMeta } from '@/types/asset';
 import { useToast } from '@/composables/useToast';
+import {
+  RAIL_TOOL_IDS,
+  getToolDef,
+  railLabel,
+  type ToolType,
+} from '@/tools/editorTools';
+import { activateTool } from '@/tools/useEditorTool';
 
-interface ToolDef {
-  id: ToolType;
-  label: string;
-  shortcut: string;
-  icon: Component;
-}
-
-const tools: ToolDef[] = [
-  { id: 'select', label: '选择', shortcut: 'V', icon: MousePointer2 },
-  { id: 'rect-select', label: '矩形选区', shortcut: 'M', icon: Square },
-  { id: 'brush', label: '画笔', shortcut: 'B', icon: Brush },
-  { id: 'eraser', label: '橡皮', shortcut: 'E', icon: Eraser },
-  { id: 'move', label: '移动', shortcut: 'H', icon: Hand },
-  { id: 'transform', label: '变形', shortcut: 'T', icon: Crop },
-  // W13 UX 验收补齐：旋转 / 文字两个工具
-  { id: 'rotate', label: '旋转', shortcut: 'R', icon: RotateCw },
-  { id: 'text', label: '文字', shortcut: 'X', icon: Type },
-];
+const ICONS: Record<ToolType, Component> = {
+  select: MousePointer2,
+  'rect-select': Square,
+  lasso: Pencil,
+  'ellipse-select': Circle,
+  'magic-wand': Sparkles,
+  hand: Hand,
+  pen: PenTool,
+  brush: Brush,
+  eraser: Eraser,
+  bucket: Droplet,
+  gradient: Palette,
+  eyedropper: Crosshair,
+  text: Type,
+  rectangle: Square,
+  ellipse: Circle,
+  line: Minus,
+  polygon: Hexagon,
+  star: Star,
+  frame: Box,
+};
 
 const store = useCanvasStore();
 const toast = useToast();
 
 type SidebarMode = 'tools' | 'icons';
 const mode = ref<SidebarMode>('tools');
+const flyoutFor = ref<ToolType | null>(null);
 
-// Persist the user's last selection so the next launch feels consistent.
 try {
   const saved = window.localStorage.getItem('openpaint:left-sidebar-mode');
   if (saved === 'icons') mode.value = 'icons';
 } catch {
-  /* localStorage may be disabled in some environments — fall back to default */
+  /* ignore */
 }
 
 watch(mode, (next) => {
@@ -75,11 +87,6 @@ watch(mode, (next) => {
 
 const isIcons = computed(() => mode.value === 'icons');
 
-// 同步 body class，让 MainLayout 的 CSS 变量 `--left-sidebar-width` 跟随模式切换：
-// - tools: 56px（工具条宽度）
-// - icons: 280px（资源面板需要的最小宽度）
-// 不直接修改子组件 width：父容器 MainLayout__left 是 hardcode 的 CSS 变量，
-// 只能通过 :root 或 documentElement 的 data 属性反向覆盖。
 watch(
   isIcons,
   (next) => {
@@ -90,8 +97,54 @@ watch(
   { immediate: true },
 );
 
+const railTools = computed(() =>
+  RAIL_TOOL_IDS.map((id) => getToolDef(id)!).filter(Boolean),
+);
+
+function isActive(id: ToolType): boolean {
+  const def = getToolDef(id);
+  if (!def) return false;
+  if (store.activeTool === id) return true;
+  // Shape / selection flyout: highlight parent when a sibling is active
+  if (def.flyout?.includes(store.activeTool)) return true;
+  return false;
+}
+
+function onToolClick(id: ToolType, event: MouseEvent): void {
+  const def = getToolDef(id);
+  if (!def) return;
+
+  // Right-click or Alt+click opens flyout when present
+  if (def.flyout && def.flyout.length > 1 && (event.altKey || event.button === 2)) {
+    event.preventDefault();
+    flyoutFor.value = flyoutFor.value === id ? null : id;
+    return;
+  }
+
+  // Second click on an active flyout parent toggles the menu
+  if (def.flyout && def.flyout.length > 1 && isActive(id) && flyoutFor.value !== id) {
+    flyoutFor.value = id;
+    return;
+  }
+
+  flyoutFor.value = null;
+  const result = activateTool(id);
+  if (!result.ok && result.message) {
+    toast.info(result.message);
+  }
+}
+
+function onFlyoutPick(id: ToolType): void {
+  flyoutFor.value = null;
+  const result = activateTool(id);
+  if (!result.ok && result.message) {
+    toast.info(result.message);
+  }
+}
+
 function toggleMode(): void {
   mode.value = mode.value === 'tools' ? 'icons' : 'tools';
+  flyoutFor.value = null;
 }
 
 function onIconImported(payload: { icon: IconMeta; layerId: string }): void {
@@ -133,6 +186,16 @@ function onBrushChanged(brushId: string): void {
 function onImportError(message: string): void {
   toast.show({ kind: 'error', message, durationMs: 3000 });
 }
+
+function titleFor(id: ToolType): string {
+  const def = getToolDef(id)!;
+  const label = railLabel(id);
+  const parts = [label];
+  if (def.shortcut) parts.push(`(${def.shortcut})`);
+  if (def.availability === 'comingSoon') parts.push('· 即将推出');
+  if (def.flyout && def.flyout.length > 1) parts.push('· Alt+点击展开');
+  return parts.join(' ');
+}
 </script>
 
 <template>
@@ -141,21 +204,61 @@ function onImportError(message: string): void {
     :class="{ 'left-sidebar--wide': isIcons }"
     :aria-label="isIcons ? '资源面板' : '绘图工具'"
   >
-    <nav v-if="!isIcons" class="left-sidebar__tools" :aria-label="'绘图工具'">
-      <button
-        v-for="tool in tools"
+    <nav v-if="!isIcons" class="left-sidebar__tools" aria-label="绘图工具">
+      <div
+        v-for="tool in railTools"
         :key="tool.id"
-        class="left-sidebar__tool"
-        type="button"
-        :title="`${tool.label} (${tool.shortcut})`"
-        :aria-label="`${tool.label}（快捷键 ${tool.shortcut}）`"
-        :aria-pressed="store.activeTool === tool.id"
-        :class="{ 'is-active': store.activeTool === tool.id }"
-        @click="store.setActiveTool(tool.id)"
+        class="left-sidebar__slot"
       >
-        <component :is="tool.icon" :size="18" />
-        <span class="left-sidebar__shortcut" aria-hidden="true">{{ tool.shortcut }}</span>
-      </button>
+        <button
+          class="left-sidebar__tool"
+          type="button"
+          :title="titleFor(tool.id)"
+          :aria-label="`${railLabel(tool.id)}${tool.shortcut ? `（快捷键 ${tool.shortcut}）` : ''}${tool.availability === 'comingSoon' ? '，即将推出' : ''}`"
+          :aria-pressed="isActive(tool.id)"
+          :aria-disabled="tool.availability === 'comingSoon'"
+          :class="{
+            'is-active': isActive(tool.id) && tool.availability === 'live',
+            'is-soon': tool.availability === 'comingSoon',
+          }"
+          @click="onToolClick(tool.id, $event)"
+          @contextmenu.prevent="onToolClick(tool.id, $event)"
+        >
+          <component :is="ICONS[tool.id]" :size="18" />
+          <ChevronRight
+            v-if="tool.flyout && tool.flyout.length > 1"
+            :size="10"
+            class="left-sidebar__flyout-caret"
+            aria-hidden="true"
+          />
+        </button>
+
+        <div
+          v-if="flyoutFor === tool.id && tool.flyout"
+          class="left-sidebar__flyout"
+          role="menu"
+        >
+          <button
+            v-for="fid in tool.flyout"
+            :key="fid"
+            type="button"
+            role="menuitem"
+            class="left-sidebar__flyout-item"
+            :class="{
+              'is-active': store.activeTool === fid,
+              'is-soon': getToolDef(fid)?.availability === 'comingSoon',
+            }"
+            :aria-disabled="getToolDef(fid)?.availability === 'comingSoon'"
+            @click="onFlyoutPick(fid)"
+          >
+            <component :is="ICONS[fid]" :size="14" />
+            <span>{{ getToolDef(fid)?.label }}</span>
+            <span v-if="getToolDef(fid)?.availability === 'comingSoon'" class="left-sidebar__soon-tag">
+              即将
+            </span>
+          </button>
+        </div>
+      </div>
     </nav>
 
     <div v-else class="left-sidebar__panel">
@@ -189,10 +292,6 @@ function onImportError(message: string): void {
   width: 100%;
   height: 100%;
   padding: var(--space-2) 0;
-  // W12 VDP-FIX-02：去掉 width 过渡。
-  // 原 transition: width var(--transition-fast) 在 data 属性切换时与
-  // CSS 变量更新并发触发，浏览器反复中断重启 transition，导致宽度卡在
-  // 初始值不动。这里使用瞬时切换，避免渲染与动画相互干扰。
 
   &--wide {
     width: 280px;
@@ -202,8 +301,13 @@ function onImportError(message: string): void {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-1);
+    gap: 2px;
     flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  &__slot {
+    position: relative;
   }
 
   &__panel {
@@ -213,20 +317,20 @@ function onImportError(message: string): void {
   }
 
   &__tool {
+    position: relative;
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    width: 44px;
-    height: 40px;
+    width: 40px;
+    height: 36px;
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
     transition:
       background var(--transition-fast),
-      color var(--transition-fast);
+      color var(--transition-fast),
+      opacity var(--transition-fast);
 
-    &:hover {
+    &:hover:not(.is-soon) {
       background: var(--bg-hover);
       color: var(--text-primary);
     }
@@ -239,28 +343,69 @@ function onImportError(message: string): void {
     &.is-active {
       background: var(--accent-light);
       color: var(--accent);
+    }
 
-      .left-sidebar__shortcut {
-        color: var(--accent);
-        background: var(--bg-secondary);
-      }
+    &.is-soon {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
   }
 
-  &__shortcut {
-    display: inline-flex;
+  &__flyout-caret {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    opacity: 0.7;
+  }
+
+  &__flyout {
+    position: absolute;
+    left: calc(100% + 6px);
+    top: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 148px;
+    padding: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  &__flyout-item {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 12px;
-    height: 12px;
-    padding: 0 2px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 9px;
-    line-height: 1;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+
+    &:hover:not(.is-soon) {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    &.is-active {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    &.is-soon {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+
+  &__soon-tag {
+    margin-left: auto;
+    font-size: 10px;
     color: var(--text-muted);
-    background: var(--bg-tertiary, transparent);
-    border-radius: 2px;
-    letter-spacing: 0;
   }
 
   &__mode-toggle {
@@ -297,7 +442,6 @@ function onImportError(message: string): void {
     font-weight: 500;
   }
 
-  // 当展开到 wide 模式，模式按钮放底部居左，更适合宽布局
   &--wide &__mode-toggle {
     align-self: flex-start;
     margin-left: var(--space-2);

@@ -11,7 +11,7 @@
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   provideEditor,
   ToolbarRoot,
@@ -20,9 +20,21 @@ import {
   useCanvasInput,
 } from '@open-pencil/vue';
 import { EDITOR_TOOLS } from '@open-pencil/core/editor';
-import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import { getOpenPencilBridge, syncOpenPencilStateToCanvasStore } from '@composables/useOpenPencil';
+import { syncToolFromOpenPencil } from '@/tools/useEditorTool';
+// Namespace import: Vite SFC HMR can drop named bindings (`useRasterPixelTools is not defined`).
+import * as rasterPixelTools from '@composables/useRasterPixelTools';
+import {
+  applyStyleForActiveCreateTool,
+  maybeApplyStrokeAfterPenCommit,
+  notePenDrawingStarted,
+  syncStylePrefsFromSelection,
+} from '@composables/vectorStrokeStyle';
+import { isRasterTool } from '@/tools/editorTools';
+import { useCanvasStore } from '@stores/canvasStore';
 import OpenPencilToolbar from './OpenPencilToolbar.vue';
 import MCPStatus from './MCPStatus.vue';
+import RasterizeConfirmDialog from '../canvas/RasterizeConfirmDialog.vue';
 
 // OpenPencil/CanvasKit 走 `<origin>/canvaskit.wasm`（@open-pencil/core/canvaskit
 // 的 defaultLocate 把 file 拼到 base URL 之后）。在桌面端 (tauri://) 与 web 预览
@@ -52,7 +64,11 @@ async function preloadCanvasKit(): Promise<void> {
 
 const bridge = getOpenPencilBridge();
 const { editor, status, sendImageToAI } = bridge;
-console.log('[OpenPencilView] setup start, editor type:', editor?.constructor?.name);
+const store = useCanvasStore();
+/** Hide OP chrome when left-rail pixel tools own input (avoids SELECT desync). */
+const showOpToolbar = computed(
+  () => status.value === 'ready' && !isRasterTool(store.activeTool),
+);
 
 provideEditor(editor);
 
@@ -64,18 +80,16 @@ const errorMessage = ref<string>('');
 
 // 同步让 SDK 把 CanvasKit 调起来，不依赖 onMounted。在 setup 顶层同步调
 // useCanvas，确保 SDK 内部 onMounted(() => init()) 能拿到 active instance。
-console.log('[OpenPencilView] before useCanvas');
 const canvasCtl = useCanvas(canvasRef, editor, {
   onReady: () => {
-    console.log('[OpenPencilView] onReady fired');
     status.value = 'ready';
     clearTimers();
     showSlowHint.value = false;
     showErrorFallback.value = false;
     errorMessage.value = '';
+    syncOpenPencilStateToCanvasStore(editor);
   },
 });
-console.log('[OpenPencilView] after useCanvas, canvasCtl keys:', Object.keys(canvasCtl ?? {}));
 
 useCanvasInput(
   canvasRef,
@@ -84,10 +98,20 @@ useCanvasInput(
   canvasCtl.hitTestComponentLabel,
   canvasCtl.hitTestFrameTitle,
 );
-console.log('[OpenPencilView] after useCanvasInput');
 
 useCanvasDrop(canvasRef, editor);
-console.log('[OpenPencilView] after useCanvasDrop');
+
+// 必须在 setup 同步调用，才能正确注册 watch / onBeforeUnmount。
+{
+  const install = rasterPixelTools.useRasterPixelTools;
+  if (typeof install === 'function') {
+    install(canvasRef, editor);
+  } else {
+    // Stale Vite SFC HMR can leave the named export undefined — full reload.
+    console.warn('[OpenPencilView] useRasterPixelTools missing; invalidating module');
+    import.meta.hot?.invalidate();
+  }
+}
 
 let slowTimer: ReturnType<typeof setTimeout> | null = null;
 let errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -100,18 +124,56 @@ let mounted = true;
 // "useEditor() called without an injected editor"。
 // 改为直接调用 editor.onEditorEvent() 拿到 unsubscribe 函数，
 // 并在 onBeforeUnmount 里统一释放（与原逻辑一致）。
+let syncRaf: number | null = null;
+function scheduleStoreSync() {
+  if (syncRaf != null) return;
+  syncRaf = requestAnimationFrame(() => {
+    syncRaf = null;
+    syncOpenPencilStateToCanvasStore(editor);
+  });
+}
+
 const unsubscribers: Array<() => void> = [
   editor.onEditorEvent('selection:changed', () => {
-    // 后续：同步 store.activeLayerId / selection
+    scheduleStoreSync();
+    maybeApplyStrokeAfterPenCommit(editor);
+    applyStyleForActiveCreateTool(editor, store.activeTool);
+    if (!editor.state.penState) syncStylePrefsFromSelection(editor);
   }),
   editor.onEditorEvent('tool:changed', () => {
-    // 后续：同步 store.activeTool
+    syncToolFromOpenPencil(editor.state.activeTool);
+    maybeApplyStrokeAfterPenCommit(editor);
   }),
   editor.onEditorEvent('viewport:changed', () => {
-    // 后续：同步 store.zoom / pan
+    scheduleStoreSync();
   }),
   editor.onEditorEvent('graph:replaced', () => {
-    // 后续：通知图层、属性面板重建
+    scheduleStoreSync();
+    void import('@composables/useDocumentState')
+      .then(({ useDocumentState }) => {
+        useDocumentState().markDirty();
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }),
+  editor.onEditorEvent('render:requested', () => {
+    if (editor.state.penState) notePenDrawingStarted();
+    // 放置 / 删除 / 绘制等都会触发；与 Pinia 同步图层数 / 历史按钮
+    scheduleStoreSync();
+    try {
+      if (editor.undo?.canUndo) {
+        void import('@composables/useDocumentState')
+          .then(({ useDocumentState }) => {
+            useDocumentState().markDirty();
+          })
+          .catch(() => {
+            /* ignore */
+          });
+      }
+    } catch {
+      /* ignore */
+    }
   }),
 ];
 
@@ -201,6 +263,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   mounted = false;
   clearTimers();
+  if (syncRaf != null) {
+    cancelAnimationFrame(syncRaf);
+    syncRaf = null;
+  }
   window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   window.removeEventListener('error', handleWindowError);
   while (unsubscribers.length) {
@@ -238,8 +304,8 @@ defineExpose({ status, sendImageToAI, editor });
 
 <template>
   <div class="openpencil-view">
-    <ToolbarRoot v-if="status === 'ready'" :tools="EDITOR_TOOLS" class="openpencil-view__tools" />
-    <OpenPencilToolbar v-else :loading="status === 'loading'" />
+    <ToolbarRoot v-if="showOpToolbar" :tools="EDITOR_TOOLS" class="openpencil-view__tools" />
+    <OpenPencilToolbar v-else-if="status !== 'ready'" :loading="status === 'loading'" />
     <div class="openpencil-view__body">
       <div
         v-if="showSlowHint && (status === 'loading' || status === 'idle')"
@@ -279,6 +345,7 @@ defineExpose({ status, sendImageToAI, editor });
       <canvas ref="canvasRef" class="openpencil-view__frame" />
     </div>
     <MCPStatus :status="status" />
+    <RasterizeConfirmDialog />
   </div>
 </template>
 

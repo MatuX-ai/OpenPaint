@@ -420,8 +420,45 @@ const MOCK_COMMANDS: Record<string, StubFactory> = {
       {};
     const size = a.size ?? 64;
     const color = a.color || 'currentColor';
-    // 返回一个合法的占位 SVG（便于预览面板渲染），不是真实 Iconify 图标。
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="${color}"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="${color}" stroke-width="2"/><text x="12" y="16" font-size="6" text-anchor="middle" fill="${color}">${(a.prefix ?? '?').slice(0, 2)}</text></svg>`;
+    const name = (a.name ?? '').toLowerCase();
+    // Lightweight stroke paths so the IconPanel grid shows recognizable glyphs in web preview.
+    const paths: Record<string, string> = {
+      search:
+        '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      settings:
+        '<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      home: '<path d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      user: '<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      heart:
+        '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      star: '<path d="M12 3l2.4 5.2L20 9.3l-4 4.1.9 5.6L12 16.5 7.1 19l.9-5.6-4-4.1 5.6-1.1L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      plus: '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      check:
+        '<path d="M5 12l5 5L20 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      trash:
+        '<path d="M4 7h16M9 7V5h6v2M8 7l1 12h6l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      edit: '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 7.5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      pencil:
+        '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 7.5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      calendar:
+        '<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      camera:
+        '<path d="M4 8h3l2-2h6l2 2h3v11H4V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/>',
+      envelope:
+        '<rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      mail: '<rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      heart_outline:
+        '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="2"/>',
+      pause:
+        '<path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      play: '<path d="M7 5l12 7-12 7V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      phone:
+        '<path d="M7 3h3l1.5 4-2 1.5a11 11 0 0 0 5 5L16 11.5l4 1.5v3a2 2 0 0 1-2 2A15 15 0 0 1 5 7a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    };
+    const body =
+      paths[name] ??
+      `<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" color="${color}">${body.replace(/currentColor/g, color)}</svg>`;
     return { svg, width: size, height: size, from_cache: false };
   },
 

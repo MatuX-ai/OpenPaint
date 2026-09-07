@@ -9,19 +9,30 @@
  *    让工具条、属性、图层共享同一选区、文档和 Undo/Redo。
  *  - 不再把 AI 返回结果栅格化后落回画布：直接把 SVG 通过 `editor.pasteFromHTML`
  *    插入当前 OpenPencil 文档，默认替换当前选区。
- *  - Rust `canvasApi.pasteImage` 不再作为主编辑路径，只保留为兼容能力。
+ *  - 图片导入走 `editor.placeFiles`（与拖放同一路径），不再经 Rust `canvasApi.pasteImage`。
  */
 
 import { ref, type Ref } from 'vue';
 import { createEditor } from '@open-pencil/core/editor';
 import type { Editor } from '@open-pencil/core/editor';
+import { renderNodesToImage, computeContentBounds } from '@open-pencil/core/io';
 import { aiApi } from '@api/index';
+import { useCanvasStore } from '@stores/canvasStore';
+import type { BlendMode, Layer } from '@/types/canvas';
 
 export type OpenPencilStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface OpenPencilResult {
   svg?: string;
   png?: string;
+}
+
+export interface OpenPencilRasterExport {
+  mime: string;
+  bytesBase64: string;
+  width: number;
+  height: number;
+  dataUrl: string;
 }
 
 export interface OpenPencilBridge {
@@ -41,6 +52,23 @@ export interface OpenPencilBridge {
    * 不再做 SVG → PNG → pasteImage 回落：直接走 OpenPencil 文档。
    */
   sendImageToAI: (imageData: string, prompt: string) => Promise<OpenPencilResult | null>;
+  /** 在视口中心放置 File 列表（与拖放共用 placeFiles）。 */
+  placeFiles: (files: File[]) => Promise<void>;
+  /** 将 data URL / 原始字节转为 File 后放入中央画布。 */
+  placeDataUrl: (dataUrl: string, fileName?: string) => Promise<void>;
+  /** 将二进制图片放入中央画布。 */
+  placeBytes: (bytes: Uint8Array, fileName: string, mime: string) => Promise<void>;
+  /** 导出当前页内容为光栅图（PNG / JPG / WebP）。 */
+  exportRaster: (
+    format: 'png' | 'jpg' | 'webp',
+    quality?: number,
+    nodeIds?: string[],
+  ) => Promise<OpenPencilRasterExport | null>;
+  /** 导出选区；无选区时导出整页。 */
+  exportSelectionOrDocument: (
+    format?: 'png' | 'jpg' | 'webp',
+    quality?: number,
+  ) => Promise<OpenPencilRasterExport | null>;
   /** Editor 撤销 / 重做（与工具条、快捷键共用）。 */
   undo: () => void;
   redo: () => void;
@@ -64,6 +92,129 @@ export interface OpenPencilBridge {
 let singletonEditor: Editor | null = null;
 let singletonBridge: OpenPencilBridge | null = null;
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+function mimeFromExt(ext: string): string {
+  switch (ext.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'image/png';
+  }
+}
+
+function fileNameFromDataUrl(dataUrl: string, fallback: string): string {
+  const m = /^data:([^;,]+)/i.exec(dataUrl);
+  const mime = m?.[1] ?? 'image/png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return fallback.replace(/\.[^.]+$/, '') + '.jpg';
+  if (mime.includes('webp')) return fallback.replace(/\.[^.]+$/, '') + '.webp';
+  if (mime.includes('svg')) return fallback.replace(/\.[^.]+$/, '') + '.svg';
+  if (mime.includes('gif')) return fallback.replace(/\.[^.]+$/, '') + '.gif';
+  return fallback.replace(/\.[^.]+$/, '') + '.png';
+}
+
+function getPlacementCenter(editor: Editor): { x: number; y: number } {
+  const canvas = document.querySelector(
+    '.openpencil-view canvas, .main-layout__canvas canvas, canvas',
+  ) as HTMLCanvasElement | null;
+  const vw = canvas?.clientWidth || 1280;
+  const vh = canvas?.clientHeight || 720;
+  const { panX, panY, zoom } = editor.state;
+  const z = zoom || 1;
+  return {
+    x: (-panX + vw / 2) / z,
+    y: (-panY + vh / 2) / z,
+  };
+}
+
+function asBlendMode(value: unknown): BlendMode {
+  if (value === 'multiply' || value === 'screen' || value === 'overlay') return value;
+  return 'normal';
+}
+
+/**
+ * 把 OpenPencil 文档树同步到 Pinia canvasStore（状态栏图层数、引导卡、图层面板）。
+ * 顶层（depth === 0）节点计为「图层」。
+ */
+export function syncOpenPencilStateToCanvasStore(editor?: Editor | null): void {
+  const ed = editor ?? singletonEditor;
+  if (!ed) return;
+  let store: ReturnType<typeof useCanvasStore>;
+  try {
+    store = useCanvasStore();
+  } catch {
+    return;
+  }
+
+  const tree = (ed as Editor & { getLayerTree?: () => Array<{ depth: number; node: Record<string, unknown> }> })
+    .getLayerTree?.() ?? [];
+  const selected = new Set(
+    (
+      (ed as Editor & { getSelectedNodes?: () => Array<{ id?: string }> }).getSelectedNodes?.() ?? []
+    )
+      .map((n) => n.id)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  const layers: Layer[] = tree
+    .filter((entry) => (entry.depth ?? 0) === 0)
+    .map((entry) => {
+      const n = entry.node ?? {};
+      const id = String(n.id ?? '');
+      const name = String(n.name || n.type || id || '图层');
+      const opacity = typeof n.opacity === 'number' ? n.opacity : 1;
+      return {
+        id,
+        name,
+        opacity,
+        blendMode: asBlendMode(n.blendMode ?? n.blend_mode),
+        visible: n.visible !== false,
+        locked: Boolean(n.locked),
+        width: typeof n.width === 'number' ? n.width : 0,
+        height: typeof n.height === 'number' ? n.height : 0,
+        offsetX: typeof n.x === 'number' ? n.x : typeof n.offsetX === 'number' ? n.offsetX : 0,
+        offsetY: typeof n.y === 'number' ? n.y : typeof n.offsetY === 'number' ? n.offsetY : 0,
+        isActive: selected.has(id),
+      };
+    })
+    .filter((l) => l.id);
+
+  store.layerList = layers;
+  store.activeLayerId =
+    [...selected][0] ?? layers.find((l) => l.isActive)?.id ?? layers[0]?.id ?? null;
+
+  const zoom = ed.state?.zoom;
+  if (typeof zoom === 'number' && Number.isFinite(zoom) && zoom > 0) {
+    store.zoom = zoom;
+  }
+  if (typeof ed.state?.panX === 'number') store.panX = ed.state.panX;
+  if (typeof ed.state?.panY === 'number') store.panY = ed.state.panY;
+
+  try {
+    const undo = (ed as Editor & { undo?: { canUndo?: boolean; canRedo?: boolean } }).undo;
+    if (undo) {
+      store.canUndo = Boolean(undo.canUndo);
+      store.canRedo = Boolean(undo.canRedo);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function createSingleton(): OpenPencilBridge {
   const status = ref<OpenPencilStatus>('loading');
   const lastResult = ref<OpenPencilResult | null>(null);
@@ -85,6 +236,12 @@ function createSingleton(): OpenPencilBridge {
       .map(({ node }) => node.id);
   }
 
+  function ensureReady(): void {
+    if (status.value !== 'ready') {
+      throw new Error('画布尚未就绪，请稍候再试');
+    }
+  }
+
   function exportSVG(): string | null {
     const ids = getRootIds();
     if (ids.length === 0) return null;
@@ -101,6 +258,7 @@ function createSingleton(): OpenPencilBridge {
     const replaceSelection = options.replaceSelection ?? true;
     await editor.pasteFromHTML(svg, undefined, { replaceSelection });
     lastResult.value = { svg };
+    syncOpenPencilStateToCanvasStore(editor);
   }
 
   async function sendImageToAI(
@@ -114,11 +272,93 @@ function createSingleton(): OpenPencilBridge {
     return lastResult.value;
   }
 
+  async function placeFiles(files: File[]): Promise<void> {
+    ensureReady();
+    if (files.length === 0) return;
+    const { x, y } = getPlacementCenter(editor);
+    await editor.placeFiles(files, x, y);
+    syncOpenPencilStateToCanvasStore(editor);
+  }
+
+  async function placeBytes(bytes: Uint8Array, fileName: string, mime: string): Promise<void> {
+    // Copy into a standalone ArrayBuffer so File/Blob ownership is unambiguous
+    // (Tauri readFile may return a view into a larger buffer).
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    const file = new File([copy], fileName, { type: mime || mimeFromExt(fileName) });
+    await placeFiles([file]);
+  }
+
+  async function placeDataUrl(dataUrl: string, fileName = 'import.png'): Promise<void> {
+    ensureReady();
+    const name = fileNameFromDataUrl(dataUrl, fileName);
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], name, { type: blob.type || mimeFromExt(name) });
+    await placeFiles([file]);
+  }
+
+  async function exportRaster(
+    format: 'png' | 'jpg' | 'webp',
+    quality = 92,
+    nodeIds?: string[],
+  ): Promise<OpenPencilRasterExport | null> {
+    ensureReady();
+    const renderer = editor.renderer;
+    if (!renderer) {
+      throw new Error('画布渲染器未就绪');
+    }
+    const ids =
+      nodeIds && nodeIds.length > 0
+        ? nodeIds
+        : getRootIds();
+    if (ids.length === 0) return null;
+
+    const rasterFormat = format === 'jpg' ? 'JPG' : format === 'webp' ? 'WEBP' : 'PNG';
+    const bytes = renderNodesToImage(
+      renderer.ck,
+      renderer,
+      editor.graph,
+      editor.state.currentPageId,
+      ids,
+      {
+        scale: 1,
+        format: rasterFormat,
+        quality,
+        trimTransparent: true,
+      },
+    );
+    if (!bytes || bytes.length === 0) return null;
+
+    const bounds = computeContentBounds(editor.graph, ids);
+    const width = bounds ? Math.max(1, Math.ceil(bounds.maxX - bounds.minX)) : 0;
+    const height = bounds ? Math.max(1, Math.ceil(bounds.maxY - bounds.minY)) : 0;
+    const mime =
+      format === 'jpg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+    const bytesBase64 = bytesToBase64(bytes);
+    const dataUrl = `data:${mime};base64,${bytesBase64}`;
+    if (format === 'png') {
+      lastResult.value = { ...(lastResult.value ?? {}), png: dataUrl };
+    }
+    return { mime, bytesBase64, width, height, dataUrl };
+  }
+
+  /** Prefer current selection; fall back to full page roots. */
+  async function exportSelectionOrDocument(
+    format: 'png' | 'jpg' | 'webp' = 'png',
+    quality = 92,
+  ): Promise<OpenPencilRasterExport | null> {
+    const selected = editor.getSelectedNodes().map((n) => n.id).filter(Boolean);
+    return exportRaster(format, quality, selected.length > 0 ? selected : undefined);
+  }
+
   function undo() {
     editor.undoAction();
+    syncOpenPencilStateToCanvasStore(editor);
   }
   function redo() {
     editor.redoAction();
+    syncOpenPencilStateToCanvasStore(editor);
   }
   function getLayerTree() {
     return editor.getLayerTree();
@@ -128,6 +368,7 @@ function createSingleton(): OpenPencilBridge {
   }
   function replaceDocument(graph: Parameters<Editor['replaceGraph']>[0]) {
     editor.replaceGraph(graph);
+    syncOpenPencilStateToCanvasStore(editor);
   }
 
   return {
@@ -137,6 +378,11 @@ function createSingleton(): OpenPencilBridge {
     exportSVG,
     importSVG,
     sendImageToAI,
+    placeFiles,
+    placeDataUrl,
+    placeBytes,
+    exportRaster,
+    exportSelectionOrDocument,
     undo,
     redo,
     getLayerTree,

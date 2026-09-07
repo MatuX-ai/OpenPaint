@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:default",
+    "core:window:allow-destroy",
     "core:webview:default",
     "core:event:default",
     "core:path:default",
@@ -18,11 +19,34 @@
     "fs:default",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
     "fs:allow-exists",
     "fs:allow-mkdir",
     "fs:allow-remove",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$HOME/.openpaint" },
+        { "path": "$HOME/.openpaint/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$PICTURE/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPCONFIG/**" },
+        { "path": "$RESOURCE/**" },
+        { "path": "$TEMP/**" }
+      ]
+    },
     "dialog:default",
     "dialog:allow-open",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-read-image",
+    "clipboard-manager:allow-write-image",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text"
   ]
 }

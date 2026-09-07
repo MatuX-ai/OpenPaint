@@ -10,10 +10,15 @@ import GalleryGrid from './GalleryGrid.vue';
 import GalleryDetail from './GalleryDetail.vue';
 import Spinner from '@/components/common/Spinner.vue';
 import { useGallery } from '@composables/useGallery';
-import { canvasApi } from '@api/index';
+import { getOpenPencilBridge } from '@composables/useOpenPencil';
+import { useDocumentState } from '@composables/useDocumentState';
+import { useToast } from '@composables/useToast';
 import type { GalleryItem } from '@/types/gallery';
 
 const { items, isLoading, loadRecent, search, deleteItem, getDetail } = useGallery();
+const bridge = getOpenPencilBridge();
+const doc = useDocumentState();
+const toast = useToast();
 
 const query = ref('');
 const detailItem = ref<GalleryItem | null>(null);
@@ -50,15 +55,18 @@ async function onDelete(id: string) {
 }
 
 async function onPasteToCanvas(item: GalleryItem) {
-  // Fetch the original PNG then paste into the active layer.
+  // Fetch the original PNG then place into the OpenPencil document.
   try {
     const detail = await getDetail(item.id);
     if (detail.png) {
-      await canvasApi.pasteImage(detail.png);
+      await bridge.placeDataUrl(detail.png, `${item.id}.png`);
+      doc.markDirty();
       detailItem.value = null;
+      toast.success('已导入到画布');
     }
   } catch (e) {
     console.error('[GalleryPanel] paste failed:', e);
+    toast.error(`导入失败：${String((e as Error).message ?? e)}`);
   }
 }
 

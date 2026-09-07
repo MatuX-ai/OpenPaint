@@ -19,15 +19,24 @@ const mockEditor: any = {
   getLayerTree: vi.fn(),
   copySelectionAsSVG: vi.fn(),
   pasteFromHTML: vi.fn(),
+  placeFiles: vi.fn(),
   undoAction: vi.fn(),
   redoAction: vi.fn(),
   getSelectedNodes: vi.fn(),
   replaceGraph: vi.fn(),
   onEditorEvent: vi.fn(() => () => {}),
+  state: { panX: 0, panY: 0, zoom: 1, currentPageId: 'page-1', selectedIds: new Set() },
+  renderer: null,
+  graph: {},
 };
 
 vi.mock('@open-pencil/core/editor', () => ({
   createEditor: vi.fn(() => mockEditor),
+}));
+
+vi.mock('@open-pencil/core/io', () => ({
+  renderNodesToImage: vi.fn(() => new Uint8Array([1, 2, 3])),
+  computeContentBounds: vi.fn(() => ({ minX: 0, minY: 0, maxX: 100, maxY: 80 })),
 }));
 
 vi.mock('@api/index', () => ({
@@ -42,20 +51,43 @@ import {
   createOpenPencilBridge,
   getOpenPencilBridge,
   resetOpenPencilBridge,
+  syncOpenPencilStateToCanvasStore,
 } from '@composables/useOpenPencil';
+import { createPinia, setActivePinia } from 'pinia';
+import { useCanvasStore } from '@stores/canvasStore';
 
 describe('useOpenPencil', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetOpenPencilBridge();
     mockEditor.getLayerTree.mockReturnValue([]);
+    mockEditor.getSelectedNodes.mockReturnValue([]);
     mockEditor.copySelectionAsSVG.mockReturnValue('<svg/>');
     mockEditor.pasteFromHTML.mockResolvedValue(undefined);
+    mockEditor.placeFiles.mockResolvedValue(undefined);
     mockEditor.onEditorEvent.mockReturnValue(() => {});
   });
 
   afterEach(() => {
     resetOpenPencilBridge();
+  });
+
+  it('syncOpenPencilStateToCanvasStore 把顶层节点写入 canvasStore.layerList', () => {
+    setActivePinia(createPinia());
+    mockEditor.getLayerTree.mockReturnValue([
+      { depth: 0, node: { id: 'r1', name: '红点', type: 'RECTANGLE', x: 1, y: 2, width: 10, height: 20 } },
+      { depth: 1, node: { id: 'c1', name: 'child' } },
+      { depth: 0, node: { id: 'r2', name: '蓝点', type: 'RECTANGLE' } },
+    ]);
+    mockEditor.getSelectedNodes.mockReturnValue([{ id: 'r2' }]);
+    createOpenPencilBridge(); // 绑定 singletonEditor
+    syncOpenPencilStateToCanvasStore(mockEditor);
+    const store = useCanvasStore();
+    expect(store.layerList).toHaveLength(2);
+    expect(store.layerList.map((l) => l.name)).toEqual(['红点', '蓝点']);
+    expect(store.activeLayerId).toBe('r2');
+    expect(store.layerList[0].offsetX).toBe(1);
+    expect(store.layerList[0].offsetY).toBe(2);
   });
 
   it('初始 status=loading', () => {
@@ -184,6 +216,19 @@ describe('useOpenPencil', () => {
     expect(typeof off).toBe('function');
   });
 
+  it('placeFiles 在 status=ready 时调用 editor.placeFiles', async () => {
+    const bridge = createOpenPencilBridge();
+    bridge.status.value = 'ready';
+    const file = new File([new Uint8Array([1])], 'a.png', { type: 'image/png' });
+    await bridge.placeFiles([file]);
+    expect(mockEditor.placeFiles).toHaveBeenCalledWith([file], expect.any(Number), expect.any(Number));
+  });
+
+  it('placeFiles 在未就绪时抛错', async () => {
+    const bridge = createOpenPencilBridge();
+    await expect(bridge.placeFiles([new File(['x'], 'a.png')])).rejects.toThrow(/尚未就绪/);
+  });
+
   it('返回接口字段齐全', () => {
     const bridge = createOpenPencilBridge();
     expect(bridge).toHaveProperty('editor');
@@ -192,6 +237,10 @@ describe('useOpenPencil', () => {
     expect(bridge).toHaveProperty('exportSVG');
     expect(bridge).toHaveProperty('importSVG');
     expect(bridge).toHaveProperty('sendImageToAI');
+    expect(bridge).toHaveProperty('placeFiles');
+    expect(bridge).toHaveProperty('placeDataUrl');
+    expect(bridge).toHaveProperty('placeBytes');
+    expect(bridge).toHaveProperty('exportRaster');
     expect(bridge).toHaveProperty('undo');
     expect(bridge).toHaveProperty('redo');
     expect(bridge).toHaveProperty('getLayerTree');
@@ -201,6 +250,7 @@ describe('useOpenPencil', () => {
     expect(typeof bridge.exportSVG).toBe('function');
     expect(typeof bridge.importSVG).toBe('function');
     expect(typeof bridge.sendImageToAI).toBe('function');
+    expect(typeof bridge.placeFiles).toBe('function');
     expect(typeof bridge.undo).toBe('function');
     expect(typeof bridge.redo).toBe('function');
   });

@@ -26,7 +26,7 @@ const emit = defineEmits<{
       height: number;
       unit: 'px' | 'mm';
       dpi: 72 | 144 | 300;
-      handleLayers: 'crop' | 'discard' | 'cancel';
+      handleLayers: 'keep' | 'discard' | 'cancel';
     },
   ): void;
 }>();
@@ -90,7 +90,7 @@ const customUnit = ref<'px' | 'mm'>('px');
 const customDpi = ref<72 | 144 | 300>(72);
 
 const hasLayers = computed(() => canvasStore.layerList.length > 0);
-const handleLayers = ref<'crop' | 'discard'>('crop');
+const handleLayers = ref<'keep' | 'discard'>('discard');
 
 const finalDims = computed(() => {
   if (customMode.value) {
@@ -185,8 +185,8 @@ function onCancel(): void {
         <h3 class="new-canvas__label">现有图层（{{ canvasStore.layerList.length }}）</h3>
         <div class="new-canvas__layer-opts">
           <label>
-            <input v-model="handleLayers" type="radio" value="crop" />
-            <span>保留并裁切到新尺寸</span>
+            <input v-model="handleLayers" type="radio" value="keep" />
+            <span>保留现有内容（仅改画布尺寸）</span>
           </label>
           <label>
             <input v-model="handleLayers" type="radio" value="discard" />
