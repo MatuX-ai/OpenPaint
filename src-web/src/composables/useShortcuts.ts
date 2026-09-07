@@ -6,7 +6,6 @@
  */
 
 import { onBeforeUnmount, onMounted } from 'vue';
-import { useCanvasStore } from '@stores/canvasStore';
 import { useUIStore } from '@stores/uiStore';
 import { getOpenPencilBridge } from '@composables/useOpenPencil';
 import { activateTool } from '@/tools/useEditorTool';
@@ -85,7 +84,6 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export function useShortcuts(target: HTMLElement | Window = window) {
-  const canvasStore = useCanvasStore();
   const uiStore = useUIStore();
   const bridge = getOpenPencilBridge();
 
