@@ -5,6 +5,7 @@
 import type { Editor } from '@open-pencil/core/editor';
 import { useCanvasStore } from '@stores/canvasStore';
 import { hexToRgba01, withFillStyle } from '@utils/vectorStroke';
+import { isPageNode } from '@utils/nodeType';
 import type { GradientPreset, Palette } from '@/types/asset';
 import { syncOpenPencilStateToCanvasStore } from '@composables/useOpenPencil';
 
@@ -20,7 +21,7 @@ export function applySolidFillToSelection(editor: Editor, hex: string): number {
   store.setFillEnabled(true);
   let n = 0;
   for (const node of editor.getSelectedNodes()) {
-    if (node.type === 'PAGE') continue;
+    if (isPageNode(node)) continue;
     const fills = (node as { fills?: unknown[] }).fills as never;
     const next = withFillStyle(fills as never, hex, true);
     editor.updateNodeWithUndo(node.id, { fills: next } as never, '填充颜色');
@@ -43,7 +44,7 @@ export function applyPaletteToSelection(
   const colors = palette.colors.map((c) => c.hex).filter(Boolean);
   if (colors.length === 0) return { applied: 0, colors: [] };
   // Swatch bar: paint selected nodes with cycling palette colors.
-  const selected = editor.getSelectedNodes().filter((n) => n.type !== 'PAGE');
+  const selected = editor.getSelectedNodes().filter((n) => !isPageNode(n));
   if (selected.length === 0) {
     // No selection — park first color in prefs for next draw.
     const store = useCanvasStore();
@@ -96,7 +97,7 @@ export function applyGradientToSelection(
     gradientTransform: IDENTITY_TRANSFORM,
   };
   let n = 0;
-  const selected = editor.getSelectedNodes().filter((n) => n.type !== 'PAGE');
+  const selected = editor.getSelectedNodes().filter((n) => !isPageNode(n));
   if (selected.length === 0) {
     // Create a frame with the gradient so the user sees something.
     const { panX, panY, zoom } = editor.state;

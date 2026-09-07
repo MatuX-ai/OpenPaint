@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
+import type { Editor } from '@open-pencil/core/editor';
 import * as layerOps from './layerOps';
 
 const graph = {
@@ -65,7 +66,7 @@ function makeEditor() {
     }),
     getLayerTree: vi.fn(() => [...nodes.values()].map((n) => ({ depth: 0, node: { ...n } }))),
     requestRepaint: vi.fn(),
-  } as never;
+  } as unknown as Editor;
 }
 
 vi.mock('@composables/useOpenPencil', () => ({

@@ -6,6 +6,7 @@
 import { renderNodesToImage, computeContentBounds } from '@open-pencil/core/io';
 import type { Editor } from '@open-pencil/core/editor';
 import { makeStretchImageFill } from '@utils/rasterPixels';
+import { isPageNode } from '@utils/nodeType';
 
 export interface RasterizedLayer {
   nodeId: string;
@@ -35,16 +36,14 @@ export function isPixelEditableNode(node: {
 export function collectVectorIdsForPixelEdit(editor: Editor, hitId: string | null): string[] {
   if (hitId) {
     const hit = editor.getNode(hitId);
-    if (hit && hit.type !== 'PAGE' && !isPixelEditableNode(hit)) {
+    if (hit && !isPageNode(hit) && !isPixelEditableNode(hit)) {
       return [hitId];
     }
     if (hit && isPixelEditableNode(hit)) return [];
   }
 
   const selected = editor.getSelectedNodes();
-  const vectors = selected
-    .filter((n) => n.type !== 'PAGE' && !isPixelEditableNode(n))
-    .map((n) => n.id);
+  const vectors = selected.filter((n) => !isPageNode(n) && !isPixelEditableNode(n)).map((n) => n.id);
   return vectors;
 }
 
@@ -54,7 +53,7 @@ export async function rasterizeNodeIds(
 ): Promise<RasterizedLayer | null> {
   const ids = [...new Set(nodeIds)].filter((id) => {
     const n = editor.getNode(id);
-    return Boolean(n && n.type !== 'PAGE');
+    return Boolean(n && !isPageNode(n));
   });
   if (ids.length === 0) return null;
 
@@ -132,7 +131,7 @@ export async function rasterizeCurrentSelection(
   editor: Editor,
   options?: { confirm?: (ids: string[], label: string) => Promise<boolean> },
 ): Promise<RasterizedLayer | null> {
-  const selected = editor.getSelectedNodes().filter((n) => n.type !== 'PAGE');
+  const selected = editor.getSelectedNodes().filter((n) => !isPageNode(n));
   if (selected.length === 0) {
     throw new Error('请先选中要转换的对象');
   }

@@ -12,13 +12,21 @@ import type * as Runtime from '@api/runtime';
 const placeDataUrl = vi.fn(async () => undefined);
 const placeFiles = vi.fn(async () => undefined);
 const placeBytes = vi.fn(async () => undefined);
-const exportRaster = vi.fn(async () => ({
-  mime: 'image/png',
-  bytesBase64: 'AAA',
-  width: 100,
-  height: 100,
-  dataUrl: 'data:image/png;base64,AAA',
-}));
+const exportRaster = vi.fn(
+  async (): Promise<{
+    mime: string;
+    bytesBase64: string;
+    width: number;
+    height: number;
+    dataUrl: string;
+  } | null> => ({
+    mime: 'image/png',
+    bytesBase64: 'AAA',
+    width: 100,
+    height: 100,
+    dataUrl: 'data:image/png;base64,AAA',
+  }),
+);
 const undo = vi.fn();
 const redo = vi.fn();
 const selectAll = vi.fn();

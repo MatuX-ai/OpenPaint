@@ -27,6 +27,7 @@ import {
   Sparkles,
   Crosshair,
   ChevronRight,
+  Shapes,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { useCanvasStore } from '@stores/canvasStore';

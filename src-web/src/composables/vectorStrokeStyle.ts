@@ -13,6 +13,7 @@ import {
   type FillLike,
   type StrokeLike,
 } from '@utils/vectorStroke';
+import { isPageNode } from '@utils/nodeType';
 
 type StyleKind = 'stroke' | 'fill-stroke' | 'text';
 
@@ -67,7 +68,7 @@ function isStyleableShape(node: {
   strokes?: unknown[];
   fills?: unknown[];
 }): boolean {
-  if (!node.type || node.type === 'PAGE') return false;
+  if (!node.type || isPageNode(node)) return false;
   if (SHAPE_TYPES.has(node.type)) return true;
   return Boolean(node.strokes?.length || node.fills?.length);
 }
@@ -76,7 +77,7 @@ export function applyStrokeStyleToSelected(editor: Editor): number {
   const store = useCanvasStore();
   let n = 0;
   for (const node of editor.getSelectedNodes()) {
-    if (node.type === 'PAGE' || isTextNode(node)) continue;
+    if (isPageNode(node) || isTextNode(node)) continue;
     const strokes = (node as { strokes?: StrokeLike[] }).strokes;
     const isPathLike =
       node.type === 'VECTOR' ||
@@ -101,7 +102,7 @@ export function applyFillStyleToSelected(editor: Editor): number {
   const store = useCanvasStore();
   let n = 0;
   for (const node of editor.getSelectedNodes()) {
-    if (node.type === 'PAGE') continue;
+    if (isPageNode(node)) continue;
     if (node.type === 'VECTOR' && !(node as { fills?: unknown[] }).fills?.length) {
       // Open paths usually have no fill — skip unless user enabled fill.
       if (!store.fillEnabled) continue;
@@ -217,7 +218,7 @@ export function syncStrokePrefsFromSelection(editor: Editor): void {
 export function syncStylePrefsFromSelection(editor: Editor): void {
   const store = useCanvasStore();
   for (const node of editor.getSelectedNodes()) {
-    if (node.type === 'PAGE') continue;
+    if (isPageNode(node)) continue;
     const fills = (node as { fills?: FillLike[] }).fills;
     const strokes = (node as { strokes?: StrokeLike[] }).strokes;
     const solid = fills?.find((f) => f?.type === 'SOLID' && f.color);

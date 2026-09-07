@@ -38,6 +38,7 @@ import {
   applyStrokeStyleToSelected,
   applyTextStyleToSelected,
 } from '@composables/vectorStrokeStyle';
+import { isPageNode } from '@utils/nodeType';
 import {
   addLayer as addOpLayer,
   rotateLayer as rotateOpLayer,
@@ -74,7 +75,7 @@ const showFillControls = computed(() => {
   if (store.activeTool === 'text') return true;
   if (isShapeDrawTool(store.activeTool) && store.activeTool !== 'line') return true;
   return selectedNodes().some((n) => {
-    if (n.type === 'TEXT' || n.type === 'PAGE' || n.type === 'VECTOR') return n.type === 'TEXT';
+    if (n.type === 'TEXT' || isPageNode(n) || n.type === 'VECTOR') return n.type === 'TEXT';
     return ['RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'FRAME'].includes(n.type);
   });
 });

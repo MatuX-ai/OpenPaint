@@ -179,7 +179,22 @@ export function syncOpenPencilStateToCanvasStore(editor?: Editor | null): void {
   const layers: Layer[] = tree
     .filter((entry) => (entry.depth ?? 0) === 0)
     .map((entry) => {
-      const n = entry.node ?? {};
+      const n = (entry.node ?? {}) as {
+        id?: unknown;
+        name?: unknown;
+        type?: unknown;
+        opacity?: unknown;
+        blendMode?: unknown;
+        blend_mode?: unknown;
+        visible?: unknown;
+        locked?: unknown;
+        width?: unknown;
+        height?: unknown;
+        x?: unknown;
+        y?: unknown;
+        offsetX?: unknown;
+        offsetY?: unknown;
+      };
       const id = String(n.id ?? '');
       const name = String(n.name || n.type || id || '图层');
       const opacity = typeof n.opacity === 'number' ? n.opacity : 1;

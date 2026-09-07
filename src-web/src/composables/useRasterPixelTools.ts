@@ -25,6 +25,7 @@ import {
   type ImageScaleMode,
   type ImageTransform2x3,
 } from '@utils/rasterPixels';
+import { isPageNode } from '@utils/nodeType';
 
 interface ImageFill {
   type: string;
@@ -235,7 +236,7 @@ export function useRasterPixelTools(
       const hash = editor.storeImage(png);
       imageCache.set(hash, copy);
       const nextFills = replaceImageFillHash(
-        originalFills as Array<Record<string, unknown>>,
+        originalFills as unknown as Array<Record<string, unknown>>,
         target.imageHash,
         hash,
         true,
@@ -279,7 +280,7 @@ export function useRasterPixelTools(
     imageCache.delete(target.imageHash);
     if (previewHash) imageCache.delete(previewHash);
     const nextFills = replaceImageFillHash(
-      originalFills as Array<Record<string, unknown>>,
+      originalFills as unknown as Array<Record<string, unknown>>,
       target.imageHash,
       newHash,
       true,
@@ -300,7 +301,7 @@ export function useRasterPixelTools(
     // PAGE / empty container under the cursor counts as blank: never rasterize
     // the current selection just because a vector is selected.
     const hitIsDrawable =
-      hit && hit.type !== 'PAGE' && hit.type !== 'SECTION' && hit.type !== 'COMPONENT_SET';
+      hit && !isPageNode(hit) && hit.type !== 'SECTION' && hit.type !== 'COMPONENT_SET';
 
     // Only rasterize when the click actually hits a vector. Blank clicks always
     // create a new pixel layer (even if vectors are selected).
@@ -442,17 +443,17 @@ export function useRasterPixelTools(
   }
 
   function attach(canvas: HTMLCanvasElement): void {
-    canvas.addEventListener('pointerdown', onPointerDown as EventListener, true);
-    canvas.addEventListener('pointermove', onPointerMove as EventListener, true);
-    canvas.addEventListener('pointerup', onPointerUp as EventListener, true);
-    canvas.addEventListener('pointercancel', onPointerUp as EventListener, true);
+    canvas.addEventListener('pointerdown', onPointerDown as unknown as EventListener, true);
+    canvas.addEventListener('pointermove', onPointerMove as unknown as EventListener, true);
+    canvas.addEventListener('pointerup', onPointerUp as unknown as EventListener, true);
+    canvas.addEventListener('pointercancel', onPointerUp as unknown as EventListener, true);
   }
 
   function detach(canvas: HTMLCanvasElement): void {
-    canvas.removeEventListener('pointerdown', onPointerDown as EventListener, true);
-    canvas.removeEventListener('pointermove', onPointerMove as EventListener, true);
-    canvas.removeEventListener('pointerup', onPointerUp as EventListener, true);
-    canvas.removeEventListener('pointercancel', onPointerUp as EventListener, true);
+    canvas.removeEventListener('pointerdown', onPointerDown as unknown as EventListener, true);
+    canvas.removeEventListener('pointermove', onPointerMove as unknown as EventListener, true);
+    canvas.removeEventListener('pointerup', onPointerUp as unknown as EventListener, true);
+    canvas.removeEventListener('pointercancel', onPointerUp as unknown as EventListener, true);
   }
 
   let attached: HTMLCanvasElement | null = null;

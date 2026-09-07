@@ -15,7 +15,6 @@ export interface StrokeLike {
   opacity?: number;
   visible?: boolean;
   align?: string;
-  [key: string]: unknown;
 }
 
 export interface FillLike {
@@ -23,7 +22,6 @@ export interface FillLike {
   color?: Rgba01;
   opacity?: number;
   visible?: boolean;
-  [key: string]: unknown;
 }
 
 /** Parse #rgb / #rrggbb into OpenPencil 0–1 RGBA. */
