@@ -11,6 +11,9 @@ importers:
 
   .:
     devDependencies:
+      '@fontsource/inter':
+        specifier: ^5.2.5
+        version: 5.3.0
       '@tauri-apps/cli':
         specifier: ^2.0.0
         version: 2.11.4
@@ -20,6 +23,9 @@ importers:
       conventional-changelog-cli:
         specifier: ^4.1.0
         version: 4.1.0
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
       prettier:
         specifier: ^3.2.0
         version: 3.9.6
@@ -512,6 +518,10 @@ packages:
       - '@vue/composition-api'
       - vue
     dev: false
+
+  /@fontsource/inter@5.3.0:
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+    dev: true
 
   /@humanwhocodes/config-array@0.13.0:
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -3509,6 +3519,20 @@ packages:
       confbox: 0.1.8
       mlly: 1.8.2
       pathe: 2.0.3
+    dev: true
+
+  /playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+    dev: true
+
+  /playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
+    hasBin: true
+    dependencies:
+      playwright-core: 1.63.0
     dev: true
 
   /postcss-media-query-parser@0.2.3:
