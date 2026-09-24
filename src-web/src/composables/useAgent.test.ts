@@ -175,26 +175,29 @@ describe('useAgent', () => {
     expect(a.store.isProcessing).toBe(false);
   });
 
-  it('sendWithSelection 附加选区信息（来自 OpenPencil）', async () => {
+  it('sendWithSelection 收集选区信息（隐藏上下文，不污染气泡）', async () => {
     agentOpMocks.getSelectedNodes.mockReturnValueOnce([
       { id: 'a', x: 10, y: 20, width: 100, height: 50 },
     ]);
     mockIsMockRef.value = true;
     const a = useAgent();
     await a.sendWithSelection('解释这块');
+    // 桥仍然被查询（保持能力等价于旧契约）
     expect(agentOpMocks.getSelectedNodes).toHaveBeenCalled();
-    expect(a.store.messages).toHaveLength(2);
-    expect(a.store.messages[0].content).toContain('解释这块');
-    expect(a.store.messages[0].content).toContain('100×50');
-    expect(a.store.messages[0].content).toContain('(10,20)');
+    // 用户气泡只剩原始文本，不再泄漏 [当前选区: ...]
+    expect(a.store.messages[0].content).toBe('解释这块');
+    expect(a.store.messages[0].content).not.toContain('100×50');
+    expect(a.store.messages[0].content).not.toContain('(10,20)');
   });
 
-  it('sendWithSelection 无选区时使用「无选区」占位', async () => {
+  it('sendWithSelection 无选区时静默发送（不显示「无选区」占位）', async () => {
     agentOpMocks.getSelectedNodes.mockReturnValueOnce([]);
     mockIsMockRef.value = true;
     const a = useAgent();
     await a.sendWithSelection('看看');
-    expect(a.store.messages[0].content).toContain('无选区');
+    expect(agentOpMocks.getSelectedNodes).toHaveBeenCalled();
+    expect(a.store.messages[0].content).toBe('看看');
+    expect(a.store.messages[0].content).not.toContain('无选区');
   });
 
   it('store 暴露 chatStore 实例', () => {
