@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import { resolve as resolvePath } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
 
 // 浏览器端空白模块：用于别名 @open-pencil/core / canvaskit-wasm 中只在 Node
 // 分支使用的 Node.js 内置（被 IS_BROWSER / typeof process 检查守护）。
@@ -22,23 +23,49 @@ const sourceMapShim = resolvePath(
 //
 // 注意：rsms/inter@v4 docs/font-files 路径已 404；改用 fontsource 静态 TTF
 //（非 variable —— OpenPencil 的 isVariableFont 会拒绝可变字体）。
-const OPENPENCIL_FONTS: Record<string, string> = {
-  '/Inter-Regular.ttf':
-    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-400-normal.ttf',
-  '/Inter-Medium.ttf': 'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf',
-  '/Inter-SemiBold.ttf':
-    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-600-normal.ttf',
-  '/Inter-Bold.ttf': 'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-700-normal.ttf',
-  '/Inter-ExtraBold.ttf':
-    'https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-800-normal.ttf',
-  '/NotoNaskhArabic-Regular.ttf':
-    'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@main/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf',
+type FontSource = { kind: 'local'; src: string } | { kind: 'remote'; src: string };
+
+const FONTSOURCE_INTER_DIRS = [
+  resolvePath(fileURLToPath(new URL('../node_modules/@fontsource/inter/files', import.meta.url))),
+  resolvePath(
+    fileURLToPath(
+      new URL(
+        '../node_modules/.pnpm/@fontsource+inter@5.3.0/node_modules/@fontsource/inter/files',
+        import.meta.url,
+      ),
+    ),
+  ),
+];
+
+function resolveInterFontsDir(): string | null {
+  // vite.config.ts 在 ESM 中运行，函数内不能 require()；改用文件顶部静态
+  // 导入的同步 fs API（existsSync + statSync），避免 dynamic require 错误。
+  for (const dir of FONTSOURCE_INTER_DIRS) {
+    try {
+      if (existsSync(dir) && statSync(dir).isDirectory()) return dir;
+    } catch {
+      /* continue */
+    }
+  }
+  return null;
+}
+
+const OPENPENCIL_FONTS: Record<string, FontSource> = {
+  '/Inter-Regular.ttf': { kind: 'local', src: 'inter-latin-400-normal.woff2' },
+  '/Inter-Medium.ttf': { kind: 'local', src: 'inter-latin-500-normal.woff2' },
+  '/Inter-SemiBold.ttf': { kind: 'local', src: 'inter-latin-600-normal.woff2' },
+  '/Inter-Bold.ttf': { kind: 'local', src: 'inter-latin-700-normal.woff2' },
+  '/Inter-ExtraBold.ttf': { kind: 'local', src: 'inter-latin-800-normal.woff2' },
+  '/NotoNaskhArabic-Regular.ttf': {
+    kind: 'remote',
+    src: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@main/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf',
+  },
 };
 
-/** TrueType / OpenType magic — 拒绝把 CDN 404 HTML 当成字体缓存。 */
+/** TrueType / OpenType / wOFF / wOF2 magic — 拒绝把 CDN 404 HTML 当成字体缓存。 */
 function looksLikeFontBuffer(buf: Buffer): boolean {
   if (buf.length < 4) return false;
-  // TTF: 0x00010000 | OTTO | true | wOFF
+  // TTF: 0x00010000 | OTTO | true | wOFF | wOF2
   const b0 = buf[0];
   const b1 = buf[1];
   const b2 = buf[2];
@@ -47,6 +74,7 @@ function looksLikeFontBuffer(buf: Buffer): boolean {
   if (b0 === 0x4f && b1 === 0x54 && b2 === 0x54 && b3 === 0x4f) return true; // OTTO
   if (b0 === 0x74 && b1 === 0x72 && b2 === 0x75 && b3 === 0x65) return true; // true
   if (b0 === 0x77 && b1 === 0x4f && b2 === 0x46 && b3 === 0x46) return true; // wOFF
+  if (b0 === 0x77 && b1 === 0x4f && b2 === 0x46 && b3 === 0x32) return true; // wOF2
   return false;
 }
 
@@ -155,9 +183,15 @@ export default defineConfig({
         }
       },
     },
-    // 生产构建同步下载 OpenPencil BUNDLED_FONTS 到 dist/ 根目录，让 tauri
-    // 打包 / vite preview 能直接 serve。fetch 失败时跳过该字体（OpenPencil
-    // 的 fonts.js 会回退到 warn + null，不会阻塞主路径）。
+    // 生产构建同步把 OpenPencil BUNDLED_FONTS 写到 dist/ 根目录，让 tauri
+    // 打包 / vite preview 能直接 serve。字体支持两类源：
+    //   - kind: 'local'  — 从 node_modules 中的 @fontsource/inter 包复制 woff2，
+    //     完全离线、不依赖外网，避免之前 jsdelivr 失效导致的 OTS parsing error
+    //     + failed to open as a font 三连报错。
+    //   - kind: 'remote' — 仍走 CDN（仅 NotoNaskhArabic，fontsource 未发布）。
+    // 任意一项失败时跳过该字体（OpenPencil 的 fonts.js 会回退到 warn + null，
+    // 不阻塞主路径）。Skia 通过 ArrayBuffer magic bytes 识别字体格式，URL 后缀
+    // 不影响解析，因此 .woff2 可以被改名为 .ttf 直接喂给 CanvasKit。
     {
       name: 'copy-openpencil-fonts',
       apply: 'build',
@@ -166,17 +200,30 @@ export default defineConfig({
         const path = await import('node:path');
         const dist = path.resolve(fileURLToPath(new URL('./dist', import.meta.url)));
         await fs.mkdir(dist, { recursive: true });
+        const interDir = resolveInterFontsDir();
+        if (!interDir) {
+          console.warn(
+            '[copy-openpencil-fonts] @fontsource/inter files dir not found — Inter 字体将缺失',
+          );
+        }
         await Promise.all(
-          Object.entries(OPENPENCIL_FONTS).map(async ([relPath, url]) => {
+          Object.entries(OPENPENCIL_FONTS).map(async ([relPath, source]) => {
             const dest = path.join(dist, relPath.replace(/^\//, ''));
             try {
-              const res = await fetch(url);
-              if (!res.ok) {
-                console.warn(`[copy-openpencil-fonts] ${relPath} HTTP ${res.status} — skip`);
-                return;
+              let buf: Buffer | null = null;
+              if (source.kind === 'local') {
+                if (!interDir) return;
+                const localFile = path.join(interDir, source.src);
+                buf = await fs.readFile(localFile);
+              } else {
+                const res = await fetch(source.src);
+                if (!res.ok) {
+                  console.warn(`[copy-openpencil-fonts] ${relPath} HTTP ${res.status} — skip`);
+                  return;
+                }
+                buf = Buffer.from(await res.arrayBuffer());
               }
-              const buf = Buffer.from(await res.arrayBuffer());
-              if (!looksLikeFontBuffer(buf)) {
+              if (!buf || !looksLikeFontBuffer(buf)) {
                 console.warn(`[copy-openpencil-fonts] ${relPath} not a font buffer — skip`);
                 return;
               }
@@ -184,7 +231,7 @@ export default defineConfig({
               console.log(`[copy-openpencil-fonts] ${relPath} -> ${buf.length} bytes`);
             } catch (err) {
               console.warn(
-                `[copy-openpencil-fonts] ${relPath} fetch failed: ${String((err as Error)?.message ?? err)} — skip`,
+                `[copy-openpencil-fonts] ${relPath} copy failed: ${String((err as Error)?.message ?? err)} — skip`,
               );
             }
           }),
@@ -253,16 +300,18 @@ export default defineConfig({
           use: (handler: (req: { url?: string }, res: any, next: () => void) => void) => void;
         };
       }) {
-        const cache = new Map<string, Buffer>();
+        const fontCache = new Map<string, Buffer>();
         const inflight = new Map<string, Promise<Buffer | null>>();
+        const interDir = resolveInterFontsDir();
         server.middlewares.use(async (req, res, next) => {
           const raw = req.url ?? '';
           const pathname = raw.split('?', 1)[0] ?? raw;
-          if (!OPENPENCIL_FONTS[pathname]) {
+          const source = OPENPENCIL_FONTS[pathname];
+          if (!source) {
             next();
             return;
           }
-          const cached = cache.get(pathname);
+          const cached = fontCache.get(pathname);
           if (cached) {
             res.setHeader('Content-Type', 'font/ttf');
             res.setHeader('Content-Length', String(cached.length));
@@ -275,13 +324,23 @@ export default defineConfig({
           if (!pending) {
             pending = (async () => {
               try {
-                const upstream = await fetch(OPENPENCIL_FONTS[pathname]);
-                if (!upstream.ok) return null;
-                const ab = await upstream.arrayBuffer();
-                const buf = Buffer.from(ab);
-                if (!looksLikeFontBuffer(buf)) return null;
-                cache.set(pathname, buf);
-                return buf;
+                if (source.kind === 'local') {
+                  if (!interDir) return null;
+                  const fs = await import('node:fs/promises');
+                  const path = await import('node:path');
+                  const buf = await fs.readFile(path.join(interDir, source.src));
+                  if (!looksLikeFontBuffer(buf)) return null;
+                  fontCache.set(pathname, buf);
+                  return buf;
+                } else {
+                  const upstream = await fetch(source.src);
+                  if (!upstream.ok) return null;
+                  const ab = await upstream.arrayBuffer();
+                  const buf = Buffer.from(ab);
+                  if (!looksLikeFontBuffer(buf)) return null;
+                  fontCache.set(pathname, buf);
+                  return buf;
+                }
               } catch {
                 return null;
               } finally {
